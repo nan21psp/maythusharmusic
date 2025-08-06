@@ -1,4 +1,4 @@
-FROM nikolaik/python-nodejs:python3.10-nodejs21
+FROM nikolaik/python-nodejs:python3.10-nodejs24
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg aria2 \
@@ -8,6 +8,7 @@ RUN apt-get update \
 COPY . /app/
 WORKDIR /app/
 RUN python -m pip install --no-cache-dir --upgrade pip
-RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
+RUN pip3 install --no-cache-dir -U -r requirements.txt \
+    && python3 -m pip install -U --pre "yt-dlp[default]"
 
 CMD python3 -m maythusharmusic
