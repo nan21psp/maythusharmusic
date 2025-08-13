@@ -17,9 +17,12 @@ import random
 import logging
 import requests
 import time
-from config import API_URL, API_KEY
 
-USE_API = bool(API_URL and API_KEY)
+
+# ✅ Configurable constants
+API_KEY = "Rf1qda5gyCITj6VbrekzRxmR"
+API_BASE_URL = "http://deadlinetech.site"
+
 MIN_FILE_SIZE = 51200
 
 def extract_video_id(link: str) -> str:
@@ -40,12 +43,12 @@ def extract_video_id(link: str) -> str:
 
 
 def api_dl(video_id: str) -> str | None:
-    api_url = f"{API_URL}/download/song/{video_id}?key={API_KEY}"
+    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={API_KEY}"
     file_path = os.path.join("downloads", f"{video_id}.mp3")
 
     # ✅ Check if already downloaded
     if os.path.exists(file_path):
-        print(f"Song {file_path} already exists. Skipping download ✅")
+        print(f"{file_path} already exists. Skipping download.")
         return file_path
 
     try:
@@ -65,7 +68,7 @@ def api_dl(video_id: str) -> str | None:
                 os.remove(file_path)
                 return None
 
-            print(f"Song Downloaded Successfully ✅ {file_path} ({file_size} bytes)")
+            print(f"Downloaded {file_path} ({file_size} bytes)")
             return file_path
 
         else:
@@ -73,12 +76,15 @@ def api_dl(video_id: str) -> str | None:
             return None
 
     except requests.RequestException as e:
-        print(f"❌ Download error for {video_id}: {e}")
+        print(f"Download error for {video_id}: {e}")
         return None
 
     except OSError as e:
         print(f"File error for {video_id}: {e}")
         return None
+
+
+
 
 
 def cookie_txt_file():
