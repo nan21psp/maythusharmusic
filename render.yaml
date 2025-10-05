@@ -16,14 +16,8 @@ services:
       - key: MONGO_DB_URI
         value: "mongodb+srv://pyaesone:pyaesone@pyaesone.ii8wsxo.mongodb.net/?retryWrites=true&w=majority"
       - key: OWNER_ID
-        value: "1318826936"
+        value: "8260887714"
       - key: LOGGER_ID
         value: "-1002335122520"
-   #   - key: API_KEY
-   #     value: "Rf1qda5gyCITj6VbrekzRxmR"
-   #   - key: API_URL
-  #      value: "http://deadlinetech.site"
-#      - key: COOKIE_URL
- #       value: "https://batbin.me/counterprotest"
       - key: STRING_SESSION
         value: "BQEyXvEAQsWtbzOU8F-VtxaauTGXS1lxbv4pWMx2NfAdqXFV6HcUFll_hNIdZ5L97snpjdTmaIWRb3HwR-ntErH0etFN4ZU92EBs3a4zmoAb4I_KYhMMnj68CLWU8VlmqpMBHNm8xCNsbWfsbcVof4oqUF2jCQOQFzkgl7y576jxP7eBU40UHx20-kQ_NwOm8VGftLrH2QLpFscyO8Qp0OWXrPGBhWfyKH6OsEgnkuU_efU-pBeHI22lFzR-b4G0pITSpGh8yl_05VFXOJL9IGFp_i8NIOT7P8rjB_HhicaE2Bnyxb5MK-fMrZpxP-fYaolph66TMMpNwfsMmniP8cRBLnx0bQAAAAFeh0k2AA"
