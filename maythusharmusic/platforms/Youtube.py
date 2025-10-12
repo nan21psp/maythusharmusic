@@ -20,8 +20,8 @@ import time
 
 
 # ✅ Configurable constants
-API_KEY = "AIzaSyDmiAQr8GQFoVfdQJBn0rnOZ9ZOcN2eY0c"
-API_BASE_URL = "https://pyaesone-official.lovable.app"
+API_KEY = "AIzaSyBzBXzo0f9Ugv80ozuqIndBV53jQXypYuo"
+API_BASE_URL = "http://deadlinetech.site"
 
 MIN_FILE_SIZE = 51200
 
