@@ -2,7 +2,7 @@ import asyncio
 import os
 import re
 import json
-from typing import Union
+from typing import Union, Tuple
 import yt_dlp
 
 from pyrogram.enums import MessageEntityType
@@ -11,6 +11,7 @@ from youtubesearchpython.__future__ import VideosSearch
 
 from maythusharmusic.utils.database import is_on_off
 from maythusharmusic.utils.formatters import time_to_seconds
+from config import API_BASE_URL, API_KEY
 
 import glob
 import random
@@ -20,8 +21,8 @@ import time
 
 
 # ✅ Configurable constants
-API_KEY = "AIzaSyBzBXzo0f9Ugv80ozuqIndBV53jQXypYuo"
-API_BASE_URL = "http://deadlinetech.site"
+#API_KEY = "AIzaSyD8kGqfpnVb_u3_AyyhNY_Ui6_iw-8rVPI"
+#API_BASE_URL = "http://deadlinetech.site"
 
 MIN_FILE_SIZE = 51200
 
@@ -40,7 +41,6 @@ def extract_video_id(link: str) -> str:
 
     raise ValueError("Invalid YouTube link provided.")
     
-
 
 def api_dl(video_id: str) -> str | None:
     api_url = f"{API_BASE_URL}/download/song/{video_id}?key={API_KEY}"
@@ -83,10 +83,6 @@ def api_dl(video_id: str) -> str | None:
         print(f"File error for {video_id}: {e}")
         return None
 
-
-
-
-
 def cookie_txt_file():
     folder_path = f"{os.getcwd()}/cookies"
     filename = f"{os.getcwd()}/cookies/logs.csv"
@@ -97,8 +93,6 @@ def cookie_txt_file():
     with open(filename, 'a') as file:
         file.write(f'Choosen File : {cookie_txt_file}\n')
     return f"""cookies/{str(cookie_txt_file).split("/")[-1]}"""
-
-
 
 async def check_file_size(link):
     async def get_format_info(link):
@@ -360,7 +354,7 @@ class YouTubeAPI:
         songvideo: Union[bool, str] = None,
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
-    ) -> str:
+    ) -> Tuple[str, bool]:
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
@@ -376,7 +370,7 @@ class YouTubeAPI:
             except Exception as e:
                 print(f"API failed: {e}. Falling back to yt-dlp.")
 
-            # yt-dlp fallback
+            # yt-dlp fallback for audio
             ydl_optssx = {
                 "format": "bestaudio/best",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
@@ -385,37 +379,49 @@ class YouTubeAPI:
                 "quiet": True,
                 "cookiefile": cookie_txt_file(),
                 "no_warnings": True,
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }],
             }
 
             try:
                 x = yt_dlp.YoutubeDL(ydl_optssx)
                 info = x.extract_info(link, False)
-                xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                xyz = os.path.join("downloads", f"{info['id']}.mp3")
                 if os.path.exists(xyz):
                     return xyz
                 x.download([link])
                 return xyz
             except Exception as e:
-                print(f"yt-dlp failed: {e}")
+                print(f"yt-dlp audio failed: {e}")
                 return None
 
         def video_dl():
+            # Video with audio format
             ydl_optssx = {
-                "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
+                "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "no_warnings": True,
+                "merge_output_format": "mp4",
             }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
-            if os.path.exists(xyz):
+            
+            try:
+                x = yt_dlp.YoutubeDL(ydl_optssx)
+                info = x.extract_info(link, False)
+                xyz = os.path.join("downloads", f"{info['id']}.mp4")
+                if os.path.exists(xyz):
+                    return xyz
+                x.download([link])
                 return xyz
-            x.download([link])
-            return xyz
+            except Exception as e:
+                print(f"Video download failed: {e}")
+                return None
 
         def song_video_dl():
             formats = f"{format_id}+140"
@@ -427,12 +433,17 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
             }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            x.download([link])
+            try:
+                x = yt_dlp.YoutubeDL(ydl_optssx)
+                x.download([link])
+                return f"{fpath}.mp4"
+            except Exception as e:
+                print(f"Song video download failed: {e}")
+                return None
 
         def song_audio_dl():
             fpath = f"downloads/{title}.%(ext)s"
@@ -443,7 +454,7 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
+                "cookiefile": cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "postprocessors": [
                     {
@@ -453,48 +464,116 @@ class YouTubeAPI:
                     }
                 ],
             }
-            x = yt_dlp.YoutubeDL(ydl_optssx)
-            x.download([link])
+            try:
+                x = yt_dlp.YoutubeDL(ydl_optssx)
+                x.download([link])
+                return f"downloads/{title}.mp3"
+            except Exception as e:
+                print(f"Song audio download failed: {e}")
+                return None
 
-        if songvideo:
-            await loop.run_in_executor(None, song_video_dl)
-            fpath = f"downloads/{title}.mp4"
-            return fpath
-        elif songaudio:
-            await loop.run_in_executor(None, song_audio_dl)
-            fpath = f"downloads/{title}.mp3"
-            return fpath
-        elif video:
-            if await is_on_off(1):
-                direct = True
-                downloaded_file = await loop.run_in_executor(None, video_dl)
-            else:
-                proc = await asyncio.create_subprocess_exec(
-                    "yt-dlp",
-                    "--cookies",cookie_txt_file(),
-                    "-g",
-                    "-f",
-                    "best[height<=?720][width<=?1280]",
-                    f"{link}",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await proc.communicate()
-                if stdout:
-                    downloaded_file = stdout.decode().split("\n")[0]
-                    direct = False
+        try:
+            if songvideo:
+                downloaded_file = await loop.run_in_executor(None, song_video_dl)
+                return downloaded_file, True
+            elif songaudio:
+                downloaded_file = await loop.run_in_executor(None, song_audio_dl)
+                return downloaded_file, True
+            elif video:
+                if await is_on_off(1):
+                    direct = True
+                    downloaded_file = await loop.run_in_executor(None, video_dl)
                 else:
-                   file_size = await check_file_size(link)
-                   if not file_size:
-                     print("None file Size")
-                     return
-                   total_size_mb = file_size / (1024 * 1024)
-                   if total_size_mb > 250:
-                     print(f"File size {total_size_mb:.2f} MB exceeds the 100MB limit.")
-                     return None
-                   direct = True
-                   downloaded_file = await loop.run_in_executor(None, video_dl)
-        else:
-            direct = True
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
-        return downloaded_file, direct
+                    proc = await asyncio.create_subprocess_exec(
+                        "yt-dlp",
+                        "--cookies", cookie_txt_file(),
+                        "-g",
+                        "-f",
+                        "best[height<=?720][width<=?1280]",
+                        f"{link}",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    stdout, stderr = await proc.communicate()
+                    if stdout:
+                        downloaded_file = stdout.decode().split("\n")[0]
+                        direct = False
+                    else:
+                        file_size = await check_file_size(link)
+                        if not file_size:
+                            print("None file Size")
+                            return None, True
+                        total_size_mb = file_size / (1024 * 1024)
+                        if total_size_mb > 250:
+                            print(f"File size {total_size_mb:.2f} MB exceeds the 250MB limit.")
+                            return None, True
+                        direct = True
+                        downloaded_file = await loop.run_in_executor(None, video_dl)
+            else:
+                direct = True
+                downloaded_file = await loop.run_in_executor(None, audio_dl)
+            
+            # Validate downloaded file
+            if not downloaded_file or not os.path.exists(downloaded_file):
+                print(f"Download failed: {downloaded_file}")
+                return None, True
+                
+            file_size = os.path.getsize(downloaded_file)
+            if file_size < MIN_FILE_SIZE:
+                print(f"File too small: {file_size} bytes")
+                os.remove(downloaded_file)
+                return None, True
+                
+            return downloaded_file, direct
+            
+        except Exception as e:
+            print(f"Download error: {e}")
+            return None, True
+
+# Additional function to ensure proper file format
+async def ensure_audio_format(file_path: str) -> str:
+    """Ensure the downloaded file is in a playable audio format"""
+    if not file_path or not os.path.exists(file_path):
+        return file_path
+        
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    # If it's already mp3, return as is
+    if file_ext == '.mp3':
+        return file_path
+        
+    # If it's mp4 but we need audio, convert to mp3
+    if file_ext == '.mp4':
+        try:
+            output_path = os.path.splitext(file_path)[0] + '.mp3'
+            cmd = f'ffmpeg -i "{file_path}" -vn -ar 44100 -ac 2 -b:a 192k "{output_path}" -y'
+            process = await asyncio.create_subprocess_shell(cmd)
+            await process.wait()
+            
+            if os.path.exists(output_path):
+                os.remove(file_path)  # Remove original mp4
+                return output_path
+        except Exception as e:
+            print(f"Format conversion failed: {e}")
+            
+    return file_path
+
+# Function to check if file is playable
+async def is_file_playable(file_path: str) -> bool:
+    """Check if the downloaded file is playable"""
+    if not file_path or not os.path.exists(file_path):
+        return False
+        
+    file_size = os.path.getsize(file_path)
+    if file_size < MIN_FILE_SIZE:
+        print(f"File too small: {file_size} bytes")
+        return False
+        
+    file_ext = os.path.splitext(file_path)[1].lower()
+    playable_formats = ['.mp3', '.mp4', '.m4a', '.ogg', '.wav']
+    
+    if file_ext not in playable_formats:
+        print(f"Unplayable format: {file_ext}")
+        return False
+        
+    return True
