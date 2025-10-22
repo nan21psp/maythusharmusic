@@ -8,16 +8,16 @@ services:
     buildCommand: pip3 install --no-cache-dir --upgrade --requirement requirements.txt
     envVars:
       - key: API_ID
-        value: "20078321"
+        value: "29758428"
       - key: API_HASH
-        value: "c8ed904e4aac83cea1f27b73984debad"
+        value: "51f9369e03f78674ca21aee8dfd1c842"
       - key: BOT_TOKEN
-        value: "7418613978:AAEHUVhLxmDKjX-kv9HB69mBPR7NU2dmxbE"
+        value: "8242918647:AAFzruK1HS2RayQ4HZ01cS-wybR2MjabrAg"
       - key: MONGO_DB_URI
         value: "mongodb+srv://pyaesone:pyaesone@pyaesone.ii8wsxo.mongodb.net/?retryWrites=true&w=majority"
       - key: OWNER_ID
-        value: "8260887714"
+        value: "5821905026"
       - key: LOGGER_ID
-        value: "-1002335122520"
+        value: "-1002470419378"
       - key: STRING_SESSION
-        value: "BQF15Y0ArHlSvwgA2BLAuAfB15XGskSE9fBmoB7ZPIC89bJ_bvd8UcUCj-BOB06QnfjpycT4Wt1US22JVD52fN9kBDWkUAPlPEri58g-8E12Mv9JzEkLgupuyD_Ai32HoTxNXm5uczy1kRD1JusQK71IURZifT94H5FrYm4yq2GF7f2psF4V2gvy96qQFRO1BhNX0bR6FotiPESufkkR6vpQeSBu9Jb-mFj-FLeARWxS8elZdImA17D0RbOjiquzvF_6KLv8el8V6cxRig5wbqjIBqhfcwJgKZ0_Q6tpfNPJXTbh5_CuuSaMPOcJQv_bi7O4BWFmwJz4zK-XESAf0q1MYHPwIgAAAAHsYySiAA"
+        value: "BQHGE9wAa4SwUSK-zBwhbsXPfF2Jp-8R-Ik4zQojkuTMoi3E0acbI9JGjqX18F5G-AMxfsxxDSGsApZqGNh7dF6Ln-isKCVvtJt0J-SZ6-RaLHGXe5LW-FbjcrdPRxCR9QZTHpoj5725SwOKB9aGzxXyDEMC0XhUMsQ0LyfZM0cel2H1KyojITE9YiJwSylM2xgBopeLvImxIz_KrBQB0u0Bm79GDD07PWxcwo1RDI6kU7mb5iLo6Kyg9msjt4cny5jCpxgkZQ2ouDPM6nx8QspZ1CsxtqTSEkVOSjMfI-FTgYTQJ7igm_AcFv0N9JeoIT9-zGP6HBuc1kyiHdXlxjnnu-y8WQAAAAFbAziCAA"
