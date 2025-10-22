@@ -7,15 +7,15 @@ import yt_dlp
 
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from youtubesearchpython.__future__ import VideosSearch
-
+# from youtubesearchpython.__future__ import VideosSearch  # <-- ဖြုတ်လိုက်ပါပြီ
 from maythusharmusic.utils.database import is_on_off
-from maythusharmusic.utils.formatters import time_to_seconds
-# Removed API_KEY and API_BASE_URL imports as they are no longer needed
+# from maythusharmusic.utils.formatters import time_to_seconds # <-- ဖြုတ်လိုက်ပါပြီ
+# from config import API_BASE_URL, API_KEY # <-- ဖြုတ်လိုက်ပါပြီ
 
-# Removed glob and random as they were for cookie_txt_file
-# Removed requests as api_dl is removed
+# import glob # <-- ဖြုတ်လိုက်ပါပြီ
+# import random # <-- ဖြုတ်လိုက်ပါပြီ
 import logging
+# import requests # <-- ဖြုတ်လိုက်ပါပြီ
 import time
 
 
@@ -37,15 +37,15 @@ def extract_video_id(link: str) -> str:
 
     raise ValueError("Invalid YouTube link provided.")
     
-
-# Removed the api_dl function as requested
-# Removed the cookie_txt_file function as requested
+# api_dl function ကို ဖြုတ်လိုက်ပါပြီ
+# cookie_txt_file function ကို ဖြုတ်လိုက်ပါပြီ
 
 async def check_file_size(link):
     async def get_format_info(link):
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--geo-bypass",  # Added geo-bypass
+            # "--cookies", cookie_txt_file(), # <-- ဖြုတ်လိုက်ပါပြီ
+            "--geo-bypass",  # <-- geo-bypass ထည့်သွင်းထားပါသည်
             "-J",
             link,
             stdout=asyncio.subprocess.PIPE,
@@ -99,6 +99,39 @@ class YouTubeAPI:
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
+    # Helper function to extract info with yt-dlp
+    async def _extract_info(self, link: str, search: bool = False):
+        ytdl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'geo_bypass': True,  # <-- Location problem အတွက် အဓိက ပြင်ဆင်မှု
+            'skip_download': True,
+        }
+
+        # If it's a search query, prepend 'ytsearch:'
+        if search and not link.startswith("http"):
+            link = f"ytsearch:{link}"
+        
+        try:
+            ydl = yt_dlp.YoutubeDL(ytdl_opts)
+            loop = asyncio.get_running_loop()
+            
+            # Use extract_info, which works for both links and search queries
+            info = await loop.run_in_executor(None, lambda: ydl.extract_info(link, download=False))
+
+            if 'entries' in info and info['entries']:
+                # It was a search or playlist, return the first entry
+                return info['entries'][0]
+            elif 'id' in info:
+                # It was a direct link
+                return info
+            else:
+                raise ValueError("No video information found.")
+
+        except Exception as e:
+            print(f"Failed to fetch details using yt-dlp: {e}")
+            raise e
+
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
@@ -108,6 +141,7 @@ class YouTubeAPI:
             return False
 
     async def url(self, message_1: Message) -> Union[str, None]:
+        # This function doesn't make external calls, so it's fine
         messages = [message_1]
         if message_1.reply_to_message:
             messages.append(message_1.reply_to_message)
@@ -136,47 +170,67 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-            vidid = result["id"]
-            if str(duration_min) == "None":
-                duration_sec = 0
-            else:
-                duration_sec = int(time_to_seconds(duration_min))
-        return title, duration_min, duration_sec, thumbnail, vidid
+        
+        result = await self._extract_info(link, search=True) # Use search=True to handle non-links
+
+        title = result.get("title", "Unknown Title")
+        duration_sec = result.get("duration", 0)
+        
+        if duration_sec is None:
+            duration_sec = 0
+        
+        if duration_sec == 0:
+            duration_min = "00:00"
+        else:
+            mins, secs = divmod(duration_sec, 60)
+            duration_min = f"{int(mins):02d}:{int(secs):02d}"
+
+        vidid = result.get("id", "UnknownID")
+        
+        thumbnail = "http://googleusercontent.com/youtube.com/4" # default
+        if result.get("thumbnails"):
+            thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
+
+        return title, duration_min, int(duration_sec), thumbnail, vidid
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-        return title
+        
+        result = await self._extract_info(link, search=True)
+        return result.get("title", "Unknown Title")
 
     async def duration(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            duration = result["duration"]
-        return duration
+        
+        result = await self._extract_info(link, search=True)
+        duration_sec = result.get("duration", 0)
+        
+        if duration_sec is None:
+            duration_sec = 0
+        
+        if duration_sec == 0:
+            return "00:00"
+        else:
+            mins, secs = divmod(duration_sec, 60)
+            return f"{int(mins):02d}:{int(secs):02d}"
 
     async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        return thumbnail
+        
+        result = await self._extract_info(link, search=True)
+        
+        if result.get("thumbnails"):
+            return result["thumbnails"][-1]["url"].split("?")[0]
+        return "http://googleusercontent.com/youtube.com/4" # default
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -185,7 +239,7 @@ class YouTubeAPI:
             link = link.split("&")[0]
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--geo-bypass",  # Added geo-bypass
+            "--geo-bypass", # <-- Added geo-bypass
             "-g",
             "-f",
             "best[height<=?720][width<=?1280]",
@@ -204,7 +258,8 @@ class YouTubeAPI:
             link = self.listbase + link
         if "&" in link:
             link = link.split("&")[0]
-        # Removed cookie parameter and added --geo-bypass
+        
+        # This was already fixed to use geo-bypass
         playlist = await shell_cmd(
             f"yt-dlp -i --geo-bypass --get-id --flat-playlist --playlist-end {limit} --skip-download {link}"
         )
@@ -222,13 +277,28 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            vidid = result["id"]
-            yturl = result["link"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+
+        result = await self._extract_info(link, search=True) # Use search=True
+
+        title = result.get("title", "Unknown Title")
+        duration_sec = result.get("duration", 0)
+        
+        if duration_sec is None:
+            duration_sec = 0
+        
+        if duration_sec == 0:
+            duration_min = "00:00"
+        else:
+            mins, secs = divmod(duration_sec, 60)
+            duration_min = f"{int(mins):02d}:{int(secs):02d}"
+            
+        vidid = result.get("id", "UnknownID")
+        yturl = result.get("webpage_url", link)
+        
+        thumbnail = "http://googleusercontent.com/youtube.com/4"
+        if result.get("thumbnails"):
+            thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
+        
         track_details = {
             "title": title,
             "link": yturl,
@@ -243,8 +313,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        # Removed cookiefile and added geo_bypass
-        ytdl_opts = {"quiet": True, "geo_bypass": True}
+        ytdl_opts = {"quiet": True, "geo_bypass" : True} # <-- This was already fixed
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -278,20 +347,58 @@ class YouTubeAPI:
     async def slider(
         self,
         link: str,
-        query_type: int,
+        query_type: int, # query_type is the index (0-9)
         videoid: Union[bool, str] = None,
     ):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        a = VideosSearch(link, limit=10)
-        result = (await a.next()).get("result")
-        title = result[query_type]["title"]
-        duration_min = result[query_type]["duration"]
-        vidid = result[query_type]["id"]
-        thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
-        return title, duration_min, thumbnail, vidid
+
+        # Use yt-dlp search instead
+        ytdl_opts = {
+            'quiet': True,
+            'no_warnings': True,
+            'geo_bypass': True,
+            'skip_download': True,
+            'default_search': 'ytsearch10', # Search for 10 results
+        }
+        
+        try:
+            ydl = yt_dlp.YoutubeDL(ytdl_opts)
+            loop = asyncio.get_running_loop()
+            
+            # Use 'link' as the search query
+            info = await loop.run_in_executor(None, lambda: ydl.extract_info(link, download=False))
+
+            if 'entries' not in info or not info['entries'] or len(info['entries']) <= query_type:
+                raise ValueError("Not enough search results for slider.")
+
+            result = info['entries'][query_type] # Get the specific result by index
+
+            title = result.get("title", "Unknown Title")
+            duration_sec = result.get("duration", 0)
+            
+            if duration_sec is None:
+                duration_sec = 0
+            
+            if duration_sec == 0:
+                duration_min = "00:00"
+            else:
+                mins, secs = divmod(duration_sec, 60)
+                duration_min = f"{int(mins):02d}:{int(secs):02d}"
+                
+            vidid = result.get("id", "UnknownID")
+            
+            thumbnail = "http://googleusercontent.com/youtube.com/4"
+            if result.get("thumbnails"):
+                thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
+                
+            return title, duration_min, thumbnail, vidid
+            
+        except Exception as e:
+            print(f"Failed to fetch slider details using yt-dlp: {e}")
+            raise e
 
     async def download(
         self,
@@ -304,19 +411,19 @@ class YouTubeAPI:
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
     ) -> Tuple[str, bool]:
+        # This function was already fixed in the previous response
+        # to use yt-dlp with geo-bypass and no cookies.
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
         
         def audio_dl():
-            # Removed the API download part, falling back directly to yt-dlp
             ydl_optssx = {
                 "format": "bestaudio/best",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                # "cookiefile": cookie_txt_file(), # Removed
                 "no_warnings": True,
                 "postprocessors": [{
                     "key": "FFmpegExtractAudio",
@@ -338,14 +445,12 @@ class YouTubeAPI:
                 return None
 
         def video_dl():
-            # Video with audio format
             ydl_optssx = {
                 "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                # "cookiefile": cookie_txt_file(), # Removed
                 "no_warnings": True,
                 "merge_output_format": "mp4",
             }
@@ -372,7 +477,6 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                # "cookiefile": cookie_txt_file(), # Removed
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
             }
@@ -393,7 +497,6 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                # "cookiefile": cookie_txt_file(), # Removed
                 "prefer_ffmpeg": True,
                 "postprocessors": [
                     {
@@ -425,8 +528,7 @@ class YouTubeAPI:
                 else:
                     proc = await asyncio.create_subprocess_exec(
                         "yt-dlp",
-                        "--geo-bypass",  # Added geo-bypass
-                        # "--cookies", cookie_txt_file(), # Removed
+                        "--geo-bypass", # <-- Already fixed
                         "-g",
                         "-f",
                         "best[height<=?720][width<=?1280]",
@@ -453,7 +555,6 @@ class YouTubeAPI:
                 direct = True
                 downloaded_file = await loop.run_in_executor(None, audio_dl)
             
-            # Validate downloaded file
             if not downloaded_file or not os.path.exists(downloaded_file):
                 print(f"Download failed: {downloaded_file}")
                 return None, True
