@@ -13,7 +13,7 @@ API_HASH = getenv("API_HASH", None)
 
 
 #COOKIE_URL = getenv("https://batbin.me/counterprotest")
-API_URL = getenv("API_BASE_URL", "https://deadlinetech.site") #optional
+API_BASE_URL = getenv("API_BASE_URL", "https://deadlinetech.site") #optional
 API_KEY = getenv("API_KEY", "Rf1qda5gyCITj6VbrekzRxmR") #optional
 
 # Get your token from @BotFather on Telegram.
