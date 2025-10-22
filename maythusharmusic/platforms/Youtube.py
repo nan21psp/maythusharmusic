@@ -7,20 +7,17 @@ import yt_dlp
 
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-# from youtubesearchpython.__future__ import VideosSearch  # <-- ဖြုတ်လိုက်ပါပြီ
 from maythusharmusic.utils.database import is_on_off
-# from maythusharmusic.utils.formatters import time_to_seconds # <-- ဖြုတ်လိုက်ပါပြီ
-# from config import API_BASE_URL, API_KEY # <-- ဖြုတ်လိုက်ပါပြီ
 
-# import glob # <-- ဖြုတ်လိုက်ပါပြီ
-# import random # <-- ဖြုတ်လိုက်ပါပြီ
 import logging
-# import requests # <-- ဖြုတ်လိုက်ပါပြီ
 import time
 
 
 # ✅ Configurable constants
 MIN_FILE_SIZE = 51200
+
+# This regex is used in multiple places now
+YOUTUBE_REGEX = r"(?:youtube\.com|youtu\.be)"
 
 def extract_video_id(link: str) -> str:
     patterns = [
@@ -37,15 +34,12 @@ def extract_video_id(link: str) -> str:
 
     raise ValueError("Invalid YouTube link provided.")
     
-# api_dl function ကို ဖြုတ်လိုက်ပါပြီ
-# cookie_txt_file function ကို ဖြုတ်လိုက်ပါပြီ
 
 async def check_file_size(link):
     async def get_format_info(link):
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            # "--cookies", cookie_txt_file(), # <-- ဖြုတ်လိုက်ပါပြီ
-            "--geo-bypass",  # <-- geo-bypass ထည့်သွင်းထားပါသည်
+            "--geo-bypass-country", "US",  # <-- Change to US
             "-J",
             link,
             stdout=asyncio.subprocess.PIPE,
@@ -94,7 +88,7 @@ async def shell_cmd(cmd):
 class YouTubeAPI:
     def __init__(self):
         self.base = "https://www.youtube.com/watch?v="
-        self.regex = r"(?:youtube\.com|youtu\.be)"
+        self.regex = YOUTUBE_REGEX # Use the global regex
         self.status = "https://www.youtube.com/oembed?url="
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
@@ -104,33 +98,61 @@ class YouTubeAPI:
         ytdl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'geo_bypass': True,  # <-- Location problem အတွက် အဓိက ပြင်ဆင်မှု
+            'geo_bypass_country': 'US',  # <-- Use 'US' instead of generic 'True'
             'skip_download': True,
         }
 
-        # If it's a search query, prepend 'ytsearch:'
-        if search and not link.startswith("http"):
-            link = f"ytsearch:{link}"
+        # --- Invidious Strategy ---
+        original_link = link # Save original link for fallback
         
+        # If it's a search query, prepend 'invidious:ytsearch:'
+        if search and not link.startswith("http"):
+            link = f"invidious:ytsearch:{link}" 
+        
+        # If it's a direct link, prepend 'invidious:'
+        elif not search and re.search(self.regex, link):
+             link = f"invidious:{link}"
+        # -------------------------
+
         try:
             ydl = yt_dlp.YoutubeDL(ytdl_opts)
             loop = asyncio.get_running_loop()
             
-            # Use extract_info, which works for both links and search queries
             info = await loop.run_in_executor(None, lambda: ydl.extract_info(link, download=False))
 
             if 'entries' in info and info['entries']:
-                # It was a search or playlist, return the first entry
                 return info['entries'][0]
             elif 'id' in info:
-                # It was a direct link
                 return info
             else:
-                raise ValueError("No video information found.")
+                raise ValueError("No video information found (Invidious).")
 
         except Exception as e:
-            print(f"Failed to fetch details using yt-dlp: {e}")
-            raise e
+            print(f"Failed to fetch details using yt-dlp (Invidious attempt): {e}")
+            
+            # --- FALLBACK ---
+            # If Invidious fails, try one more time with the original link
+            print("Invidious failed. Falling back to standard yt-dlp search...")
+            
+            link = original_link # Reset to original link
+            if search and not link.startswith("http"):
+                link = f"ytsearch:{link}"
+            
+            try:
+                ydl_fallback = yt_dlp.YoutubeDL(ytdl_opts) # ydl_opts still has geo_bypass_country
+                loop_fallback = asyncio.get_running_loop()
+                info_fallback = await loop_fallback.run_in_executor(None, lambda: ydl_fallback.extract_info(link, download=False))
+                
+                if 'entries' in info_fallback and info_fallback['entries']:
+                    return info_fallback['entries'][0]
+                elif 'id' in info_fallback:
+                    return info_fallback
+                else:
+                    raise ValueError("No video information found (Fallback).")
+                    
+            except Exception as e_fallback:
+                print(f"Fallback yt-dlp fetch failed: {e_fallback}")
+                raise e_fallback # Raise the final error
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -141,7 +163,6 @@ class YouTubeAPI:
             return False
 
     async def url(self, message_1: Message) -> Union[str, None]:
-        # This function doesn't make external calls, so it's fine
         messages = [message_1]
         if message_1.reply_to_message:
             messages.append(message_1.reply_to_message)
@@ -171,7 +192,7 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         
-        result = await self._extract_info(link, search=True) # Use search=True to handle non-links
+        result = await self._extract_info(link, search=True)
 
         title = result.get("title", "Unknown Title")
         duration_sec = result.get("duration", 0)
@@ -187,7 +208,7 @@ class YouTubeAPI:
 
         vidid = result.get("id", "UnknownID")
         
-        thumbnail = "http://googleusercontent.com/youtube.com/4" # default
+        thumbnail = "http://googleusercontent.com/youtube.com/4"
         if result.get("thumbnails"):
             thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
 
@@ -230,20 +251,23 @@ class YouTubeAPI:
         
         if result.get("thumbnails"):
             return result["thumbnails"][-1]["url"].split("?")[0]
-        return "http://googleusercontent.com/youtube.com/4" # default
+        return "http://googleusercontent.com/youtube.com/4"
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
+        
+        invidious_link = f"invidious:{link}" if re.search(self.regex, link) else link
+        
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
-            "--geo-bypass", # <-- Added geo-bypass
+            "--geo-bypass-country", "US", # <-- Use 'US'
             "-g",
             "-f",
             "best[height<=?720][width<=?1280]",
-            f"{link}",
+            f"{invidious_link}", # <-- Try Invidious first
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -251,7 +275,23 @@ class YouTubeAPI:
         if stdout:
             return 1, stdout.decode().split("\n")[0]
         else:
-            return 0, stderr.decode()
+            print(f"yt-dlp video (Invidious) failed: {stderr.decode()}. Trying fallback.")
+            # --- FALLBACK ---
+            proc_fallback = await asyncio.create_subprocess_exec(
+                "yt-dlp",
+                "--geo-bypass-country", "US",
+                "-g",
+                "-f",
+                "best[height<=?720][width<=?1280]",
+                f"{link}", # <-- Use original link
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout_fallback, stderr_fallback = await proc_fallback.communicate()
+            if stdout_fallback:
+                return 1, stdout_fallback.decode().split("\n")[0]
+            else:
+                return 0, stderr_fallback.decode()
 
     async def playlist(self, link, limit, user_id, videoid: Union[bool, str] = None):
         if videoid:
@@ -259,10 +299,19 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         
-        # This was already fixed to use geo-bypass
+        invidious_link = f"invidious:{link}" if re.search(self.regex, link) else link
+        
         playlist = await shell_cmd(
-            f"yt-dlp -i --geo-bypass --get-id --flat-playlist --playlist-end {limit} --skip-download {link}"
+            f"yt-dlp -i --geo-bypass-country US --get-id --flat-playlist --playlist-end {limit} --skip-download {invidious_link}" # <-- Try Invidious first
         )
+        
+        if not playlist or "ERROR" in playlist.upper():
+            print(f"yt-dlp playlist (Invidious) failed. Trying fallback.")
+            # --- FALLBACK ---
+            playlist = await shell_cmd(
+                f"yt-dlp -i --geo-bypass-country US --get-id --flat-playlist --playlist-end {limit} --skip-download {link}" # <-- Use original link
+            )
+
         try:
             result = playlist.split("\n")
             for key in result:
@@ -313,7 +362,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = {"quiet": True, "geo_bypass" : True} # <-- This was already fixed
+        ytdl_opts = {"quiet": True, "geo_bypass_country" : "US"} # <-- Use 'US'
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -355,50 +404,58 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
 
-        # Use yt-dlp search instead
+        # Use yt-dlp search with Invidious
         ytdl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'geo_bypass': True,
+            'geo_bypass_country': 'US', # <-- Use 'US'
             'skip_download': True,
-            'default_search': 'ytsearch10', # Search for 10 results
+            'default_search': 'ytsearch10', 
         }
         
+        # --- Invidious Strategy ---
+        search_query = link
+        search_query_invidious = f"invidious:ytsearch10:{link}"
+        
         try:
+            # Try Invidious first
             ydl = yt_dlp.YoutubeDL(ytdl_opts)
             loop = asyncio.get_running_loop()
-            
-            # Use 'link' as the search query
-            info = await loop.run_in_executor(None, lambda: ydl.extract_info(link, download=False))
-
-            if 'entries' not in info or not info['entries'] or len(info['entries']) <= query_type:
-                raise ValueError("Not enough search results for slider.")
-
-            result = info['entries'][query_type] # Get the specific result by index
-
-            title = result.get("title", "Unknown Title")
-            duration_sec = result.get("duration", 0)
-            
-            if duration_sec is None:
-                duration_sec = 0
-            
-            if duration_sec == 0:
-                duration_min = "00:00"
-            else:
-                mins, secs = divmod(duration_sec, 60)
-                duration_min = f"{int(mins):02d}:{int(secs):02d}"
-                
-            vidid = result.get("id", "UnknownID")
-            
-            thumbnail = "http://googleusercontent.com/youtube.com/4"
-            if result.get("thumbnails"):
-                thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
-                
-            return title, duration_min, thumbnail, vidid
+            info = await loop.run_in_executor(None, lambda: ydl.extract_info(search_query_invidious, download=False))
             
         except Exception as e:
-            print(f"Failed to fetch slider details using yt-dlp: {e}")
-            raise e
+            print(f"Slider (Invidious) failed: {e}. Falling back.")
+            # --- FALLBACK ---
+            ydl_fallback = yt_dlp.YoutubeDL(ytdl_opts)
+            loop_fallback = asyncio.get_running_loop()
+            info = await loop_fallback.run_in_executor(None, lambda: ydl_fallback.extract_info(search_query, download=False))
+        # -------------------------
+
+        if 'entries' not in info or not info['entries'] or len(info['entries']) <= query_type:
+            raise ValueError("Not enough search results for slider.")
+
+        result = info['entries'][query_type] 
+
+        title = result.get("title", "Unknown Title")
+        duration_sec = result.get("duration", 0)
+        
+        if duration_sec is None:
+            duration_sec = 0
+        
+        if duration_sec == 0:
+            duration_min = "00:00"
+        else:
+            mins, secs = divmod(duration_sec, 60)
+            duration_min = f"{int(mins):02d}:{int(secs):02d}"
+            
+        vidid = result.get("id", "UnknownID")
+        
+        thumbnail = "http://googleusercontent.com/youtube.com/4"
+        if result.get("thumbnails"):
+            thumbnail = result["thumbnails"][-1]["url"].split("?")[0]
+            
+        return title, duration_min, thumbnail, vidid
+            
 
     async def download(
         self,
@@ -411,17 +468,23 @@ class YouTubeAPI:
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
     ) -> Tuple[str, bool]:
-        # This function was already fixed in the previous response
-        # to use yt-dlp with geo-bypass and no cookies.
+        
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
         
+        # --- Create Invidious link ---
+        original_link = link
+        invidious_link = link
+        if re.search(YOUTUBE_REGEX, link):
+            invidious_link = f"invidious:{link}"
+        # -----------------------------
+
         def audio_dl():
             ydl_optssx = {
                 "format": "bestaudio/best",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
+                "geo_bypass_country": "US", # <-- Use 'US'
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
@@ -431,41 +494,63 @@ class YouTubeAPI:
                     "preferredquality": "192",
                 }],
             }
-
             try:
+                # --- Try Invidious First ---
                 x = yt_dlp.YoutubeDL(ydl_optssx)
-                info = x.extract_info(link, False)
+                info = x.extract_info(invidious_link, False)
                 xyz = os.path.join("downloads", f"{info['id']}.mp3")
                 if os.path.exists(xyz):
                     return xyz
-                x.download([link])
+                x.download([invidious_link])
                 return xyz
             except Exception as e:
-                print(f"yt-dlp audio failed: {e}")
-                return None
+                print(f"yt-dlp audio (Invidious) failed: {e}. Trying fallback.")
+                # --- FALLBACK ---
+                try:
+                    x_fallback = yt_dlp.YoutubeDL(ydl_optssx)
+                    info_fallback = x_fallback.extract_info(original_link, False) 
+                    xyz_fallback = os.path.join("downloads", f"{info_fallback['id']}.mp3")
+                    if os.path.exists(xyz_fallback):
+                        return xyz_fallback
+                    x_fallback.download([original_link])
+                    return xyz_fallback
+                except Exception as e_fallback:
+                    print(f"yt-dlp audio (Fallback) failed: {e_fallback}")
+                    return None
 
         def video_dl():
             ydl_optssx = {
                 "format": "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]",
                 "outtmpl": "downloads/%(id)s.%(ext)s",
-                "geo_bypass": True,
+                "geo_bypass_country": "US", # <-- Use 'US'
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
                 "merge_output_format": "mp4",
             }
-            
             try:
+                # --- Try Invidious First ---
                 x = yt_dlp.YoutubeDL(ydl_optssx)
-                info = x.extract_info(link, False)
+                info = x.extract_info(invidious_link, False)
                 xyz = os.path.join("downloads", f"{info['id']}.mp4")
                 if os.path.exists(xyz):
                     return xyz
-                x.download([link])
+                x.download([invidious_link])
                 return xyz
             except Exception as e:
-                print(f"Video download failed: {e}")
-                return None
+                print(f"yt-dlp video (Invidious) failed: {e}. Trying fallback.")
+                # --- FALLBACK ---
+                try:
+                    x_fallback = yt_dlp.YoutubeDL(ydl_optssx)
+                    info_fallback = x_fallback.extract_info(original_link, False)
+                    xyz_fallback = os.path.join("downloads", f"{info_fallback['id']}.mp4")
+                    if os.path.exists(xyz_fallback):
+                        return xyz_fallback
+                    x_fallback.download([original_link])
+                    return xyz_fallback
+                except Exception as e_fallback:
+                    print(f"Video download (Fallback) failed: {e_fallback}")
+                    return None
 
         def song_video_dl():
             formats = f"{format_id}+140"
@@ -473,7 +558,7 @@ class YouTubeAPI:
             ydl_optssx = {
                 "format": formats,
                 "outtmpl": fpath,
-                "geo_bypass": True,
+                "geo_bypass_country": "US", # <-- Use 'US'
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
@@ -481,19 +566,27 @@ class YouTubeAPI:
                 "merge_output_format": "mp4",
             }
             try:
+                # --- Try Invidious First ---
                 x = yt_dlp.YoutubeDL(ydl_optssx)
-                x.download([link])
+                x.download([invidious_link])
                 return f"{fpath}.mp4"
             except Exception as e:
-                print(f"Song video download failed: {e}")
-                return None
+                print(f"Song video (Invidious) failed: {e}. Trying fallback.")
+                # --- FALLBACK ---
+                try:
+                    x_fallback = yt_dlp.YoutubeDL(ydl_optssx)
+                    x_fallback.download([original_link])
+                    return f"{fpath}.mp4"
+                except Exception as e_fallback:
+                    print(f"Song video download (Fallback) failed: {e_fallback}")
+                    return None
 
         def song_audio_dl():
             fpath = f"downloads/{title}.%(ext)s"
             ydl_optssx = {
                 "format": format_id,
                 "outtmpl": fpath,
-                "geo_bypass": True,
+                "geo_bypass_country": "US", # <-- Use 'US'
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
@@ -507,12 +600,20 @@ class YouTubeAPI:
                 ],
             }
             try:
+                # --- Try Invidious First ---
                 x = yt_dlp.YoutubeDL(ydl_optssx)
-                x.download([link])
+                x.download([invidious_link])
                 return f"downloads/{title}.mp3"
             except Exception as e:
-                print(f"Song audio download failed: {e}")
-                return None
+                print(f"Song audio (Invidious) failed: {e}. Trying fallback.")
+                # --- FALLBACK ---
+                try:
+                    x_fallback = yt_dlp.YoutubeDL(ydl_optssx)
+                    x_fallback.download([original_link])
+                    return f"downloads/{title}.mp3"
+                except Exception as e_fallback:
+                    print(f"Song audio download (Fallback) failed: {e_fallback}")
+                    return None
 
         try:
             if songvideo:
@@ -526,29 +627,12 @@ class YouTubeAPI:
                     direct = True
                     downloaded_file = await loop.run_in_executor(None, video_dl)
                 else:
-                    proc = await asyncio.create_subprocess_exec(
-                        "yt-dlp",
-                        "--geo-bypass", # <-- Already fixed
-                        "-g",
-                        "-f",
-                        "best[height<=?720][width<=?1280]",
-                        f"{link}",
-                        stdout=asyncio.subprocess.PIPE,
-                        stderr=asyncio.subprocess.PIPE,
-                    )
-                    stdout, stderr = await proc.communicate()
-                    if stdout:
-                        downloaded_file = stdout.decode().split("\n")[0]
-                        direct = False
-                    else:
-                        file_size = await check_file_size(link)
-                        if not file_size:
-                            print("None file Size")
-                            return None, True
-                        total_size_mb = file_size / (1024 * 1024)
-                        if total_size_mb > 250:
-                            print(f"File size {total_size_mb:.2f} MB exceeds the 250MB limit.")
-                            return None, True
+                    # This block (getting direct link) is already handled by the self.video() method
+                    # which we already modified to include Invidious
+                    direct = False
+                    status, downloaded_file = await self.video(original_link) 
+                    if status == 0:
+                        # If getting direct link fails, fallback to downloading
                         direct = True
                         downloaded_file = await loop.run_in_executor(None, video_dl)
             else:
@@ -579,11 +663,9 @@ async def ensure_audio_format(file_path: str) -> str:
         
     file_ext = os.path.splitext(file_path)[1].lower()
     
-    # If it's already mp3, return as is
     if file_ext == '.mp3':
         return file_path
         
-    # If it's mp4 but we need audio, convert to mp3
     if file_ext == '.mp4':
         try:
             output_path = os.path.splitext(file_path)[0] + '.mp3'
@@ -592,7 +674,7 @@ async def ensure_audio_format(file_path: str) -> str:
             await process.wait()
             
             if os.path.exists(output_path):
-                os.remove(file_path)  # Remove original mp4
+                os.remove(file_path)
                 return output_path
         except Exception as e:
             print(f"Format conversion failed: {e}")
@@ -611,7 +693,7 @@ async def is_file_playable(file_path: str) -> bool:
         return False
         
     file_ext = os.path.splitext(file_path)[1].lower()
-    playable_formats = ['.mp3', '.mp4', '.m4a', '.ogg', '.wav']
+    playable_formats = ['.mp3', '.mp4', '.m4a', '.ogg', 'wav'] # .wav added
     
     if file_ext not in playable_formats:
         print(f"Unplayable format: {file_ext}")
