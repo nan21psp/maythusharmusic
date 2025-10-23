@@ -32,7 +32,7 @@ from maythusharmusic.utils.formatters import check_duration, seconds_to_min, spe
 from maythusharmusic.utils.inline.play import stream_markup
 from maythusharmusic.utils.stream.autoclear import auto_clean
 from maythusharmusic.utils.thumbnails import get_thumb
-from maythusharmusic.utils.errors import capture_internal_err, send_large_error
+from maythusharmusic.utils.errors import capture_internal_err, send_large_error, handle_trace
 
 autoend = {}
 counter = {}
@@ -310,7 +310,8 @@ class Call:
 
             video = True if str(streamtype) == "video" else False
 
-            if "live_" in queued:
+            # Fixed: Added None check for queued variable
+            if queued and "live_" in queued:
                 n, link = await YouTube.video(videoid, True)
                 if n == 0:
                     return await app.send_message(original_chat_id, text=_["call_6"])
@@ -337,7 +338,7 @@ class Call:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
 
-            elif "vid_" in queued:
+            elif queued and "vid_" in queued:
                 mystic = await app.send_message(original_chat_id, _["call_7"])
                 try:
                     file_path, direct = await YouTube.download(
@@ -374,7 +375,7 @@ class Call:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
 
-            elif "index_" in queued:
+            elif queued and "index_" in queued:
                 stream = dynamic_media_stream(path=videoid, video=video)
                 try:
                     await client.play(chat_id, stream)
@@ -392,6 +393,9 @@ class Call:
                 db[chat_id][0]["markup"] = "tg"
 
             else:
+                if not queued:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+                    
                 stream = dynamic_media_stream(path=queued, video=video)
                 try:
                     await client.play(chat_id, stream)
@@ -516,13 +520,14 @@ class Call:
                 import sys, traceback
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 full_trace = "".join(traceback.format_exception(exc_type, exc_obj, exc_tb))
-                caption = (
-                    f"🚨 <b>Stream Update Error</b>\n"
-                    f"📍 <b>Update Type:</b> <code>{type(update).__name__}</code>\n"
-                    f"📍 <b>Error Type:</b> <code>{exc_type.__name__}</code>"
-                )
+                
+                # Fixed: Use handle_trace function directly
+                extras = {
+                    "Update Type": type(update).__name__,
+                    "Chat ID": getattr(update, 'chat_id', 'unknown')
+                }
                 filename = f"update_error_{getattr(update, 'chat_id', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                await send_large_error(full_trace, caption, filename)
+                await handle_trace(e, full_trace, "Stream Update Error", filename, extras)
 
         for assistant in assistants:
             assistant.on_update()(unified_update_handler)
