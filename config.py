@@ -12,7 +12,7 @@ API_ID = int(getenv("API_ID", None))
 API_HASH = getenv("API_HASH", None)
 
 
-COOKIE_URL = getenv("https://batbin.me/counterprotest")
+COOKIE_URL = getenv("https://pastebin.com/1iW158Nn")
 
 API_URL = getenv("API_URL", "https://deadlinetech.site")
 API_KEY = getenv("API_KEY", "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw")
