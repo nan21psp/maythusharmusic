@@ -16,8 +16,8 @@ from pyrogram.types import Message
 from pyrogram.enums import MessageEntityType
 from youtubesearchpython.__future__ import VideosSearch
 
-from DeadlineTech.utils.database import is_on_off
-from DeadlineTech.utils.formatters import time_to_seconds
+from maythusharmusic.utils.database import is_on_off
+from maythusharmusic.utils.formatters import time_to_seconds
 
 
 async def fetch_stream_url(link: str, video: bool = False) -> str | None:
