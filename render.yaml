@@ -16,7 +16,7 @@ services:
       - key: MONGO_DB_URI
         value: "mongodb+srv://pyaesone:pyaesone@pyaesone.ii8wsxo.mongodb.net/?retryWrites=true&w=majority"
       - key: OWNER_ID
-        value: "8260887714"
+        value: "1318826936"
       - key: LOGGER_ID
         value: "-1002335122520"
       - key: STRING_SESSION
