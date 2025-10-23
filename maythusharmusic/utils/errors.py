@@ -2,6 +2,7 @@ import sys
 import traceback
 from functools import wraps
 from datetime import datetime
+import os  # Add this import
 
 import aiofiles
 from pyrogram.errors.exceptions.forbidden_403 import ChatWriteForbidden
@@ -10,7 +11,33 @@ from config import LOGGER_ID
 from maythusharmusic.logging import LOGGER
 from maythusharmusic.utils.pastebin import HottyBin
 
+# Add the missing handle_trace function
+async def handle_trace(error, traceback_text, error_type, filename, extras=None):
+    """
+    Handle and log errors with traceback information
+    """
+    try:
+        error_message = f"🚨 **{error_type}**\n\n"
+        error_message += f"📍 **Error:** `{str(error)}`\n"
+        
+        if extras:
+            for key, value in extras.items():
+                error_message += f"📍 **{key}:** `{value}`\n"
+        
+        error_message += f"📍 **Time:** `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
+        
+        # Combine error message with traceback
+        full_error = f"{error_message}\n```python\n{traceback_text}\n```"
+        
+        # Use existing send_large_error function
+        await send_large_error(full_error, error_message, filename)
+        
+    except Exception as e:
+        # Fallback if handle_trace itself fails
+        fallback_msg = f"❌ Error in handle_trace: {str(e)}"
+        await app.send_message(LOGGER_ID, fallback_msg)
 
+# The rest of your existing code remains the same...
 def split_limits(text):
     if len(text) < 2048:
         return [text]
@@ -41,10 +68,8 @@ async def send_large_error(text: str, caption: str, filename: str):
     path = f"{filename}.txt"
     async with aiofiles.open(path, "w") as f:
         await f.write(text)
-    await app.send_document(LOGGER_ID, path, caption="❌ Error Log (Fallback)")
+    await app.send_document(LOGGER_ID, path, caption=caption)  # Use the provided caption
     os.remove(path)
-
-
 
 def capture_err(func):
     @wraps(func)
@@ -70,11 +95,10 @@ def capture_err(func):
                 ),
             )
             for x in error_feedback:
-                await app.send_message(LOGGER, x)
+                await app.send_message(LOGGER_ID, x)  # Fixed: LOGGER to LOGGER_ID
             raise err
 
     return capture
-
 
 def capture_callback_err(func):
     """
