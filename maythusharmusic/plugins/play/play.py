@@ -24,13 +24,11 @@ from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
 
-
 SEARCH_STICKERS = [
     "CAACAgUAAxkBAAEOpl1oQkdD9QkZC6k0NKZevjnN4URLOAACBRcAAm_QEFYBvpHOUt6OSzYE",
     "CAACAgUAAxkBAAEOpmloQlCn7dv_Y6Cu7_IimiunS3ratwACaxcAAsY5GVbS9HsD0z0SajYE",
     "CAACAgUAAxkBAAEOpltoQkavkDSiCRVNc8dYfUxz8O-epwACexkAAskwEVYdhhWzfNtoXDYE" 
 ]
-
 
 @app.on_message(
     filters.command(
@@ -115,6 +113,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -159,6 +158,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -203,7 +203,8 @@ async def play_commnd(
             if "track" in url:
                 try:
                     details, track_id = await Spotify.track(url)
-                except:
+                except Exception as e:
+                    print(f"play_3 error: fail to process your query | Exception: {e}")
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
                 img = details["thumb"]
@@ -211,7 +212,8 @@ async def play_commnd(
             elif "playlist" in url:
                 try:
                     details, plist_id = await Spotify.playlist(url)
-                except Exception:
+                except Exception as e:
+                    print(f"play_3 error: fail to process your query | Exception: {e}")
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "playlist"
                 plist_type = "spplay"
@@ -292,6 +294,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -302,10 +305,11 @@ async def play_commnd(
             except NoActiveGroupCall:
                 await mystic.edit_text(_["black_9"])
                 return await app.send_message(
-                    chat_id=config.LOGGER_ID,
+                    chat_id=config.LOG_GROUP_ID,
                     text=_["play_17"],
                 )
             except Exception as e:
+                print(f"Error: {e}")
                 return await mystic.edit_text(_["general_2"].format(type(e).__name__))
             await mystic.edit_text(_["str_2"])
             try:
@@ -322,6 +326,7 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
+                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -378,6 +383,7 @@ async def play_commnd(
                 forceplay=fplay,
             )
         except Exception as e:
+            print(f"Error: {e}")
             ex_type = type(e).__name__
             err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
             return await mystic.edit_text(err)
@@ -505,6 +511,7 @@ async def play_music(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
+        print(f"Error: {e}")
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)
@@ -512,7 +519,7 @@ async def play_music(client, CallbackQuery, _):
 
 
 @app.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)
-async def piyush_check(client, CallbackQuery):
+async def anonymous_check(client, CallbackQuery):
     try:
         await CallbackQuery.answer(
             "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏɴs.",
@@ -603,6 +610,7 @@ async def play_playlists_command(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
+        print(f"Error: {e}")
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)
@@ -670,4 +678,4 @@ async def slider_queries(client, CallbackQuery, _):
         )
         return await CallbackQuery.edit_message_media(
             media=med, reply_markup=InlineKeyboardMarkup(buttons)
-)
+        )
