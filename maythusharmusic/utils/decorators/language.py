@@ -17,11 +17,23 @@ def language(mystic):
             pass
 
         try:
-            language = await get_lang(message.chat.id)
-            language = get_string(language)
-        except:
-            language = get_string("en")
-        return await mystic(_, message, language)
+            language_code = await get_lang(message.chat.id)
+            # Language code မှန်မမှန်စစ်ဆေးပါ
+            if not language_code or not isinstance(language_code, str):
+                language_code = "en"
+            
+            language_strings = get_string(language_code)
+            
+            # Language strings ရလာတာမှန်မမှန်စစ်ဆေးပါ
+            if not language_strings or not isinstance(language_strings, dict):
+                print(f"Invalid language strings for code: {language_code}")
+                language_strings = get_string("en")
+                
+        except Exception as e:
+            print(f"Language error: {e}")
+            language_strings = get_string("en")
+            
+        return await mystic(_, message, language_strings)
 
     return wrapper
 
@@ -35,11 +47,23 @@ def languageCB(mystic):
                     show_alert=True,
                 )
         try:
-            language = await get_lang(CallbackQuery.message.chat.id)
-            language = get_string(language)
-        except:
-            language = get_string("en")
-        return await mystic(_, CallbackQuery, language)
+            language_code = await get_lang(CallbackQuery.message.chat.id)
+            # Language code မှန်မမှန်စစ်ဆေးပါ
+            if not language_code or not isinstance(language_code, str):
+                language_code = "en"
+            
+            language_strings = get_string(language_code)
+            
+            # Language strings ရလာတာမှန်မမှန်စစ်ဆေးပါ
+            if not language_strings or not isinstance(language_strings, dict):
+                print(f"Invalid language strings for code: {language_code}")
+                language_strings = get_string("en")
+                
+        except Exception as e:
+            print(f"Language error: {e}")
+            language_strings = get_string("en")
+            
+        return await mystic(_, CallbackQuery, language_strings)
 
     return wrapper
 
@@ -47,10 +71,22 @@ def languageCB(mystic):
 def LanguageStart(mystic):
     async def wrapper(_, message, **kwargs):
         try:
-            language = await get_lang(message.chat.id)
-            language = get_string(language)
-        except:
-            language = get_string("en")
-        return await mystic(_, message, language)
+            language_code = await get_lang(message.chat.id)
+            # Language code မှန်မမှန်စစ်ဆေးပါ
+            if not language_code or not isinstance(language_code, str):
+                language_code = "en"
+            
+            language_strings = get_string(language_code)
+            
+            # Language strings ရလာတာမှန်မမှန်စစ်ဆေးပါ
+            if not language_strings or not isinstance(language_strings, dict):
+                print(f"Invalid language strings for code: {language_code}")
+                language_strings = get_string("en")
+                
+        except Exception as e:
+            print(f"Language error: {e}")
+            language_strings = get_string("en")
+            
+        return await mystic(_, message, language_strings)
 
     return wrapper
