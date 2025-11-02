@@ -21,7 +21,6 @@ import time
 
 # ✅ Configurable constants
 API_KEY = [
-    "Rf1qda5gyCITj6VbrekzRxmR",
     "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
     "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
     "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
@@ -66,7 +65,7 @@ def extract_video_id(link: str) -> str:
 
 
 def api_dl(video_id: str) -> str | None:
-    api_url = f"{API_BASE_URL}/download/song/{video_id}?key=random.choice{API_KEY}"
+    api_url = f"{API_BASE_URL}/download/song/{video_id}?key = random.choice(API_KEY)"
     file_path = os.path.join("downloads", f"{video_id}.mp3")
 
     # ✅ Check if already downloaded
