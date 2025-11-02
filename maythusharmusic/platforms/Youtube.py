@@ -20,7 +20,7 @@ import time
 
 
 # ✅ Configurable constants
-API_KEY = [
+API_KEYS = [
     "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
     "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
     "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
@@ -43,6 +43,11 @@ API_KEY = [
     "AIzaSyDMUPINKHWjXfH3rX2kwYiH8sGtiQF4bHs",
     "AIzaSyAfCk6zut2ggu_qJ3WrH_iYlvVc3upG9lk" 
 ]
+
+def get_random_api_key():
+    """Randomly select an API key from the list"""
+    return random.choice(API_KEYS)
+
 API_BASE_URL = "http://deadlinetech.site"
 
 MIN_FILE_SIZE = 51200
@@ -63,9 +68,10 @@ def extract_video_id(link: str) -> str:
     raise ValueError("Invalid YouTube link provided.")
     
 
-
 def api_dl(video_id: str) -> str | None:
-    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={random.choice(API_KEY)}"
+    # Use random API key
+    api_key = get_random_api_key()
+    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={api_key}"
     file_path = os.path.join("downloads", f"{video_id}.mp3")
 
     # ✅ Check if already downloaded
@@ -90,24 +96,20 @@ def api_dl(video_id: str) -> str | None:
                 os.remove(file_path)
                 return None
 
-            print(f"Downloaded {file_path} ({file_size} bytes)")
+            print(f"Downloaded {file_path} ({file_size} bytes) using API key: {api_key[:10]}...")
             return file_path
 
         else:
-            print(f"Failed to download {video_id}. Status: {response.status_code}")
+            print(f"Failed to download {video_id}. Status: {response.status_code} using API key: {api_key[:10]}...")
             return None
 
     except requests.RequestException as e:
-        print(f"Download error for {video_id}: {e}")
+        print(f"Download error for {video_id}: {e} using API key: {api_key[:10]}...")
         return None
 
     except OSError as e:
         print(f"File error for {video_id}: {e}")
         return None
-
-
-
-
 
 def cookie_txt_file():
     folder_path = f"{os.getcwd()}/cookies"
