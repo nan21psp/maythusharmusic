@@ -20,105 +20,16 @@ import time
 
 #from config import API_URL, API_KEY
 
-# ✅ Configurable constants
-API_KEYS = [
-    "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
-    "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
-    "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
-    "AIzaSyCqJ3KJhoWTnYC5N0jzRWWeDxTaj4nnhPE",
-    "AIzaSyC7ar1C5OBsIxhkZz6-l1fjJuRFqatxV_k",
-    "AIzaSyBxbgHrDdAZrMMRd74xjT56Ekbbm7r2C7o",
-    "AIzaSyCkBCShmwhFNU_bybOIqdvUghWhH1nYPj4",
-    "AIzaSyDf5befJSwPCDey0p1yPd_VaneoIFbSJhA",
-    "AIzaSyDw5sEKPhxaOs9qU4Y7WsrL4JvpFQRXQDY",
-    "AIzaSyB_Ta275uWxtX_kkieTW7Kut11RIY1FLwU",
-    "AIzaSyAeI8Pz3CeteoAkUVIO3fnBRdSNRHEpwfw",
-    "AIzaSyDs-1JGzNChWKkW3MqXbO-2upYOmUjvhE4",
-    "AIzaSyAKJl_SuQh5xeEBRSskL7VBZLSKJaT-j9s",
-    "AIzaSyAPsHm8tlYJJyrdI6QpVF8p3BIWrY4qnBg",
-    "AIzaSyAgj6SbEncvCKnF6-1cffeckBSbk7IXBNk",
-    "AIzaSyDwUT_cdur25HlAL01xLHrLfZRIPzzmf7s",
-    "AIzaSyB7370l-ModxTfuhIlXnz7k8yR7LzuCOzI",
-    "AIzaSyAsxU61WrtIE1dRe1YZDV0XkP_n8sJggPk",
-    "AIzaSyA70vtRZ-HtXAdwQTNIhaiAhb5RUPQHJVA",
-    "AIzaSyDMUPINKHWjXfH3rX2kwYiH8sGtiQF4bHs",
-    "AIzaSyAfCk6zut2ggu_qJ3WrH_iYlvVc3upG9lk" 
-]
 
-def get_random_api_key():
-    """Randomly select an API key from the list"""
-    return random.choice(API_KEYS)
 
-API_BASE_URL = "http://deadlinetech.site"
 
-MIN_FILE_SIZE = 51200
-
-def extract_video_id(link: str) -> str:
-    patterns = [
-        r'youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([0-9A-Za-z_-]{11})',
-        r'youtu\.be\/([0-9A-Za-z_-]{11})',
-        r'youtube\.com\/(?:playlist\?list=[^&]+&v=|v\/)([0-9A-Za-z_-]{11})',
-        r'youtube\.com\/(?:.*\?v=|.*\/)([0-9A-Za-z_-]{11})'
-    ]
-
-    for pattern in patterns:
-        match = re.search(pattern, link)
-        if match:
-            return match.group(1)
-
-    raise ValueError("Invalid YouTube link provided.")
-    
-
-def api_dl(video_id: str) -> str | None:
-    # Use random API key
-    api_key = get_random_api_key()
-    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={api_key}"
-    file_path = os.path.join("downloads", f"{video_id}.mp3")
-
-    # ✅ Check if already downloaded
-    if os.path.exists(file_path):
-        print(f"{file_path} already exists. Skipping download.")
-        return file_path
-
-    try:
-        response = requests.get(api_url, stream=True, timeout=10)
-
-        if response.status_code == 200:
-            os.makedirs("downloads", exist_ok=True)
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-
-            # ✅ Check file size
-            file_size = os.path.getsize(file_path)
-            if file_size < MIN_FILE_SIZE:
-                print(f"Downloaded file is too small ({file_size} bytes). Removing.")
-                os.remove(file_path)
-                return None
-
-            print(f"Downloaded {file_path} ({file_size} bytes) using API key: {api_key[:10]}...")
-            return file_path
-
-        else:
-            print(f"Failed to download {video_id}. Status: {response.status_code} using API key: {api_key[:10]}...")
-            return None
-
-    except requests.RequestException as e:
-        print(f"Download error for {video_id}: {e} using API key: {api_key[:10]}...")
-        return None
-
-    except OSError as e:
-        print(f"File error for {video_id}: {e}")
-        return None
-
-async def check_file_size(link, cookie_arg): # cookie_arg ကို လက်ခံအောင်ပြင်ပါ
+async def check_file_size(link, cookie_arg):
     async def get_format_info(link):
         # --cookie argument ကို ထည့်သွင်းပါ
         cmd_args = ["yt-dlp", "-J"] + cookie_arg + [link]
         
         proc = await asyncio.create_subprocess_exec(
-            *cmd_args,  # cmd_args ကို ဒီမှာသုံးပါ
+            *cmd_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -170,18 +81,18 @@ class YouTubeAPI:
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
         
-        # --- COOKIE ကိုင်တွယ်မှု ---
+        # --- COOKIE HANDLING ---
         self.cookie_file_path = "cookies.txt"
-        self.cookie_arg = []  # Subprocess (command) အတွက်
-        self.cookie_dict = {} # Python Library (yt_dlp.YoutubeDL) အတွက်
+        self.cookie_arg = []  # For subprocess
+        self.cookie_dict = {} # For Python library
         
         if os.path.exists(self.cookie_file_path):
-            logging.info(f"'{self.cookie_file_path}' file ကို တွေ့ရှိပါပြီ။ yt-dlp အတွက် အသုံးပြုပါမည်။")
+            logging.info(f"'{self.cookie_file_path}' file found. Using it for yt-dlp.")
             self.cookie_arg = ["--cookie", self.cookie_file_path]
             self.cookie_dict = {"cookiefile": self.cookie_file_path}
         else:
-            logging.warning(f"'{self.cookie_file_path}' ကို မတွေ့ပါ။ bot က cookies မပါဘဲ run ပါမည်။")
-        # --- END COOKIE ကိုင်တွယ်မှု ---
+            logging.warning(f"'{self.cookie_file_path}' not found. yt-dlp will run without cookies.")
+        # --- END COOKIE HANDLING ---
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -274,10 +185,10 @@ class YouTubeAPI:
             "-g",
             "-f",
             "best[height<=?720][width<=?1280]",
-        ] + self.cookie_arg + [f"{link}"] # cookie_arg ကို ထည့်ပါ
+        ] + self.cookie_arg + [f"{link}"]
 
         proc = await asyncio.create_subprocess_exec(
-            *cmd_args, # cmd_args ကို သုံးပါ
+            *cmd_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -403,10 +314,8 @@ class YouTubeAPI:
         
         def audio_dl():
             try:
-                # ဒီ function တွေက သင့် code မှာ မပါရင် error တက်နိုင်ပါတယ်
-                # မူလ code ထဲကအတိုင်း ထားပေးထားတာပါ
-                sexid = extract_video_id(link) 
-                path = api_dl(sexid) 
+                sexid = extract_video_id(link) # extract_video_id မရှိပါ၊ ဒါက မူလ code ထဲက error ဖြစ်နိုင်
+                path = api_dl(sexid) # api_dl မရှိပါ၊ ဒါက မူလ code ထဲက error ဖြစ်နိုင်
                 if path:
                     return path
                 else:
@@ -441,8 +350,9 @@ class YouTubeAPI:
         def video_dl():
             # cookie_dict ကို ထည့်သွင်းပါ
             ydl_optssx = {
-                # 720p error အတွက် format အသစ်ကို ပြောင်းထားပါသည်
+                # --- ဒီ format ကို ပြောင်းသုံးပါ ---
                 "format": "bestvideo[height<=?720]+bestaudio/best[height<=?720]",
+                # ------------------------------
                 "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
@@ -518,10 +428,10 @@ class YouTubeAPI:
                     "-g",
                     "-f",
                     "best[height<=?720][width<=?1280]",
-                ] + self.cookie_arg + [f"{link}"] # cookie_arg ကို ထည့်ပါ
+                ] + self.cookie_arg + [f"{link}"]
 
                 proc = await asyncio.create_subprocess_exec(
-                    *cmd_args, # cmd_args ကို သုံးပါ
+                    *cmd_args,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -542,36 +452,6 @@ class YouTubeAPI:
                     direct = True
                     downloaded_file = await loop.run_in_executor(None, video_dl)
         else:
-            #
-            # --- START: Audio (သီချင်း) အတွက် ပြင်ဆင်မှု (Stream လုပ်ရန်) ---
-            #
-            if await is_on_off(0.1):
-                # Mode 1: Download ဆွဲမယ် (Setting On နေရင်)
-                direct = True
-                downloaded_file = await loop.run_in_executor(None, audio_dl)
-            else:
-                # Mode 2: Stream Link ယူမယ် (မြန်တဲ့နည်း) (Setting Off နေရင်)
-                cmd_args = [
-                    "yt-dlp",
-                    "-g",
-                    "-f",
-                    "bestaudio[ext=m4a]/bestaudio/best", # Audio stream ကို တောင်းပါ
-                ] + self.cookie_arg + [f"{link}"] # cookie_arg ကို ထည့်ပါ
-
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd_args, # cmd_args ကို သုံးပါ
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-                stdout, stderr = await proc.communicate()
-                if stdout:
-                    downloaded_file = stdout.decode().split("\n")[0]
-                    direct = False # 'False' က local file မဟုတ်ဘူး (stream link) လို့ ဆိုလိုပါတယ်
-                else:
-                    # Stream link ယူလို့မရရင် Download ပဲ ဆွဲပါ (Fallback)
-                    print(f"Audio stream ယူရာတွင် မအောင်မြင်ပါ။ Download ဆွဲပါမည်: {stderr.decode()}")
-                    direct = True
-                    downloaded_file = await loop.run_in_executor(None, audio_dl)
-            # --- END: Audio (သီချင်း) အတွက် ပြင်ဆင်မှု ---
-
+            direct = True
+            downloaded_file = await loop.run_in_executor(None, audio_dl)
         return downloaded_file, direct
