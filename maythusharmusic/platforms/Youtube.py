@@ -47,7 +47,7 @@ async def download_song(link: str):
                     data = await response.json()
                     status = data.get("status", "").lower()
                     if status == "downloading":
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(0.5)
                         continue
                     elif status == "error":
                         error_msg = data.get("error") or data.get("message") or "Unknown error"
