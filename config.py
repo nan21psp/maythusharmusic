@@ -12,10 +12,11 @@ API_ID = int(getenv("API_ID", None))
 API_HASH = getenv("API_HASH", None)
 
 
-COOKIE_URL = getenv("https://batbin.me/difluence")
+#COOKIE_URL = getenv("https://batbin.me/difluence")
 
-#API_BASE_URL = getenv("API_BASE_URL", "http://deadlinetech.site") #youtube song url
-#API_KEY = getenv("API_KEY", "Rf1qda5gyCITj6VbrekzRxmR")
+API_URL = getenv("API_URL", "https://api.thequickearn.xyz")
+API_KEY = getenv("API_KEY", "30DxNexGenBotsfcfad8")
+VIDEO_API_URL = getenv("VIDEO_API_URL", 'https://api.video.thequickearn.xyz')
 
 # Get your token from @BotFather on Telegram.
 BOT_TOKEN = getenv("BOT_TOKEN", None)
