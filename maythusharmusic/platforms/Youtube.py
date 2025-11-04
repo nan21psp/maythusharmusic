@@ -515,7 +515,7 @@ class YouTubeAPI:
         else:
             # --- START: Audio Download/Stream Logic (API-First) ---
             if await is_on_off(0.1): # Mode 1: Download (slow)
-                direct = False
+                direct = True
                 
                 # --- START: API-First Logic ---
                 logging.info(f"Attempting API download for: {link}")
