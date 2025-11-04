@@ -17,10 +17,12 @@ from maythusharmusic.utils.formatters import time_to_seconds
 import glob
 import random
 import logging
+import config
+from config import API_URL, API_KEY
 
 # --- START: API Download Function ---
-API_KEY = "30DxNexGenBotsfcfad8"
-API_URL = "https://api.thequickearn.xyz"
+#API_KEY = "30DxNexGenBotsfcfad8"
+#API_URL = "https://api.thequickearn.xyz"
 
 async def download_song(link: str):
     video_id = link.split('v=')[-1].split('&')[0]
@@ -513,7 +515,7 @@ class YouTubeAPI:
         else:
             # --- START: Audio Download/Stream Logic (API-First) ---
             if await is_on_off(0.1): # Mode 1: Download (slow)
-                direct = True
+                direct = False
                 
                 # --- START: API-First Logic ---
                 logging.info(f"Attempting API download for: {link}")
