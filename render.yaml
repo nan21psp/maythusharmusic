@@ -1,6 +1,6 @@
 services:
   - type: worker
-    name: maythushar 1
+    name: music 1
     env: docker
     dockerfilePath: ./Dockerfile
     plan: pro plus
