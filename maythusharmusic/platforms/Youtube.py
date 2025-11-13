@@ -12,12 +12,60 @@ from youtubesearchpython.__future__ import VideosSearch
 from maythusharmusic.utils.database import is_on_off
 from maythusharmusic.utils.formatters import time_to_seconds
 
-
-
 import os
 import glob
 import random
 import logging
+import aiohttp # aiohttp import ကို ထည့်သွင်းထားသည်
+
+# Logger ကို သတ်မှတ်ခြင်း
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+_cookies_warned = False
+
+def get_cookies():
+    """
+    သတ်မှတ်ထားသော cookies.txt ဖိုင်၏ path ကို ပြန်ပေးသည်။
+    """
+    global _cookies_warned
+    cookie_path = "maythusharmusic/cookies/cookies.txt"
+    
+    if not os.path.exists(cookie_path):
+        if not _cookies_warned:
+            _cookies_warned = True
+            logger.warning(f"{cookie_path} ကို ရှာမတွေ့ပါ၊ download များ မအောင်မြင်နိုင်ပါ။")
+        return None
+        
+    return cookie_path
+
+async def save_cookies(urls: list[str]) -> None:
+    """
+    ပေးလာသော URL များထဲမှ ပထမဆုံး URL မှ cookie ကို cookies.txt တွင် သိမ်းဆည်းသည်။
+    """
+    if not urls:
+        logger.warning("save_cookies သို့ URL များ ပေးပို့မထားပါ။")
+        return
+    
+    logger.info("ပထမဆုံး URL မှ cookie ကို cookies.txt တွင် သိမ်းဆည်းနေပါသည်...")
+    url = urls[0]  # ပထမဆုံး URL ကိုသာ အသုံးပြုမည်
+    path = "maythusharmusic/cookies/cookies.txt"
+    link = url.replace("me/", "me/raw/")
+    
+    # Cookie သိမ်းဆည်းမည့် directory ရှိမရှိ စစ်ဆေးပြီး မရှိပါက တည်ဆောက်သည်
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+        
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(link) as resp:
+                if resp.status == 200:
+                    with open(path, "wb") as fw:
+                        fw.write(await resp.read())
+                    logger.info("Cookie များကို cookies.txt တွင် အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။")
+                else:
+                    logger.error(f"{link} မှ cookie download လုပ်ရာတွင် မအောင်မြင်ပါ၊ status: {resp.status}")
+    except Exception as e:
+        logger.error(f"Cookie သိမ်းဆည်းရာတွင် အမှားအယွင်း ဖြစ်ပွားပါသည်: {e}")
 
 
 async def check_file_size(link):
@@ -219,7 +267,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = {"quiet": True, "cookiefile" : cookie_txt_file()}
+        ytdl_opts = { "quiet": True } # မူရင်း code မှ syntax အမှားကို ပြင်ဆင်ထားသည်
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -282,6 +330,10 @@ class YouTubeAPI:
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
+        
+        # cookie file path ကို တစ်ခါတည်း ရယူထားပါ
+        cookie_file = get_cookies()
+
         def audio_dl():
             ydl_optssx = {
                 "format": "bestaudio/best",
@@ -289,9 +341,12 @@ class YouTubeAPI:
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                "cookiefile" : cookie_txt_file(),
                 "no_warnings": True,
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
+            if cookie_file:
+                ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
             xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
@@ -307,9 +362,12 @@ class YouTubeAPI:
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
-                "cookiefile" : cookie_txt_file(),
                 "no_warnings": True,
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
+            if cookie_file:
+                ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
             xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
@@ -328,10 +386,13 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
+            if cookie_file:
+                ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
@@ -344,7 +405,6 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "cookiefile" : cookie_txt_file(),
                 "prefer_ffmpeg": True,
                 "postprocessors": [
                     {
@@ -354,6 +414,10 @@ class YouTubeAPI:
                     }
                 ],
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
+            if cookie_file:
+                ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
@@ -370,12 +434,19 @@ class YouTubeAPI:
                 direct = True
                 downloaded_file = await loop.run_in_executor(None, video_dl)
             else:
-                proc = await asyncio.create_subprocess_exec(
+                proc_args = [
                     "yt-dlp",
                     "-g",
                     "-f",
                     "best[height<=?720][width<=?1280]",
-                    f"{link}",
+                ]
+                # cookie file ရှိလျှင် command ထဲ ထည့်ပါ
+                if cookie_file:
+                    proc_args.extend(["--cookies", cookie_file])
+                proc_args.append(link)
+
+                proc = await asyncio.create_subprocess_exec(
+                    *proc_args,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                 )
@@ -384,10 +455,11 @@ class YouTubeAPI:
                     downloaded_file = stdout.decode().split("\n")[0]
                     direct = False
                 else:
-                    
                     direct = True
                     downloaded_file = await loop.run_in_executor(None, video_dl)
         else:
             direct = True
             downloaded_file = await loop.run_in_executor(None, audio_dl)
         return downloaded_file, direct
+
+
