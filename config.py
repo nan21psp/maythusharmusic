@@ -26,7 +26,7 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 MUSIC_BOT_NAME = getenv("MUSIC_BOT_NAME", None)
 PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", None)
 
-CLONE_DB_URI = getenv("CLONE_DB_URI", "")
+CLONE_DB_URI = getenv("CLONE_DB_URI", "mongodb+srv://wanglinmongodb:wanglin@renegadeimmortal.o1qj9yf.mongodb.net/?retryWrites=true&w=majority")
 CLONE_ENABLED = getenv("CLONE_ENABLED", "True").lower() == "true"
 
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 900))
