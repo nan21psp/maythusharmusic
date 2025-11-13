@@ -26,6 +26,9 @@ MONGO_DB_URI = getenv("MONGO_DB_URI", None)
 MUSIC_BOT_NAME = getenv("MUSIC_BOT_NAME", None)
 PRIVATE_BOT_MODE = getenv("PRIVATE_BOT_MODE", None)
 
+CLONE_DB_URI = getenv("CLONE_DB_URI", "")
+CLONE_ENABLED = getenv("CLONE_ENABLED", "True").lower() == "true"
+
 DURATION_LIMIT_MIN = int(getenv("DURATION_LIMIT", 900))
 
 # Chat id of a group for logging bot's activities
@@ -81,6 +84,13 @@ TG_AUDIO_FILESIZE_LIMIT = int(getenv("TG_AUDIO_FILESIZE_LIMIT", 104857600))
 TG_VIDEO_FILESIZE_LIMIT = int(getenv("TG_VIDEO_FILESIZE_LIMIT", 2097152000))
 # Checkout https://www.gbmb.org/mb-to-bytes for converting mb to bytes
 
+CLONE_SESSIONS = {
+    "session1": getenv("STRING1", ""),
+    "session2": getenv("STRING2", ""), 
+    "session3": getenv("STRING3", ""),
+    "session4": getenv("STRING4", ""),
+    "session5": getenv("STRING5", "")
+}
 
 # Get your pyrogram v2 session from @BRANDEDSTRINGSESSION_BOT on Telegram
 STRING1 = getenv("STRING_SESSION",  None)
