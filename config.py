@@ -11,6 +11,10 @@ load_dotenv()
 API_ID = int(getenv("API_ID", None))
 API_HASH = getenv("API_HASH", None)
 
+COOKIES_URL = [
+            url for url in getenv("COOKIES_URL", "").split(" ")
+            if url and "batbin.me" in url
+        ]
 
 #COOKIE_URL = getenv("https://batbin.me/difluence")
 
