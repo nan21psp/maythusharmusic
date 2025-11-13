@@ -1,13 +1,17 @@
-FROM nikolaik/python-nodejs:python3.11-nodejs24
+FROM python:3.13-slim
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg aria2 \
+WORKDIR /app
+COPY requirements.txt .
+
+RUN apt-get update -y && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends ffmpeg curl unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY . /app/
-WORKDIR /app/
-RUN python -m pip install --no-cache-dir --upgrade pip
-RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
+RUN curl -fsSL https://deno.land/install.sh | sh \
+    && ln -s /root/.deno/bin/deno /usr/local/bin/deno
 
-CMD python3 -m maythusharmusic
+RUN pip3 install -U pip && pip3 install -U -r requirements.txt
+COPY . .
+
+CMD ["bash", "start"]
