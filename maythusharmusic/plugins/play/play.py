@@ -1,5 +1,8 @@
 import random
 import string
+import os  # <--- (1) DB Cache အတွက် ထည့်သွင်းထားသည်
+import logging  # <--- (2) DB Cache အတွက် ထည့်သွင်းထားသည်
+import asyncio  # <--- (3) DB Cache အတွက် ထည့်သွင်းထားသည်
 
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
@@ -22,7 +25,13 @@ from maythusharmusic.utils.inline import (
 )
 from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
-from config import BANNED_USERS, lyrical
+
+# --- (4) DB Cache အတွက် Config နှင့် Database imports များ ---
+from config import BANNED_USERS, lyrical, STORAGE_CHANNEL_ID
+from maythusharmusic.utils.database import get_cached_track, save_cached_track
+
+# --- (5) DB Cache အတွက် Logger ---
+logger = logging.getLogger(__name__)
 
 
 @app.on_message(
@@ -73,6 +82,8 @@ async def play_commnd(
         if message.reply_to_message
         else None
     )
+    
+    # --- Telegram Audio/Video (Cache မလိုအပ်ပါ) ---
     if audio_telegram:
         if audio_telegram.file_size > 104857600:
             return await mystic.edit_text(_["play_5"])
@@ -157,6 +168,8 @@ async def play_commnd(
                 return await mystic.edit_text(err)
             return await mystic.delete()
         return
+    
+    # --- URL or Search Query ---
     elif url:
         if await YouTube.exists(url):
             if "playlist" in url:
@@ -264,6 +277,7 @@ async def play_commnd(
         elif await SoundCloud.valid(url):
             try:
                 details, track_path = await SoundCloud.download(url)
+                details["path"] = track_path # <-- Path ကို details ထဲ ထည့်ပါ
             except:
                 return await mystic.edit_text(_["play_3"])
             duration_sec = details["duration_sec"]
@@ -283,7 +297,7 @@ async def play_commnd(
                     chat_id,
                     user_name,
                     message.chat.id,
-                    streamtype="soundcloud",
+                    streamtype="soundcloud", # stream.py က "soundcloud" ကို "telegram" လို path နဲ့ ဖွင့်ပေးနိုင်ရပါမည်
                     forceplay=fplay,
                 )
             except Exception as e:
@@ -340,15 +354,17 @@ async def play_commnd(
         except:
             return await mystic.edit_text(_["play_3"])
         streamtype = "youtube"
+        
+    # --- Playmode Logic (Direct or Inline) ---
     if str(playmode) == "Direct":
-        if not plist_type:
+        if not plist_type: # (Single Track)
             if details["duration_min"]:
                 duration_sec = time_to_seconds(details["duration_min"])
                 if duration_sec > config.DURATION_LIMIT:
                     return await mystic.edit_text(
                         _["play_6"].format(config.DURATION_LIMIT_MIN, app.mention)
                     )
-            else:
+            else: # (Live Stream)
                 buttons = livestream_markup(
                     _,
                     track_id,
@@ -361,27 +377,152 @@ async def play_commnd(
                     _["play_13"],
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
-        try:
-            await stream(
-                _,
-                mystic,
-                user_id,
-                details,
-                chat_id,
-                user_name,
-                message.chat.id,
-                video=video,
-                streamtype=streamtype,
-                spotify=spotify,
-                forceplay=fplay,
-            )
-        except Exception as e:
-            print(f"Error: {e}")
-            ex_type = type(e).__name__
-            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-            return await mystic.edit_text(err)
-        await mystic.delete()
-        return await play_logs(message, streamtype=streamtype)
+
+        # --- (6) START: DB CACHE LOGIC (Single Tracks Only) ---
+        if not plist_type and streamtype == "youtube":
+            video_id = details.get("vidid")
+            title = details.get("title")
+            duration_min = details.get("duration_min")
+
+            cached_track = await get_cached_track(video_id)
+            
+            if cached_track:
+                # --- CACHE HIT ---
+                logger.info(f"[Cache HIT] Playing from DB: {title} ({video_id})")
+                details["path"] = cached_track["file_id"] # file_id ကို path အဖြစ် ထည့်ပါ
+                
+                try:
+                    await stream(
+                        _,
+                        mystic,
+                        user_id,
+                        details, # file_id ပါတဲ့ details
+                        chat_id,
+                        user_name,
+                        message.chat.id,
+                        video=video,
+                        streamtype="telegram", # 'telegram' type အဖြစ် ဖွင့်ခိုင်းပါ
+                        spotify=spotify,
+                        forceplay=fplay,
+                    )
+                except Exception as e:
+                    print(f"Error: {e}")
+                    ex_type = type(e).__name__
+                    err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+                    return await mystic.edit_text(err)
+                
+                await mystic.delete()
+                return await play_logs(message, streamtype="Cached YouTube")
+            
+            else:
+                # --- CACHE MISS ---
+                logger.info(f"[Cache MISS] Downloading: {title} ({video_id})")
+                await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+                
+                downloaded_path = None
+                try:
+                    # Download ဆွဲပါ
+                    downloaded_path, _ = await YouTube.download(
+                        link=details["link"],
+                        mystic=mystic,
+                        video=video, # video flag ကို pass လုပ်ပါ
+                    )
+                    if not downloaded_path or not os.path.exists(downloaded_path):
+                        raise Exception("Download failed, file path not found.")
+
+                    details["path"] = downloaded_path # local path ကို ထည့်ပါ
+                    
+                    # Local path နဲ့ အရင်ဖွင့်ပါ
+                    await stream(
+                        _,
+                        mystic,
+                        user_id,
+                        details, # local path ပါတဲ့ details
+                        chat_id,
+                        user_name,
+                        message.chat.id,
+                        video=video,
+                        streamtype="telegram", # 'telegram' type အဖြစ် ဖွင့်ခိုင်းပါ
+                        spotify=spotify,
+                        forceplay=fplay,
+                    )
+                    
+                    # Background မှာ Cache သိမ်းခြင်းနှင့် File ဖျက်ခြင်း
+                    async def cache_and_cleanup():
+                        try:
+                            sent_media = None
+                            if video:
+                                # Video file ကိုပို့ပါ
+                                sent_media = await app.send_video(
+                                    chat_id=STORAGE_CHANNEL_ID,
+                                    video=downloaded_path,
+                                    caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
+                                )
+                                file_id_to_cache = sent_media.video.file_id
+                            else:
+                                # Audio file ကိုပို့ပါ
+                                sent_media = await app.send_audio(
+                                    chat_id=STORAGE_CHANNEL_ID,
+                                    audio=downloaded_path,
+                                    caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
+                                )
+                                file_id_to_cache = sent_media.audio.file_id
+                            
+                            # DB မှာ သိမ်းပါ
+                            await save_cached_track(
+                                video_id=video_id,
+                                file_id=file_id_to_cache,
+                                title=title,
+                                duration=duration_min
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to cache to storage channel: {e}")
+                        finally:
+                            # Local file ကို ဖျက်ပါ
+                            if os.path.exists(downloaded_path):
+                                os.remove(downloaded_path)
+                    
+                    asyncio.create_task(cache_and_cleanup()) # Background task အဖြစ် run ပါ
+                    
+                    await mystic.delete()
+                    return await play_logs(message, streamtype="Downloaded YouTube")
+
+                except Exception as e:
+                    if downloaded_path and os.path.exists(downloaded_path):
+                        os.remove(downloaded_path) # Error ဖြစ်လျှင် local file ဖျက်ပါ
+                    print(f"Error: {e}")
+                    ex_type = type(e).__name__
+                    err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+                    return await mystic.edit_text(err)
+        
+        # --- (7) END: DB CACHE LOGIC ---
+        
+        # Playlist သို့မဟုတ် SoundCloud/Index ဖြစ်ခဲ့လျှင် မူလ logic ကို သုံးပါ
+        else:
+            try:
+                await stream(
+                    _,
+                    mystic,
+                    user_id,
+                    details,
+                    chat_id,
+                    user_name,
+                    message.chat.id,
+                    video=video,
+                    streamtype=streamtype,
+                    spotify=spotify,
+                    forceplay=fplay,
+                )
+            except Exception as e:
+                print(f"Error: {e}")
+                ex_type = type(e).__name__
+                err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+                return await mystic.edit_text(err)
+            
+            await mystic.delete()
+            return await play_logs(message, streamtype=streamtype)
+    
+    # --- Inline Mode (Buttons) ---
     else:
         if plist_type:
             ran_hash = "".join(
@@ -469,6 +610,8 @@ async def play_music(client, CallbackQuery, _):
         details, track_id = await YouTube.track(vidid, True)
     except:
         return await mystic.edit_text(_["play_3"])
+    
+    # Duration Check (Live or Normal)
     if details["duration_min"]:
         duration_sec = time_to_seconds(details["duration_min"])
         if duration_sec > config.DURATION_LIMIT:
@@ -488,27 +631,118 @@ async def play_music(client, CallbackQuery, _):
             _["play_13"],
             reply_markup=InlineKeyboardMarkup(buttons),
         )
+    
     video = True if mode == "v" else None
     ffplay = True if fplay == "f" else None
-    try:
-        await stream(
-            _,
-            mystic,
-            CallbackQuery.from_user.id,
-            details,
-            chat_id,
-            user_name,
-            CallbackQuery.message.chat.id,
-            video,
-            streamtype="youtube",
-            forceplay=ffplay,
-        )
-    except Exception as e:
-        print(f"Error: {e}")
-        ex_type = type(e).__name__
-        err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-        return await mystic.edit_text(err)
-    return await mystic.delete()
+    
+    # --- (8) START: DB CACHE LOGIC (Callback) ---
+    video_id = details.get("vidid")
+    title = details.get("title")
+    duration_min = details.get("duration_min")
+
+    cached_track = await get_cached_track(video_id)
+    
+    if cached_track:
+        # --- CACHE HIT ---
+        logger.info(f"[Cache HIT] Playing from DB: {title} ({video_id})")
+        details["path"] = cached_track["file_id"]
+        
+        try:
+            await stream(
+                _,
+                mystic,
+                CallbackQuery.from_user.id,
+                details, # file_id ပါတဲ့ details
+                chat_id,
+                user_name,
+                CallbackQuery.message.chat.id,
+                video,
+                streamtype="telegram", # 'telegram' type အဖြစ် ဖွင့်ခိုင်းပါ
+                forceplay=ffplay,
+            )
+        except Exception as e:
+            print(f"Error: {e}")
+            ex_type = type(e).__name__
+            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+            return await mystic.edit_text(err)
+        
+        return await mystic.delete()
+
+    else:
+        # --- CACHE MISS ---
+        logger.info(f"[Cache MISS] Downloading: {title} ({video_id})")
+        await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+        
+        downloaded_path = None
+        try:
+            # Download ဆွဲပါ
+            downloaded_path, _ = await YouTube.download(
+                link=details["link"],
+                mystic=mystic,
+                video=video,
+            )
+            if not downloaded_path or not os.path.exists(downloaded_path):
+                raise Exception("Download failed, file path not found.")
+
+            details["path"] = downloaded_path
+            
+            # Local path နဲ့ အရင်ဖွင့်ပါ
+            await stream(
+                _,
+                mystic,
+                CallbackQuery.from_user.id,
+                details, # local path ပါတဲ့ details
+                chat_id,
+                user_name,
+                CallbackQuery.message.chat.id,
+                video,
+                streamtype="telegram", # 'telegram' type အဖြစ် ဖွင့်ခိုင်းပါ
+                forceplay=ffplay,
+            )
+            
+            # Background မှာ Cache သိမ်းခြင်းနှင့် File ဖျက်ခြင်း
+            async def cache_and_cleanup():
+                try:
+                    sent_media = None
+                    if video:
+                        sent_media = await app.send_video(
+                            chat_id=STORAGE_CHANNEL_ID,
+                            video=downloaded_path,
+                            caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
+                        )
+                        file_id_to_cache = sent_media.video.file_id
+                    else:
+                        sent_media = await app.send_audio(
+                            chat_id=STORAGE_CHANNEL_ID,
+                            audio=downloaded_path,
+                            caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
+                        )
+                        file_id_to_cache = sent_media.audio.file_id
+                    
+                    await save_cached_track(
+                        video_id=video_id,
+                        file_id=file_id_to_cache,
+                        title=title,
+                        duration=duration_min
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to cache to storage channel: {e}")
+                finally:
+                    if os.path.exists(downloaded_path):
+                        os.remove(downloaded_path)
+            
+            asyncio.create_task(cache_and_cleanup())
+            
+            return await mystic.delete()
+
+        except Exception as e:
+            if downloaded_path and os.path.exists(downloaded_path):
+                os.remove(downloaded_path)
+            print(f"Error: {e}")
+            ex_type = type(e).__name__
+            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+            return await mystic.edit_text(err)
+    # --- (9) END: DB CACHE LOGIC ---
 
 
 @app.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)
@@ -525,6 +759,7 @@ async def anonymous_check(client, CallbackQuery):
 @app.on_callback_query(filters.regex("HottyPlaylists") & ~BANNED_USERS)
 @languageCB
 async def play_playlists_command(client, CallbackQuery, _):
+    # --- (Playlist ဖွင့်တာဖြစ်လို့ Cache Logic မထည့်ပါ) ---
     callback_data = CallbackQuery.data.strip()
     callback_request = callback_data.split(None, 1)[1]
     (
