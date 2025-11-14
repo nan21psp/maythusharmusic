@@ -134,7 +134,7 @@ async def stream(
         link = result["link"]
         vidid = result["vidid"]
         title = (result["title"]).title()
-        duration_min = result["duration_min"]
+        duration_min = result["duration_min"] # ဒီနေရာမှာ "duration_min" ကို သုံးပါတယ် (ဒါက မှန်ပါတယ်)
         thumbnail = result["thumb"]
         status = True if video else None
     
@@ -210,7 +210,7 @@ async def stream(
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
-        duration_min = result["duration_min"]
+        duration_min = result["duration_min"] # ဒီနေရာမှာ "duration_min" ကို သုံးပါတယ် (ဒါက မှန်ပါတယ်)
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -261,7 +261,17 @@ async def stream(
         file_path = result["path"]
         link = result["link"]
         title = (result["title"]).title()
-        duration_min = result["dur"]
+        
+        # --- START: "dur" Key Fix ---
+        # "dur" key ကို အရင်ရှာပါ၊ မတွေ့မှ "duration_min" ကို ယူသုံးပါ
+        if "dur" in result:
+            duration_min = result["dur"]
+        elif "duration_min" in result:
+            duration_min = result["duration_min"]
+        else:
+            duration_min = "00:00" # နှစ်ခုလုံး မရှိရင် default value တစ်ခု ထားပါ
+        # --- END: "dur" Key Fix ---
+            
         status = True if video else None
         if await is_active_chat(chat_id):
             await put_queue(
