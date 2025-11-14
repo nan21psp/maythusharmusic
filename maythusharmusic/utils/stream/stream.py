@@ -1,7 +1,7 @@
-import os
+Import os
 from random import randint
 from typing import Union
-import logging # <-- (1) Error Log အတွက် ထည့်သွင်းပါ
+import logging 
 
 from pyrogram.types import InlineKeyboardMarkup
 
@@ -16,7 +16,7 @@ from maythusharmusic.utils.pastebin import HottyBin
 from maythusharmusic.utils.stream.queue import put_queue, put_queue_index
 from maythusharmusic.utils.thumbnails import get_thumb
 
-# --- (2) Logger ကို သတ်မှတ်ပါ ---
+# Logger ကို သတ်မှတ်ပါ
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -84,21 +84,8 @@ async def stream(
                     )
                 except:
                     raise AssistantErr(_["play_14"])
-                
-                # --- (3) START: Hotty.join_call Error Handling ---
-                try:
-                    await Hotty.join_call(
-                        chat_id,
-                        original_chat_id,
-                        file_path,
-                        video=status,
-                        image=thumbnail,
-                    )
-                except Exception as e:
-                    logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
-                    return await mystic.edit_text(_["general_2"].format(str(e)))
-                # --- END: Hotty.join_call Error Handling ---
 
+                # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
                 await put_queue(
                     chat_id,
                     original_chat_id,
@@ -111,6 +98,25 @@ async def stream(
                     "video" if video else "audio",
                     forceplay=forceplay,
                 )
+                
+                # --- ပြီးမှ VC ကို join ---
+                try:
+                    await Hotty.join_call(
+                        chat_id,
+                        original_chat_id,
+                        file_path,
+                        video=status,
+                        image=thumbnail,
+                    )
+                except Exception as e:
+                    logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
+                    # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                    try:
+                        db[chat_id].pop()
+                    except:
+                        pass
+                    return await mystic.edit_text(_["general_2"].format(str(e)))
+
                 img = await get_thumb(vidid)
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
@@ -186,21 +192,8 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            
-            # --- (3) START: Hotty.join_call Error Handling ---
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-            # --- END: Hotty.join_call Error Handling ---
 
+            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -213,6 +206,25 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
+            
+            # --- ပြီးမှ VC ကို join ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    file_path,
+                    video=status,
+                    image=thumbnail,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
+                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                try:
+                    db[chat_id].pop()
+                except:
+                    pass
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
@@ -255,14 +267,7 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- (3) START: Hotty.join_call Error Handling ---
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-            # --- END: Hotty.join_call Error Handling ---
-
+            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -275,6 +280,19 @@ async def stream(
                 "audio",
                 forceplay=forceplay,
             )
+
+            # --- ပြီးမှ VC ကို join ---
+            try:
+                await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
+                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                try:
+                    db[chat_id].pop()
+                except:
+                    pass
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
@@ -291,7 +309,6 @@ async def stream(
         link = result["link"]
         title = (result["title"]).title()
         
-        # --- "dur" Key Fix (ဒါက အရင်ကတည်းက ထည့်ထားပြီးသား) ---
         if "dur" in result:
             duration_min = result["dur"]
         elif "duration_min" in result:
@@ -323,14 +340,7 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- (3) START: Hotty.join_call Error Handling ---
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-            # --- END: Hotty.join_call Error Handling ---
-
+            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -343,6 +353,19 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
+
+            # --- ပြီးမှ VC ကို join ---
+            try:
+                await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
+                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                try:
+                    db[chat_id].pop()
+                except:
+                    pass
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+
             if video:
                 await add_active_video_chat(chat_id)
             button = stream_markup(_, chat_id)
@@ -387,20 +410,7 @@ async def stream(
             if n == 0:
                 raise AssistantErr(_["str_3"])
             
-            # --- (3) START: Hotty.join_call Error Handling ---
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail if thumbnail else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-            # --- END: Hotty.join_call Error Handling ---
-
+            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -413,6 +423,25 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
+
+            # --- ပြီးမှ VC ကို join ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    file_path,
+                    video=status,
+                    image=thumbnail if thumbnail else None,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
+                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                try:
+                    db[chat_id].pop()
+                except:
+                    pass
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
@@ -453,19 +482,7 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- (3) START: Hotty.join_call Error Handling ---
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    link,
-                    video=True if video else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-            # --- END: Hotty.join_call Error Handling ---
-
+            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue_index(
                 chat_id,
                 original_chat_id,
@@ -477,6 +494,24 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
+
+            # --- ပြီးမှ VC ကို join ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    link,
+                    video=True if video else None,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
+                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                try:
+                    db[chat_id].pop()
+                except:
+                    pass
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
