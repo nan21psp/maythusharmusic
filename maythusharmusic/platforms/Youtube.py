@@ -63,7 +63,7 @@ def get_random_api_key():
     """Randomly select an API key from the list"""
     return random.choice(API_KEYS)
 
-API_BASE_URL = "https://tgmusic.fallenapi.fun"
+API_BASE_URL = "http://deadlinetech.site"
 
 MIN_FILE_SIZE = 51200
 
