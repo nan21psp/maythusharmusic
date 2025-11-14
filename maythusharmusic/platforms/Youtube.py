@@ -11,16 +11,13 @@ from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 
 # --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
-import config  # CACHE_CHANNEL_ID အတွက်
-# from maythusharmusic import userbot # (FIX) တိုက်ရိုက်မသုံးတော့ပါ
-from maythusharmusic.core.userbot import assistants # (FIX) Active assistants list ကို သုံးပါ
 from maythusharmusic.utils.database import (
     is_on_off,
-    get_yt_cache, 
-    save_yt_cache,
-    get_telegram_cache,  # Telegram Cache
-    save_telegram_cache, # Telegram Cache
-    get_client           # (FIX) Assistant client ရယူရန် ပြန်ထည့်ပါ
+    get_yt_cache,  # Search Result Cache
+    save_yt_cache, # Search Result Cache
+    get_cached_song_path,  # File Path Cache
+    save_cached_song_path, # File Path Cache
+    remove_cached_song_path # File Path Cache
 )
 # --- (ဒီနေရာအထိ) ---
 from maythusharmusic.utils.formatters import time_to_seconds
@@ -63,7 +60,7 @@ def get_random_api_key():
     """Randomly select an API key from the list"""
     return random.choice(API_KEYS)
 
-API_BASE_URL = "https://tgmusic.fallenapi.fun"
+API_BASE_URL = "http://deadlinetech.site"
 
 MIN_FILE_SIZE = 51200
 
@@ -89,9 +86,9 @@ def api_dl(video_id: str) -> str | None:
     api_url = f"{API_BASE_URL}/download/song/{video_id}?key={api_key}"
     file_path = os.path.join("downloads", f"{video_id}.mp3")
 
-    # Local file ကို re-download မလုပ်မိအောင် စစ်ဆေးခြင်း
+    # ✅ Check if already downloaded
     if os.path.exists(file_path):
-        logger.info(f"{file_path} already exists (local). Skipping download.")
+        logger.info(f"{file_path} already exists. Skipping download.")
         return file_path
 
     try:
@@ -104,7 +101,7 @@ def api_dl(video_id: str) -> str | None:
                     if chunk:
                         f.write(chunk)
 
-            # Check file size
+            # ✅ Check file size
             file_size = os.path.getsize(file_path)
             if file_size < MIN_FILE_SIZE:
                 logger.warning(f"Downloaded file is too small ({file_size} bytes). Removing.")
@@ -176,18 +173,25 @@ async def check_file_size(link):
     async def get_format_info(link):
         
         # --- Cookie Logic ---
+        # 1. (ဒီ file ထဲမှာ ရှိပြီးသား) get_cookies() function ကို ခေါ်သုံးပါ
         cookie_file = get_cookies() 
+        
+        # 2. Command arguments တွေကို list အနေနဲ့ တည်ဆောက်ပါ
         proc_args = [
             "yt-dlp",
             "-J", # JSON output
         ]
+        
+        # 3. Cookie file ရှိခဲ့ရင် command ထဲကို ထည့်ပါ
         if cookie_file:
             proc_args.extend(["--cookies", cookie_file])
+        
+        # 4. နောက်ဆုံးမှာ link ကို ထည့်ပါ
         proc_args.append(link)
         # --- End Cookie Logic ---
 
         proc = await asyncio.create_subprocess_exec(
-            *proc_args,
+            *proc_args,  # List ကို unpack လုပ်ပြီး ထည့်ပါ
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -275,7 +279,7 @@ class YouTubeAPI:
             return None
         return text[offset : offset + length]
 
-    # --- START: Caching Logic Functions (MongoDB Search Cache) ---
+    # --- START: Caching Logic Functions (MongoDB ထည့်သွင်းထားသည်) ---
 
     async def _fetch_from_youtube(self, link: str):
         """
@@ -311,11 +315,19 @@ class YouTubeAPI:
         }
         
         # --- START: Cache Logic (In-Memory & MongoDB) ---
+        
+        # 1. In-memory cache ထဲကို vidid ကို key အနေနဲ့ သုံးပြီး သိမ်းထားပါ
         self._search_cache[vidid] = video_details
+        # 2. In-memory cache ထဲကို Link ကို key အနေနဲ့ သုံးပြီးလည်း သိမ်းထားပါ
         self._search_cache[link] = video_details
+        
+        # 3. MongoDB Cache (ytcache_db) ထဲကို vidid ကို key အနေနဲ့ သုံးပြီး သိမ်းပါ
         await save_yt_cache(vidid, video_details)
+        # 4. MongoDB Cache (ytcache_db) ထဲကို Link ကို key အနေနဲ့ သုံးပြီးလည်း သိမ်းပါ
         await save_yt_cache(link, video_details)
+        
         logger.info(f"Saved Search Result to MongoDB Cache: {vidid} / {link}")
+        
         # --- END: Cache Logic ---
         
         return video_details
@@ -330,25 +342,29 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
 
+        # 1. Cache Key ကို သတ်မှတ်ပါ (link ကို key အဖြစ် သုံးပါမည်)
         cache_key = link
 
-        # 1. In-Memory Cache (Dictionary) ထဲမှာ အရင်ရှာကြည့်ပါ
+        # 2. In-Memory Cache (Dictionary) ထဲမှာ အရင်ရှာကြည့်ပါ
         if cache_key in self._search_cache:
             logger.info(f"Cache Hit (Memory): {cache_key}")
             return self._search_cache[cache_key]
             
-        # 2. MongoDB Cache (ytcache_db) ထဲမှာ ရှာကြည့်ပါ
+        # 3. MongoDB Cache (ytcache_db) ထဲမှာ ရှာကြည့်ပါ
         mongo_details = await get_yt_cache(cache_key)
         if mongo_details:
             logger.info(f"Cache Hit (MongoDB): {cache_key}")
+            # MongoDB မှာတွေ့ရင် In-Memory cache ထဲကို ပြန်ထည့်ပါ
             self._search_cache[cache_key] = mongo_details
             if mongo_details.get("vidid"):
                  self._search_cache[mongo_details["vidid"]] = mongo_details
             return mongo_details
             
-        # 3. Cache ထဲမှာမရှိရင် YouTube ကို တကယ်သွားရှာပါ
+        # 4. Cache ထဲမှာမရှိရင် YouTube ကို တကယ်သွားရှာပါ
         logger.info(f"Cache Miss. Fetching from YouTube: {cache_key}")
         details = await self._fetch_from_youtube(link)
+        
+        # 5. _fetch_from_youtube က cache ထဲ သိမ်းပြီးသားဖြစ်ပါမည်
         
         return details
 
@@ -493,7 +509,7 @@ class YouTubeAPI:
 
     # --- END: မူလ Functions များ ---
 
-    # --- START: Download Function (Telegram Cache ဖြင့်) ---
+    # --- START: API-First Download Function (DB File Path Cache ဖြင့် ပြင်ဆင်ပြီး) ---
 
     async def download(
         self,
@@ -506,75 +522,32 @@ class YouTubeAPI:
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
     ) -> str:
-        
         if videoid:
             link = self.base + link
-            
-        # --- (START: Telegram Cache Check) ---
-        video_id_for_cache = None
-        if videoid:
-            # 'videoid=True' ဆိုလျှင် 'link' ထဲမှာ vidid တိုက်ရိုက် ပါလာသည်။
-            video_id_for_cache = link 
-        else:
-            try:
-                # link ကနေ video_id ကို ထုတ်ယူကြည့်ပါ
-                video_id_for_cache = extract_video_id(link)
-            except ValueError:
-                pass # Non-youtube link, proceed normally
-
-        # Cache ကို audio ဖွင့်မှသာ စစ်ပါ (video/songaudio/songvideo မဟုတ်မှ)
-        if video_id_for_cache and not video and not songaudio and not songvideo:
-            cached_file_id = await get_telegram_cache(video_id_for_cache)
-            if cached_file_id:
-                logger.info(f"Telegram Cache Hit: {video_id_for_cache} -> {cached_file_id}")
-                # Telegram file_id ကို path အဖြစ် ပြန်ပေးလိုက်ပါ
-                # direct=True ဖြစ်တဲ့အတွက် PyTgCalls က file_id ကို တိုက်ရိုက် ဖွင့်ပါမည်
-                return cached_file_id, True
-            else:
-                logger.info(f"Telegram Cache Miss: {video_id_for_cache}")
-        # --- (END: Telegram Cache Check) ---
-
-        # --- (Cache မတွေ့မှသာ ပုံမှန် Download Process ကို ဆက်လုပ်ပါ) ---
-            
         loop = asyncio.get_running_loop()
         
         cookie_file = get_cookies()
 
-        # --- (FIX START: audio_dl function ကို .mp3 format သို့ force) ---
         def audio_dl():
-            # .mp3 file path ကို သတ်မှတ်
-            fpath = os.path.join("downloads", f"%(id)s.mp3")
-            
             ydl_optssx = {
                 "format": "bestaudio/best",
-                "outtmpl": fpath, # .mp3 path ကို သုံး
+                "outtmpl": "downloads/%(id)s.%(ext)s",
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
-                "prefer_ffmpeg": True, # ffmpeg သုံး
-                "postprocessors": [      # .mp3 သို့ convert
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "320", # Quality
-                    }
-                ],
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
             if cookie_file:
                 ydl_optssx["cookiefile"] = cookie_file
-            
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
-            
-            # Final path က .mp3 ဖြစ်ရမည်
-            xyz = os.path.join("downloads", f"{info['id']}.mp3") 
-            
+            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
             if os.path.exists(xyz):
                 return xyz
             x.download([link])
             return xyz
-        # --- (FIX END) ---
 
         def video_dl():
             ydl_optssx = {
@@ -585,6 +558,7 @@ class YouTubeAPI:
                 "quiet": True,
                 "no_warnings": True,
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
             if cookie_file:
                 ydl_optssx["cookiefile"] = cookie_file
                 
@@ -609,8 +583,10 @@ class YouTubeAPI:
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
             if cookie_file:
                 ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
@@ -632,30 +608,37 @@ class YouTubeAPI:
                     }
                 ],
             }
+            # cookie file ရှိလျှင် options ထဲ ထည့်ပါ
             if cookie_file:
                 ydl_optssx["cookiefile"] = cookie_file
+                
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
 
         if songvideo:
             await loop.run_in_executor(None, song_video_dl)
             fpath = f"downloads/{title}.mp4"
-            return fpath, True # direct=True
+            return fpath
         elif songaudio:
             await loop.run_in_executor(None, song_audio_dl)
             fpath = f"downloads/{title}.mp3"
-            return fpath, True # direct=True
+            return fpath
         elif video:
             if await is_on_off(1):
                 direct = True
                 downloaded_file = await loop.run_in_executor(None, video_dl)
             else:
                 proc_args = [
-                    "yt-dlp", "-g", "-f", "best[height<=?720][width<=?1280]",
+                    "yt-dlp",
+                    "-g",
+                    "-f",
+                    "best[height<=?720][width<=?1280]",
                 ]
+                # cookie file ရှိလျှင် command ထဲ ထည့်ပါ
                 if cookie_file:
                     proc_args.extend(["--cookies", cookie_file])
                 proc_args.append(link)
+
                 proc = await asyncio.create_subprocess_exec(
                     *proc_args,
                     stdout=asyncio.subprocess.PIPE,
@@ -666,103 +649,74 @@ class YouTubeAPI:
                     downloaded_file = stdout.decode().split("\n")[0]
                     direct = False
                 else:
+                    
                     direct = True
                     downloaded_file = await loop.run_in_executor(None, video_dl)
         else:
-            # --- START: Standard Audio Download Logic ---
+            # --- START: API Logic (DB File Path Cache ဖြင့်) ---
             downloaded_file = None
-            direct = True
-            
-            # (video_id_for_cache ကို အပေါ်မှာ သတ်မှတ်ပြီးသား)
-            video_id = video_id_for_cache 
+            direct = True  # API or audio_dl will be a direct file path
+            video_id = None # video_id ကို အစပြုထားပါ
 
             try:
-                if video_id: # video_id ရှိမှသာ API ကို ခေါ်ပါ
-                    logger.info(f"Attempting API download for {video_id}...")
-                    downloaded_file = await loop.run_in_executor(
-                        None, api_dl, video_id
-                    )
-                else:
-                    logger.warning("No video_id found, skipping API_DL.")
-                    
+                # 1. Get video_id from link
+                video_id = extract_video_id(link)
+                
+                # --- START: DB Cache Check (ထပ်တိုးထားသည်) ---
+                cached_path = await get_cached_song_path(video_id)
+                if cached_path:
+                    if os.path.exists(cached_path):
+                        # File တကယ်ရှိနေသေးရင် (1-second playback)
+                        logger.info(f"DB Cache Hit (File Exists): {cached_path}")
+                        downloaded_file = cached_path
+                        return downloaded_file, direct # ချက်ချင်းပြန်ပေးလိုက်ပါ
+                    else:
+                        # File မရှိတော့ရင် (Clean Mode ကြောင့်) DB ကနေ ဖယ်ရှားပါ
+                        logger.warning(f"DB Cache Stale (File Missing): {cached_path}. Removing entry.")
+                        await remove_cached_song_path(video_id)
+                # --- END: DB Cache Check ---
+
+                # --- (DB Cache မှာ မရှိမှသာ ဆက်လက် download လုပ်ပါ) ---
+                logger.info(f"DB Cache Miss. Attempting API download for {video_id}...")
+                downloaded_file = await loop.run_in_executor(
+                    None,     # Use default thread pool
+                    api_dl,   # The synchronous function to run
+                    video_id  # The argument for api_dl
+                )
+
+            except ValueError as e:
+                # extract_video_id failed
+                logger.warning(f"Could not extract video ID for API download: {e}")
+                downloaded_file = None
             except Exception as e:
+                # Other unexpected errors
                 logger.error(f"An error occurred during API download attempt: {e}")
                 downloaded_file = None
 
+            # 3. Check if API download failed (downloaded_file is None)
             if not downloaded_file:
-                logger.warning(f"API download failed for {link}. Falling back to yt-dlp...")
-                # (FIX: အခု ဒီ function က .mp3 ကိုပဲ return လုပ်ပါမယ်)
+                logger.warning(f"API download failed for {link}. Falling back to yt-dlp (cookies)...")
+                # Fallback to original yt-dlp (cookie) method
                 downloaded_file = await loop.run_in_executor(None, audio_dl)
             else:
                 logger.info(f"API download successful: {downloaded_file}")
-            
-            # --- (START: Telegram Cache Upload Logic) ---
-            # (downloaded_file ထဲမှာ local file path ရှိမှသာ ဤ logic အလုပ်လုပ်မည်)
-            if (
-                downloaded_file and video_id and direct and 
-                not video and not songaudio and not songvideo
-            ):
-                if os.path.exists(downloaded_file) and hasattr(config, "CACHE_CHANNEL_ID") and config.CACHE_CHANNEL_ID:
-                    logger.info(f"Uploading {video_id} to Telegram Cache Channel...")
-                    try:
-                        # --- (FIX START: Active Assistant List ထဲက တစ်ခုကို ရွေးသုံးပါ) ---
-                        
-                        # Active assistant list (userbot.py ထဲက) ကို စစ်ဆေးပါ
-                        if not assistants:
-                            raise Exception("No active assistants (userbots) found to upload cache.")
-                            
-                        # Active list ထဲက random ID တစ်ခု ရွေးပါ (e.g., 1, 2, 3...)
-                        assistant_id = random.choice(assistants) 
-                        
-                        # အဲ့ဒီ ID နဲ့ သက်ဆိုင်တဲ့ client object (userbot.one, .two, etc.) ကို ယူပါ
-                        assistant = await get_client(assistant_id) 
-                        
-                        if not assistant: # client object က None ဖြစ်နေလား စစ်ဆေးပါ
-                            raise Exception(f"Failed to get client for assistant ID: {assistant_id}. It might be None (SESSION မထည့်ထား).")
-                        
-                        # Channel သို့ ပို့ပါ
-                        msg = await assistant.send_audio(
-                            chat_id=config.CACHE_CHANNEL_ID,
-                            audio=downloaded_file,
-                            caption=f"#cache {video_id}\n{link}"
-                        )
-                        # --- (FIX END) ---
-                        
-                        # --- (FIX START: Document Fallback Check) ---
-                        new_file_id = None
-                        if msg and msg.audio:
-                            new_file_id = msg.audio.file_id
-                        elif msg and msg.document:
-                            # Fallback: File ကို Document အဖြစ် ပို့ခဲ့လျှင်
-                            logger.warning(f"File was sent as Document, not Audio. Using document file_id. File: {msg.document.file_name}")
-                            new_file_id = msg.document.file_id
-                        # --- (FIX END) ---
-                        
-                        if new_file_id:
-                            # DB ထဲတွင် File ID အသစ်ကို သိမ်းဆည်းပါ
-                            await save_telegram_cache(video_id, new_file_id)
-                            logger.info(f"Saved to Telegram Cache DB: {video_id} -> {new_file_id}")
-                            
-                            # လက်ရှိဖွင့်မယ့် သီချင်းကို Local File အစား Telegram File ID သို့ ပြောင်းလိုက်ပါ
-                            local_file_path = downloaded_file # မဖျက်ခင် မှတ်ထားပါ
-                            downloaded_file = new_file_id
-                            direct = True 
-                            
-                            # Local file ကို ဖျက်ပစ်ပါ (Storage မကုန်အောင်)
-                            try:
-                                os.remove(local_file_path)
-                                logger.info(f"Removed local file: {local_file_path}")
-                            except Exception as e:
-                                logger.error(f"Failed to remove local file: {e}")
-                        else:
-                            # (FIX) msg က None ဖြစ်နေရင် ဒါမှမဟုတ် audio/document နှစ်ခုလုံးမပါရင်
-                            logger.error(f"Failed to get file_id from sent message. Message: {msg}")
-                            
-                    except Exception as e:
-                        logger.error(f"Failed to upload to Telegram Cache: {e}")
-                        # Upload မအောင်မြင်ပါက၊ ဒီတစ်ခါတော့ local file ကိုပဲ ဖွင့်ခိုင်းလိုက်ပါ
-                        pass 
-            # --- (END: Telegram Cache Upload Logic) ---
-            # --- (END: Standard Audio Download Logic) ---
+                
+            # --- START: Save to DB Cache (ထပ်တိုးထားသည်) ---
+            if downloaded_file and video_id:
+                # Download အောင်မြင်ခဲ့လျှင် DB မှာ သိမ်းထားပါ
+                await save_cached_song_path(video_id, downloaded_file)
+            elif downloaded_file and not video_id:
+                # Fallback (audio_dl) ကနေလာရင် video_id ကို file name ကနေ ယူ
+                try:
+                    # file name က "downloads/VIDEO_ID.ext" format ဖြစ်
+                    vid_from_path = os.path.basename(downloaded_file).split('.')[0]
+                    if len(vid_from_path) == 11: # video_id format (ခန့်မှန်း)
+                        await save_cached_song_path(vid_from_path, downloaded_file)
+                except Exception as e:
+                    logger.error(f"Could not save fallback path to DB: {e}")
+            # --- END: Save to DB Cache ---
+            # --- END: API Logic ---
 
         return downloaded_file, direct
+        
+YouTube.py ထဲမှာသိမ်းဆည်းထားတဲ့ဖိုင်လမ်းကြောင်းတွေကို mongodb database ဖန်တီးပြီး သိမ်းဆည်းလို့ရလား။
