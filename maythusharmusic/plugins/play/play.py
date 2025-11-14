@@ -27,7 +27,7 @@ from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 
 # --- START: DB Cache Imports (L1 & L2) ---
-from config import BANNED_USERS, lyrical, STORAGE_CHANNEL_ID
+from config import BANNED_USERS, lyrical
 from maythusharmusic.utils.database import (
     get_cached_track, 
     save_cached_track,
@@ -512,7 +512,7 @@ async def play_commnd(
                             
                             if video:
                                 sent_media = await app.send_video(
-                                    chat_id=STORAGE_CHANNEL_ID,
+                                    chat_id=-1002470419378,
                                     video=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
@@ -520,7 +520,7 @@ async def play_commnd(
                                     file_id_to_cache = sent_media.video.file_id
                             else:
                                 sent_media = await app.send_audio(
-                                    chat_id=STORAGE_CHANNEL_ID,
+                                    chat_id=-1002470419378,
                                     audio=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
@@ -775,7 +775,7 @@ async def play_music(client, CallbackQuery, _):
                     
                     if video:
                         sent_media = await app.send_video(
-                            chat_id=STORAGE_CHANNEL_ID,
+                            chat_id=-1002470419378,
                             video=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
@@ -783,7 +783,7 @@ async def play_music(client, CallbackQuery, _):
                             file_id_to_cache = sent_media.video.file_id
                     else:
                         sent_media = await app.send_audio(
-                            chat_id=STORAGE_CHANNEL_ID,
+                            chat_id=-1002470419378,
                             audio=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
