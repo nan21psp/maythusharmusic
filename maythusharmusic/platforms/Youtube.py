@@ -1,5 +1,3 @@
-തീർച്ചയായും! ဒါကတော့ Caching logic (သီချင်းအချက်အလက်တွေကို ခဏမှတ်ထားတဲ့စနစ်) ကို ထည့်သွင်းပြီး ပြင်ဆင်ထားတဲ့ youtube.py file အပြည့်အစုံ ဖြစ်ပါတယ်။
-api_dl (API ဖြင့် download ဆွဲခြင်း)၊ get_cookies (Cookie ဖြင့် download ဆွဲခြင်း) နဲ့ Caching (အချက်အလက် မြန်မြန်ရှာခြင်း) တို့ အားလုံး ပေါင်းစပ်ပြီးသား ဖြစ်ပါတယ်။
 import asyncio
 import os
 import re
