@@ -1,8 +1,10 @@
+import motor.motor_asyncio
 import random
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional, Any
 
 from maythusharmusic import userbot
 from maythusharmusic.core.mongo import mongodb, pymongodb
+from config import MONGO_URL
 
 authdb = mongodb.adminauth
 authuserdb = mongodb.authuser
@@ -29,6 +31,9 @@ userdb = mongodb.userstats
 videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
+client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
+db = client.SongCache          # Database နာမည်ကို "SongCache" လို့ ပေးလိုက်ပါ
+tracks_db = db.tracks          # Collection (Table) နာမည်ကို "tracks" လို့ ပေးလိုက်ပါ
 
 # Shifting to memory [mongo sucks often]
 active = []
@@ -52,8 +57,42 @@ mute = {}
 audio = {}
 video = {}
 
-# Total Queries on bot
+async def get_cached_track(video_id: str) -> Optional[Dict[str, Any]]:
+    """
+    MongoDB ထဲမှာ video_id နဲ့ သိမ်းထားတဲ့ သီချင်းအချက်အလက်ကို ရှာမယ်။
+    """
+    track = await tracks_db.find_one({"video_id": video_id})
+    if track:
+        return track
+    return None
 
+async def save_cached_track(
+    video_id: str, 
+    file_id: str, 
+    title: str, 
+    duration: str
+) -> None:
+    """
+    သီချင်းရဲ့ အချက်အလက် (အဓိက file_id) ကို MongoDB မှာ သိမ်းမယ်။
+    """
+    # သိမ်းမယ့် အချက်အလက်များ
+    document = {
+        "video_id": video_id,
+        "file_id": file_id,
+        "title": title,
+        "duration": duration,
+    }
+    
+    # "upsert=True" က video_id မရှိသေးရင် အသစ်ထည့်ပြီး၊ ရှိနေရင် အဟောင်းကို update လုပ်ပေးပါလိမ့်မယ်။
+    await tracks_db.update_one(
+        {"video_id": video_id}, # ဒီ video_id နဲ့ ရှာမယ်
+        {"$set": document},     # ဒီ data တွေကို ထည့်မယ်/ပြင်မယ်
+        upsert=True             # မရှိရင် အသစ်ဖန်တီးမယ်
+    )
+    print(f"MongoDB Cache: Saved '{title}' ({video_id})")
+
+
+# Total Queries on bot
 
 async def get_queries() -> int:
     chat_id = 98324
