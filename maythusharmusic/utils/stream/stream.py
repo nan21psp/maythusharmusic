@@ -1,6 +1,7 @@
 import os
 from random import randint
 from typing import Union
+import logging # <-- (1) Error Log အတွက် ထည့်သွင်းပါ
 
 from pyrogram.types import InlineKeyboardMarkup
 
@@ -14,6 +15,10 @@ from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
 from maythusharmusic.utils.pastebin import HottyBin
 from maythusharmusic.utils.stream.queue import put_queue, put_queue_index
 from maythusharmusic.utils.thumbnails import get_thumb
+
+# --- (2) Logger ကို သတ်မှတ်ပါ ---
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 async def stream(
@@ -79,13 +84,21 @@ async def stream(
                     )
                 except:
                     raise AssistantErr(_["play_14"])
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail,
-                )
+                
+                # --- (3) START: Hotty.join_call Error Handling ---
+                try:
+                    await Hotty.join_call(
+                        chat_id,
+                        original_chat_id,
+                        file_path,
+                        video=status,
+                        image=thumbnail,
+                    )
+                except Exception as e:
+                    logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
+                    return await mystic.edit_text(_["general_2"].format(str(e)))
+                # --- END: Hotty.join_call Error Handling ---
+
                 await put_queue(
                     chat_id,
                     original_chat_id,
@@ -134,7 +147,7 @@ async def stream(
         link = result["link"]
         vidid = result["vidid"]
         title = (result["title"]).title()
-        duration_min = result["duration_min"] # ဒီနေရာမှာ "duration_min" ကို သုံးပါတယ် (ဒါက မှန်ပါတယ်)
+        duration_min = result["duration_min"] 
         thumbnail = result["thumb"]
         status = True if video else None
     
@@ -173,13 +186,21 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
-                chat_id,
-                original_chat_id,
-                file_path,
-                video=status,
-                image=thumbnail,
-            )
+            
+            # --- (3) START: Hotty.join_call Error Handling ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    file_path,
+                    video=status,
+                    image=thumbnail,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+            # --- END: Hotty.join_call Error Handling ---
+
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -210,7 +231,7 @@ async def stream(
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
-        duration_min = result["duration_min"] # ဒီနေရာမှာ "duration_min" ကို သုံးပါတယ် (ဒါက မှန်ပါတယ်)
+        duration_min = result["duration_min"] 
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -233,7 +254,15 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
+            
+            # --- (3) START: Hotty.join_call Error Handling ---
+            try:
+                await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+            # --- END: Hotty.join_call Error Handling ---
+
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -262,15 +291,13 @@ async def stream(
         link = result["link"]
         title = (result["title"]).title()
         
-        # --- START: "dur" Key Fix ---
-        # "dur" key ကို အရင်ရှာပါ၊ မတွေ့မှ "duration_min" ကို ယူသုံးပါ
+        # --- "dur" Key Fix (ဒါက အရင်ကတည်းက ထည့်ထားပြီးသား) ---
         if "dur" in result:
             duration_min = result["dur"]
         elif "duration_min" in result:
             duration_min = result["duration_min"]
         else:
-            duration_min = "00:00" # နှစ်ခုလုံး မရှိရင် default value တစ်ခု ထားပါ
-        # --- END: "dur" Key Fix ---
+            duration_min = "00:00" 
             
         status = True if video else None
         if await is_active_chat(chat_id):
@@ -295,7 +322,15 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
+            
+            # --- (3) START: Hotty.join_call Error Handling ---
+            try:
+                await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+            # --- END: Hotty.join_call Error Handling ---
+
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -351,13 +386,21 @@ async def stream(
             n, file_path = await YouTube.video(link)
             if n == 0:
                 raise AssistantErr(_["str_3"])
-            await Hotty.join_call(
-                chat_id,
-                original_chat_id,
-                file_path,
-                video=status,
-                image=thumbnail if thumbnail else None,
-            )
+            
+            # --- (3) START: Hotty.join_call Error Handling ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    file_path,
+                    video=status,
+                    image=thumbnail if thumbnail else None,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+            # --- END: Hotty.join_call Error Handling ---
+
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -409,12 +452,20 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
-                chat_id,
-                original_chat_id,
-                link,
-                video=True if video else None,
-            )
+            
+            # --- (3) START: Hotty.join_call Error Handling ---
+            try:
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    link,
+                    video=True if video else None,
+                )
+            except Exception as e:
+                logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
+                return await mystic.edit_text(_["general_2"].format(str(e)))
+            # --- END: Hotty.join_call Error Handling ---
+
             await put_queue_index(
                 chat_id,
                 original_chat_id,
