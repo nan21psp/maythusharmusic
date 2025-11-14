@@ -10,18 +10,19 @@ from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 
-# --- (Imports) ---
+# --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
 import config  # CACHE_CHANNEL_ID အတွက်
-from maythusharmusic.core.userbot import assistants # Active assistants list
+from maythusharmusic import userbot # (FIX) userbot.one ကို ခေါ်ရန်
+# from maythusharmusic.core.userbot import assistants # (FIX) မလိုအပ်တော့ပါ
 from maythusharmusic.utils.database import (
     is_on_off,
     get_yt_cache, 
     save_yt_cache,
     get_telegram_cache,  # Telegram Cache
     save_telegram_cache, # Telegram Cache
-    get_client           # Assistant client ရယူရန်
+    # get_client           # (FIX) မလိုအပ်တော့ပါ
 )
-# --- (Imports End) ---
+# --- (ဒီနေရာအထိ) ---
 from maythusharmusic.utils.formatters import time_to_seconds
 
 import os
@@ -704,19 +705,13 @@ class YouTubeAPI:
                 if os.path.exists(downloaded_file) and hasattr(config, "CACHE_CHANNEL_ID") and config.CACHE_CHANNEL_ID:
                     logger.info(f"Uploading {video_id} to Telegram Cache Channel...")
                     try:
-                        # --- (FIX START: Active Assistant List ထဲက တစ်ခုကို ရွေးသုံးပါ) ---
-                        if not assistants:
-                            raise Exception("No active assistants (userbots) found to upload cache.")
-                            
-                        # Active list ထဲက random ID တစ်ခု ရွေးပါ (e.g., 1, 2, 3...)
-                        # Assistant တစ်ခုတည်း (ဥပမာ 1) ပဲ သုံးတယ်ဆိုရင် 'assistants' list ထဲမှာ '1' ပဲ ရှိပါမယ်
-                        assistant_id = random.choice(assistants) 
+                        # --- (FIX START: Assistant '1' (userbot.one) ကိုပဲ တိုက်ရိုက်သုံးပါ) ---
                         
-                        # အဲ့ဒီ ID နဲ့ သက်ဆိုင်တဲ့ client object (userbot.one) ကို ယူပါ
-                        assistant = await get_client(assistant_id) 
+                        # userbot.one (သင်ထည့်ထားတဲ့ တစ်ခုတည်းသော assistant) ကို ယူပါ
+                        assistant = userbot.one 
                         
                         if not assistant: # client object က None ဖြစ်နေလား စစ်ဆေးပါ
-                            raise Exception(f"Failed to get client for assistant ID: {assistant_id}. It might be None.")
+                            raise Exception(f"Assistant 1 (userbot.one) is not active or 'None'. Please check your SESSION1.")
                         
                         # Channel သို့ ပို့ပါ
                         msg = await assistant.send_audio(
