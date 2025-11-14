@@ -9,6 +9,7 @@ from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
+from config import STORAGE_CHANNEL_ID
 from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
