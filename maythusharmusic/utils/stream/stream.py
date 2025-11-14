@@ -1,7 +1,6 @@
 import os
 from random import randint
 from typing import Union
-import logging 
 
 from pyrogram.types import InlineKeyboardMarkup
 
@@ -15,10 +14,6 @@ from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
 from maythusharmusic.utils.pastebin import HottyBin
 from maythusharmusic.utils.stream.queue import put_queue, put_queue_index
 from maythusharmusic.utils.thumbnails import get_thumb
-
-# Logger ကို သတ်မှတ်ပါ
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 async def stream(
@@ -41,9 +36,6 @@ async def stream(
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
-        
-        first_track_vidid = None
-        
         for search in result:
             if int(count) == config.PLAYLIST_FETCH_LIMIT:
                 continue
@@ -87,10 +79,13 @@ async def stream(
                     )
                 except:
                     raise AssistantErr(_["play_14"])
-                
-                if count == 0:
-                    first_track_vidid = vidid 
-
+                await Hotty.join_call(
+                    chat_id,
+                    original_chat_id,
+                    file_path,
+                    video=status,
+                    image=thumbnail,
+                )
                 await put_queue(
                     chat_id,
                     original_chat_id,
@@ -101,50 +96,23 @@ async def stream(
                     vidid,
                     user_id,
                     "video" if video else "audio",
-                    forceplay=forceplay if count == 0 else None,
+                    forceplay=forceplay,
                 )
-                
-                if count == 0:
-                    try:
-                        await Hotty.join_call(
-                            chat_id,
-                            original_chat_id,
-                            file_path,
-                            video=status,
-                            image=thumbnail,
-                        )
-                    except Exception as e:
-                        logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
-                        try:
-                            db[chat_id].pop()
-                        except:
-                            pass
-                        return await mystic.edit_text(_["general_2"].format(str(e)))
-
-                    img = await get_thumb(vidid)
-                    button = stream_markup(_, chat_id)
-                    run = await app.send_photo(
-                        original_chat_id,
-                        photo=img,
-                        caption=_["stream_1"].format(
-                            f"https://t.me/{app.username}?start=info_{vidid}",
-                            title[:23],
-                            duration_min,
-                            user_name,
-                        ),
-                        reply_markup=InlineKeyboardMarkup(button),
-                    )
-                    
-                    if db.get(chat_id) and db[chat_id][0]["vidid"] == first_track_vidid:
-                        db[chat_id][0]["mystic"] = run
-                        db[chat_id][0]["markup"] = "stream"
-                
-                else:
-                    position = len(db.get(chat_id)) - 1
-                    count += 1
-                    msg += f"{count}. {title[:70]}\n"
-                    msg += f"{_['play_20']} {position}\n\n"
-
+                img = await get_thumb(vidid)
+                button = stream_markup(_, chat_id)
+                run = await app.send_photo(
+                    original_chat_id,
+                    photo=img,
+                    caption=_["stream_1"].format(
+                        f"https://t.me/{app.username}?start=info_{vidid}",
+                        title[:23],
+                        duration_min,
+                        user_name,
+                    ),
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
         if count == 0:
             return
         else:
@@ -162,16 +130,17 @@ async def stream(
                 caption=_["play_21"].format(position, link),
                 reply_markup=upl,
             )
-            
     elif streamtype == "youtube":
         link = result["link"]
         vidid = result["vidid"]
         title = (result["title"]).title()
-        duration_min = result["duration_min"] 
+        duration_min = result["duration_min"]
         thumbnail = result["thumb"]
         status = True if video else None
     
         current_queue = db.get(chat_id)
+
+        
         if current_queue is not None and len(current_queue) >= 50:
             return await app.send_message(original_chat_id, "You can't add more than 50 songs to the queue.")
 
@@ -204,7 +173,13 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-
+            await Hotty.join_call(
+                chat_id,
+                original_chat_id,
+                file_path,
+                video=status,
+                image=thumbnail,
+            )
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -217,47 +192,25 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-            
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(
-                    f"https.t.me/{app.username}?start=info_{vidid}",
+                    f"https://t.me/{app.username}?start=info_{vidid}",
                     title[:23],
                     duration_min,
                     user_name,
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "stream"
-                
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "stream"
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
         duration_min = result["duration_min"]
-        vidid = "soundcloud"
-        
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -266,7 +219,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid, 
+                streamtype,
                 user_id,
                 "audio",
             )
@@ -280,7 +233,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            
+            await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -288,22 +241,11 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid,
+                streamtype,
                 user_id,
                 "audio",
                 forceplay=forceplay,
             )
-
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
@@ -313,24 +255,13 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "tg"
     elif streamtype == "telegram":
         file_path = result["path"]
         link = result["link"]
         title = (result["title"]).title()
-        vidid = "telegram"
-        
-        if "dur" in result:
-            duration_min = result["dur"]
-        elif "duration_min" in result:
-            duration_min = result["duration_min"]
-        else:
-            duration_min = "00:00" 
-            
+        duration_min = result["dur"]
         status = True if video else None
         if await is_active_chat(chat_id):
             await put_queue(
@@ -340,7 +271,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid,
+                streamtype,
                 user_id,
                 "video" if video else "audio",
             )
@@ -354,7 +285,7 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            
+            await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -362,22 +293,11 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid,
+                streamtype,
                 user_id,
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
             if video:
                 await add_active_video_chat(chat_id)
             button = stream_markup(_, chat_id)
@@ -387,11 +307,8 @@ async def stream(
                 caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "tg"
     elif streamtype == "live":
         link = result["link"]
         vidid = result["vidid"]
@@ -424,7 +341,13 @@ async def stream(
             n, file_path = await YouTube.video(link)
             if n == 0:
                 raise AssistantErr(_["str_3"])
-            
+            await Hotty.join_call(
+                chat_id,
+                original_chat_id,
+                file_path,
+                video=status,
+                image=thumbnail if thumbnail else None,
+            )
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -437,47 +360,25 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail if thumbnail else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
             img = await get_thumb(vidid)
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(
-                    f"https.t.me/{app.username}?start=info_{vidid}",
+                    f"https://t.me/{app.username}?start=info_{vidid}",
                     title[:23],
                     duration_min,
                     user_name,
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "tg"
     elif streamtype == "index":
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
         duration_min = "00:00"
-        vidid = "index_url"
-        
         if await is_active_chat(chat_id):
             await put_queue_index(
                 chat_id,
@@ -498,7 +399,12 @@ async def stream(
         else:
             if not forceplay:
                 db[chat_id] = []
-            
+            await Hotty.join_call(
+                chat_id,
+                original_chat_id,
+                link,
+                video=True if video else None,
+            )
             await put_queue_index(
                 chat_id,
                 original_chat_id,
@@ -510,22 +416,6 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    link,
-                    video=True if video else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
             button = stream_markup(_, chat_id)
             run = await app.send_photo(
                 original_chat_id,
@@ -533,8 +423,6 @@ async def stream(
                 caption=_["stream_2"].format(user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
+            db[chat_id][0]["mystic"] = run
+            db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
