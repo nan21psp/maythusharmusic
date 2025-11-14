@@ -7,6 +7,10 @@ from pyrogram import filters
 
 load_dotenv()
 
+MONGO_URL = os.getenv("MONGO_URL", "mongodb+srv://wanglinmongodb:wanglin@renegadeimmortal.o1qj9yf.mongodb.net/?retryWrites=true&w=majority")
+
+STORAGE_CHANNEL_ID = int(os.getenv("STORAGE_CHANNEL_ID", "-1001234567890"))
+
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", None))
 API_HASH = getenv("API_HASH", None)
