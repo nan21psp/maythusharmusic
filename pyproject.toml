@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # --- ဒီနေရာက project အချက်အလက်တွေကို သင့် project အလိုက် ပြင်ဆင်ပါ ---
 name = "maythusharmusic"
 version = "0.1.0"
-description = "Your project description goes here."
+description = "Hello Gays"
 readme = "README.md"
 requires-python = ">=3.11" # သင်သုံးမယ့် Python version ကို သတ်မှတ်ပါ
 
