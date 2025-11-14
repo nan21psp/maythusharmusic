@@ -73,6 +73,14 @@ async def stream(
                 if not forceplay:
                     db[chat_id] = []
                 status = True if video else None
+                
+                # --- START: MODIFICATION (Playlist First Song) ---
+                try:
+                    await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+                except Exception as e:
+                    pass # message edit မအောင်မြင်လည်း ကျော်သွားပါ
+                # --- END: MODIFICATION ---
+                
                 try:
                     file_path, direct = await YouTube.download(
                         vidid, mystic, video=status, videoid=True
@@ -143,6 +151,14 @@ async def stream(
         
         if current_queue is not None and len(current_queue) >= 50:
             return await app.send_message(original_chat_id, "You can't add more than 50 songs to the queue.")
+
+        # --- START: MODIFICATION (Single Track) ---
+        try:
+            # play.py ကနေ ပြောင်းလာတဲ့ message ကို ဒီမှာ edit လုပ်
+            await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+        except Exception as e:
+            pass # message edit မအောင်မြင်လည်း ကျော်သွားပါ
+        # --- END: MODIFICATION ---
 
         try:
             file_path, direct = await YouTube.download(
