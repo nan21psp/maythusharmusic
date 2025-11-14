@@ -10,19 +10,19 @@ from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 
-# --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
+# --- (Imports) ---
 import config  # CACHE_CHANNEL_ID အတွက်
-from maythusharmusic import userbot # (FIX) userbot.one ကို ခေါ်ရန်
-# from maythusharmusic.core.userbot import assistants # (FIX) မလိုအပ်တော့ပါ
+from maythusharmusic import userbot # (FIX) userbot.two ကို ခေါ်ရန်
+# from maythusharmusic.core.userbot import assistants # မလိုအပ်တော့ပါ
 from maythusharmusic.utils.database import (
     is_on_off,
     get_yt_cache, 
     save_yt_cache,
     get_telegram_cache,  # Telegram Cache
     save_telegram_cache, # Telegram Cache
-    # get_client           # (FIX) မလိုအပ်တော့ပါ
+    # get_client           # မလိုအပ်တော့ပါ
 )
-# --- (ဒီနေရာအထိ) ---
+# --- (Imports End) ---
 from maythusharmusic.utils.formatters import time_to_seconds
 
 import os
@@ -705,13 +705,13 @@ class YouTubeAPI:
                 if os.path.exists(downloaded_file) and hasattr(config, "CACHE_CHANNEL_ID") and config.CACHE_CHANNEL_ID:
                     logger.info(f"Uploading {video_id} to Telegram Cache Channel...")
                     try:
-                        # --- (FIX START: Assistant '1' (userbot.one) ကိုပဲ တိုက်ရိုက်သုံးပါ) ---
+                        # --- (FIX START: Assistant '2' (userbot.two) ကို တိုက်ရိုက်သုံးပါ) ---
                         
-                        # userbot.one (သင်ထည့်ထားတဲ့ တစ်ခုတည်းသော assistant) ကို ယူပါ
-                        assistant = userbot.one 
+                        # userbot.two (သင်သုံးမယ့် assistant 2) ကို ယူပါ
+                        assistant = userbot.two 
                         
                         if not assistant: # client object က None ဖြစ်နေလား စစ်ဆေးပါ
-                            raise Exception(f"Assistant 1 (userbot.one) is not active or 'None'. Please check your SESSION1.")
+                            raise Exception(f"Assistant 2 (userbot.two) is not active or 'None'. Please check your SESSION2.")
                         
                         # Channel သို့ ပို့ပါ
                         msg = await assistant.send_audio(
