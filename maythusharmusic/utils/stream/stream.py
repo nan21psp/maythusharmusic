@@ -41,6 +41,11 @@ async def stream(
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
+        
+        # --- Playlist အတွက် ပထမဆုံး သီချင်းကို သီးသန့် ခွဲထုတ် ---
+        # (ဒါမှ vidid ကို အောက်မှာ စစ်လို့ရမယ်)
+        first_track_vidid = None
+        
         for search in result:
             if int(count) == config.PLAYLIST_FETCH_LIMIT:
                 continue
@@ -75,6 +80,7 @@ async def stream(
                 msg += f"{count}. {title[:70]}\n"
                 msg += f"{_['play_20']} {position}\n\n"
             else:
+                # --- ပထမဆုံးအကြိမ် (VC မဝင်ရသေး) ---
                 if not forceplay:
                     db[chat_id] = []
                 status = True if video else None
@@ -84,8 +90,11 @@ async def stream(
                     )
                 except:
                     raise AssistantErr(_["play_14"])
+                
+                if count == 0:
+                    first_track_vidid = vidid # ပထမဆုံး သီချင်းရဲ့ vidid ကို မှတ်ထား
 
-                # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
+                # --- Queue ထဲ အရင်ထည့် ---
                 await put_queue(
                     chat_id,
                     original_chat_id,
@@ -96,42 +105,53 @@ async def stream(
                     vidid,
                     user_id,
                     "video" if video else "audio",
-                    forceplay=forceplay,
+                    forceplay=forceplay if count == 0 else None, # forceplay ကို ပထမဆုံး သီချင်းမှာပဲ သုံး
                 )
                 
-                # --- ပြီးမှ VC ကို join ---
-                try:
-                    await Hotty.join_call(
-                        chat_id,
-                        original_chat_id,
-                        file_path,
-                        video=status,
-                        image=thumbnail,
-                    )
-                except Exception as e:
-                    logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
-                    # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
+                # --- ပြီးမှ VC ကို join (ပထမဆုံး သီချင်းအတွက်) ---
+                if count == 0:
                     try:
-                        db[chat_id].pop()
-                    except:
-                        pass
-                    return await mystic.edit_text(_["general_2"].format(str(e)))
+                        await Hotty.join_call(
+                            chat_id,
+                            original_chat_id,
+                            file_path,
+                            video=status,
+                            image=thumbnail,
+                        )
+                    except Exception as e:
+                        logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
+                        try:
+                            db[chat_id].pop()
+                        except:
+                            pass
+                        return await mystic.edit_text(_["general_2"].format(str(e)))
 
-                img = await get_thumb(vidid)
-                button = stream_markup(_, chat_id)
-                run = await app.send_photo(
-                    original_chat_id,
-                    photo=img,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{vidid}",
-                        title[:23],
-                        duration_min,
-                        user_name,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
-                )
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "stream"
+                    img = await get_thumb(vidid)
+                    button = stream_markup(_, chat_id)
+                    run = await app.send_photo(
+                        original_chat_id,
+                        photo=img,
+                        caption=_["stream_1"].format(
+                            f"https://t.me/{app.username}?start=info_{vidid}",
+                            title[:23],
+                            duration_min,
+                            user_name,
+                        ),
+                        reply_markup=InlineKeyboardMarkup(button),
+                    )
+                    
+                    # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+                    if db.get(chat_id) and db[chat_id][0]["vidid"] == first_track_vidid:
+                        db[chat_id][0]["mystic"] = run
+                        db[chat_id][0]["markup"] = "stream"
+                
+                # --- ကျန်တဲ့ သီချင်းတွေကို Queue Message ပို့ ---
+                else:
+                    position = len(db.get(chat_id)) - 1
+                    count += 1
+                    msg += f"{count}. {title[:70]}\n"
+                    msg += f"{_['play_20']} {position}\n\n"
+
         if count == 0:
             return
         else:
@@ -149,6 +169,7 @@ async def stream(
                 caption=_["play_21"].format(position, link),
                 reply_markup=upl,
             )
+            
     elif streamtype == "youtube":
         link = result["link"]
         vidid = result["vidid"]
@@ -158,8 +179,6 @@ async def stream(
         status = True if video else None
     
         current_queue = db.get(chat_id)
-
-        
         if current_queue is not None and len(current_queue) >= 50:
             return await app.send_message(original_chat_id, "You can't add more than 50 songs to the queue.")
 
@@ -193,7 +212,6 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
 
-            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -207,7 +225,6 @@ async def stream(
                 forceplay=forceplay,
             )
             
-            # --- ပြီးမှ VC ကို join ---
             try:
                 await Hotty.join_call(
                     chat_id,
@@ -218,7 +235,6 @@ async def stream(
                 )
             except Exception as e:
                 logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
-                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
                 try:
                     db[chat_id].pop()
                 except:
@@ -238,12 +254,19 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "stream"
+            
+            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+            # (Queue ထဲမှာ သီချင်း ရှိနေသေးမှ၊ vidid လည်း တူနေမှ update လုပ်)
+            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
+                
     elif streamtype == "soundcloud":
         file_path = result["filepath"]
         title = result["title"]
-        duration_min = result["duration_min"] 
+        duration_min = result["duration_min"]
+        vidid = "soundcloud" # vidid ကို သတ်မှတ်
+        
         if await is_active_chat(chat_id):
             await put_queue(
                 chat_id,
@@ -252,7 +275,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                streamtype,
+                vidid, # vidid ကို ထည့်ပေး
                 user_id,
                 "audio",
             )
@@ -267,7 +290,6 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -275,18 +297,16 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                streamtype,
+                vidid, # vidid ကို ထည့်ပေး
                 user_id,
                 "audio",
                 forceplay=forceplay,
             )
 
-            # --- ပြီးမှ VC ကို join ---
             try:
                 await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
             except Exception as e:
                 logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
-                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
                 try:
                     db[chat_id].pop()
                 except:
@@ -302,12 +322,17 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
+            
+            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "telegram":
         file_path = result["path"]
         link = result["link"]
         title = (result["title"]).title()
+        vidid = "telegram" # vidid ကို သတ်မှတ်
         
         if "dur" in result:
             duration_min = result["dur"]
@@ -325,7 +350,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                streamtype,
+                vidid, # vidid ကို ထည့်ပေး
                 user_id,
                 "video" if video else "audio",
             )
@@ -340,7 +365,6 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -348,18 +372,16 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                streamtype,
+                vidid, # vidid ကို ထည့်ပေး
                 user_id,
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
 
-            # --- ပြီးမှ VC ကို join ---
             try:
                 await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
             except Exception as e:
                 logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
-                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
                 try:
                     db[chat_id].pop()
                 except:
@@ -375,8 +397,12 @@ async def stream(
                 caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
+            
+            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "live":
         link = result["link"]
         vidid = result["vidid"]
@@ -410,7 +436,6 @@ async def stream(
             if n == 0:
                 raise AssistantErr(_["str_3"])
             
-            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -424,7 +449,6 @@ async def stream(
                 forceplay=forceplay,
             )
 
-            # --- ပြီးမှ VC ကို join ---
             try:
                 await Hotty.join_call(
                     chat_id,
@@ -435,7 +459,6 @@ async def stream(
                 )
             except Exception as e:
                 logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
-                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
                 try:
                     db[chat_id].pop()
                 except:
@@ -455,12 +478,18 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
+            
+            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
+
     elif streamtype == "index":
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
         duration_min = "00:00"
+        vidid = "index_url" # vidid ကို သတ်မှတ်
+        
         if await is_active_chat(chat_id):
             await put_queue_index(
                 chat_id,
@@ -482,7 +511,6 @@ async def stream(
             if not forceplay:
                 db[chat_id] = []
             
-            # --- 🟢 [FIXED] Queue ထဲ အရင်ထည့် ---
             await put_queue_index(
                 chat_id,
                 original_chat_id,
@@ -495,7 +523,6 @@ async def stream(
                 forceplay=forceplay,
             )
 
-            # --- ပြီးမှ VC ကို join ---
             try:
                 await Hotty.join_call(
                     chat_id,
@@ -505,7 +532,6 @@ async def stream(
                 )
             except Exception as e:
                 logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
-                # မအောင်မြင်ရင် Queue ထဲက ပြန်ထုတ်
                 try:
                     db[chat_id].pop()
                 except:
@@ -519,6 +545,9 @@ async def stream(
                 caption=_["stream_2"].format(user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            db[chat_id][0]["mystic"] = run
-            db[chat_id][0]["markup"] = "tg"
+            
+            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
+            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
             await mystic.delete()
