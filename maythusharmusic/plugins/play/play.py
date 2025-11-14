@@ -1,4 +1,4 @@
-import random
+Import random
 import string
 import os 
 import logging 
@@ -9,7 +9,8 @@ from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
-from config import STORAGE_CHANNEL_ID
+# --- 🟢 [FIX 1] Config ကနေ STORAGE_CHANNEL_ID ကို import လုပ်ပါ ---
+from config import STORAGE_CHANNEL_ID 
 from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
@@ -99,14 +100,17 @@ async def play_commnd(
                 _["play_6"].format(config.DURATION_LIMIT_MIN, app.mention)
             )
         file_path = await Telegram.get_filepath(audio=audio_telegram)
-        if await Telegram.download(_, message, mystic, file_path):
+        
+        # --- 🟢 [FIX 3] Telegram file တွေကို Chat ထဲ ပြန်မကျအောင် ---
+        # --- (await Telegram.download) ကို ဖယ်ရှားပြီး file_path ကို တိုက်ရိုက်သုံး ---
+        if file_path:
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(audio_telegram, audio=True)
             dur = await Telegram.get_duration(audio_telegram, file_path)
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path,
+                "path": file_path, # Download လုပ်မယ့်အစား file_id (path) ကို တိုက်ရိုက် သုံး
                 "dur": dur, 
             }
 
@@ -144,14 +148,16 @@ async def play_commnd(
         if video_telegram.file_size > config.TG_VIDEO_FILESIZE_LIMIT:
             return await mystic.edit_text(_["play_8"])
         file_path = await Telegram.get_filepath(video=video_telegram)
-        if await Telegram.download(_, message, mystic, file_path):
+
+        # --- 🟢 [FIX 3] Telegram file တွေကို Chat ထဲ ပြန်မကျအောင် ---
+        if file_path:
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(video_telegram)
             dur = await Telegram.get_duration(video_telegram, file_path)
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path,
+                "path": file_path, # Download လုပ်မယ့်အစား file_id (path) ကို တိုက်ရိုက် သုံး
                 "dur": dur, 
             }
             try:
@@ -513,7 +519,8 @@ async def play_commnd(
                             
                             if video:
                                 sent_media = await app.send_video(
-                                    chat_id=-1002470419378,
+                                    # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                                    chat_id=STORAGE_CHANNEL_ID,
                                     video=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
@@ -521,7 +528,8 @@ async def play_commnd(
                                     file_id_to_cache = sent_media.video.file_id
                             else:
                                 sent_media = await app.send_audio(
-                                    chat_id=-1002470419378,
+                                    # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                                    chat_id=STORAGE_CHANNEL_ID,
                                     audio=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
@@ -544,6 +552,7 @@ async def play_commnd(
                         except Exception as e:
                             logger.error(f"Failed to cache to storage channel (Exception): {e}")
                         finally:
+                            # --- 🟢 [FIX 3] Download ဆွဲပြီးသား file ကို ပြန်ဖျက် (Chat ထဲ မကျအောင်) ---
                             if os.path.exists(downloaded_path):
                                 os.remove(downloaded_path)
                     # --- END: Background Cache & Cleanup (Error Handling) ---
@@ -776,7 +785,8 @@ async def play_music(client, CallbackQuery, _):
                     
                     if video:
                         sent_media = await app.send_video(
-                            chat_id=-1002470419378,
+                            # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                            chat_id=STORAGE_CHANNEL_ID,
                             video=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
@@ -784,7 +794,8 @@ async def play_music(client, CallbackQuery, _):
                             file_id_to_cache = sent_media.video.file_id
                     else:
                         sent_media = await app.send_audio(
-                            chat_id=-1002470419378,
+                            # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                            chat_id=STORAGE_CHANNEL_ID,
                             audio=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
@@ -807,6 +818,7 @@ async def play_music(client, CallbackQuery, _):
                 except Exception as e:
                     logger.error(f"Failed to cache to storage channel (Exception): {e}")
                 finally:
+                    # --- 🟢 [FIX 3] Download ဆွဲပြီးသား file ကို ပြန်ဖျက် (Chat ထဲ မကျအောင်) ---
                     if os.path.exists(downloaded_path):
                         os.remove(downloaded_path)
             # --- END: Background Cache & Cleanup (Error Handling) ---
