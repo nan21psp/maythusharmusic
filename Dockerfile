@@ -10,7 +10,7 @@ COPY pyproject.toml .
 
 # (Optional) သင့်မှာ setup.py ဒါမှမဟုတ် setup.cfg files တွေ သုံးထားသေးရင် 
 # သူတို့ကိုပါ ဒီနေရာမှာ ကူးထည့်ပေးရပါမယ်။
-COPY setup.py .
+# COPY setup.py .
 # COPY setup.cfg .
 
 # Install system dependencies, Deno, and Python packages in a single layer
