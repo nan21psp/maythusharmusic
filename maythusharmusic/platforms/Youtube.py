@@ -5,6 +5,7 @@ import json
 from typing import Union
 
 import yt_dlp
+import requests  # <--- ဒီမှာ import ထည့်ထားပါတယ်
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
@@ -78,7 +79,7 @@ def api_dl(video_id: str) -> str | None:
 
     # ✅ Check if already downloaded
     if os.path.exists(file_path):
-        print(f"{file_path} already exists. Skipping download.")
+        logger.info(f"{file_path} already exists. Skipping download.")
         return file_path
 
     try:
@@ -94,23 +95,23 @@ def api_dl(video_id: str) -> str | None:
             # ✅ Check file size
             file_size = os.path.getsize(file_path)
             if file_size < MIN_FILE_SIZE:
-                print(f"Downloaded file is too small ({file_size} bytes). Removing.")
+                logger.warning(f"Downloaded file is too small ({file_size} bytes). Removing.")
                 os.remove(file_path)
                 return None
 
-            print(f"Downloaded {file_path} ({file_size} bytes) using API key: {api_key[:10]}...")
+            logger.info(f"Downloaded {file_path} ({file_size} bytes) using API key: {api_key[:10]}...")
             return file_path
 
         else:
-            print(f"Failed to download {video_id}. Status: {response.status_code} using API key: {api_key[:10]}...")
+            logger.warning(f"Failed to download {video_id}. Status: {response.status_code} using API key: {api_key[:10]}...")
             return None
 
     except requests.RequestException as e:
-        print(f"Download error for {video_id}: {e} using API key: {api_key[:10]}...")
+        logger.error(f"Download error for {video_id}: {e} using API key: {api_key[:10]}...")
         return None
 
     except OSError as e:
-        print(f"File error for {video_id}: {e}")
+        logger.error(f"File error for {video_id}: {e}")
         return None
 
 _cookies_warned = False
@@ -358,7 +359,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = { "quiet": True } # မူရင်း code မှ syntax အမှားကို ပြင်ဆင်ထားသည်
+        ytdl_opts = { "quiet": True } 
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -546,11 +547,43 @@ class YouTubeAPI:
                     downloaded_file = stdout.decode().split("\n")[0]
                     direct = False
                 else:
+                    
                     direct = True
                     downloaded_file = await loop.run_in_executor(None, video_dl)
         else:
-            direct = True
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
+            # --- START: API Logic ---
+            # Default audio download: Try API first
+            downloaded_file = None
+            direct = True  # API or audio_dl will be a direct file path
+
+            try:
+                # 1. Get video_id from link
+                video_id = extract_video_id(link)
+                
+                # 2. Try downloading via API (run sync 'api_dl' in executor)
+                logger.info(f"Attempting API download for {video_id}...")
+                downloaded_file = await loop.run_in_executor(
+                    None,      # Use default thread pool
+                    api_dl,    # The synchronous function to run
+                    video_id   # The argument for api_dl
+                )
+
+            except ValueError as e:
+                # extract_video_id failed
+                logger.warning(f"Could not extract video ID for API download: {e}")
+                downloaded_file = None
+            except Exception as e:
+                # Other unexpected errors
+                logger.error(f"An error occurred during API download attempt: {e}")
+                downloaded_file = None
+
+            # 3. Check if API download failed (downloaded_file is None)
+            if not downloaded_file:
+                logger.warning(f"API download failed for {link}. Falling back to yt-dlp (cookies)...")
+                # Fallback to original yt-dlp (cookie) method
+                downloaded_file = await loop.run_in_executor(None, audio_dl)
+            else:
+                logger.info(f"API download successful: {downloaded_file}")
+            # --- END: API Logic ---
+
         return downloaded_file, direct
-
-
