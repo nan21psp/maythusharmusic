@@ -7,9 +7,8 @@ from pyrogram import filters
 
 load_dotenv()
 
-MONGO_URL = getenv("MONGO_URL", "mongodb+srv://wanglinmongodb:wanglin@renegadeimmortal.o1qj9yf.mongodb.net/?retryWrites=true&w=majority")
-
-STORAGE_CHANNEL_ID = -1003260201812
+# Telegram Channel Cache (File Storage)
+CACHE_CHANNEL_ID = -1003329159824
 
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", None))
