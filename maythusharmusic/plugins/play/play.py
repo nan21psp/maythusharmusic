@@ -1,17 +1,12 @@
 import random
 import string
-import os 
-import logging 
-import asyncio 
 
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
-from config import STORAGE_CHANNEL_ID 
 from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
-# --- 🟢 [FIX] Hotty (Userbot) ကို import လုပ် ---
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
 from maythusharmusic.utils.channelplay import get_channeplayCB
@@ -27,16 +22,7 @@ from maythusharmusic.utils.inline import (
 )
 from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
-
 from config import BANNED_USERS, lyrical
-from maythusharmusic.utils.database import (
-    get_cached_track, 
-    save_cached_track,
-    get_search_query,  
-    save_search_query  
-)
-
-logger = logging.getLogger(__name__)
 
 
 @app.on_message(
@@ -87,8 +73,6 @@ async def play_commnd(
         if message.reply_to_message
         else None
     )
-    
-    # --- Telegram Audio/Video ---
     if audio_telegram:
         if audio_telegram.file_size > 104857600:
             return await mystic.edit_text(_["play_5"])
@@ -98,16 +82,15 @@ async def play_commnd(
                 _["play_6"].format(config.DURATION_LIMIT_MIN, app.mention)
             )
         file_path = await Telegram.get_filepath(audio=audio_telegram)
-        
-        if file_path:
+        if await Telegram.download(_, message, mystic, file_path):
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(audio_telegram, audio=True)
             dur = await Telegram.get_duration(audio_telegram, file_path)
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path, 
-                "dur": dur, 
+                "path": file_path,
+                "dur": dur,
             }
 
             try:
@@ -123,7 +106,6 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
-                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -144,16 +126,15 @@ async def play_commnd(
         if video_telegram.file_size > config.TG_VIDEO_FILESIZE_LIMIT:
             return await mystic.edit_text(_["play_8"])
         file_path = await Telegram.get_filepath(video=video_telegram)
-
-        if file_path:
+        if await Telegram.download(_, message, mystic, file_path):
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(video_telegram)
             dur = await Telegram.get_duration(video_telegram, file_path)
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path, 
-                "dur": dur, 
+                "path": file_path,
+                "dur": dur,
             }
             try:
                 await stream(
@@ -169,14 +150,11 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
-                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
             return await mystic.delete()
         return
-    
-    # --- URL or Search Query ---
     elif url:
         if await YouTube.exists(url):
             if "playlist" in url:
@@ -199,8 +177,6 @@ async def play_commnd(
             else:
                 try:
                     details, track_id = await YouTube.track(url)
-                    if "duration_min" in details:
-                        details["dur"] = details["duration_min"] 
                 except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
@@ -218,10 +194,7 @@ async def play_commnd(
             if "track" in url:
                 try:
                     details, track_id = await Spotify.track(url)
-                    if "duration_min" in details:
-                        details["dur"] = details["duration_min"] 
-                except Exception as e:
-                    print(f"play_3 error: fail to process your query | Exception: {e}")
+                except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
                 img = details["thumb"]
@@ -229,8 +202,7 @@ async def play_commnd(
             elif "playlist" in url:
                 try:
                     details, plist_id = await Spotify.playlist(url)
-                except Exception as e:
-                    print(f"play_3 error: fail to process your query | Exception: {e}")
+                except Exception:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "playlist"
                 plist_type = "spplay"
@@ -260,8 +232,6 @@ async def play_commnd(
             if "album" in url:
                 try:
                     details, track_id = await Apple.track(url)
-                    if "duration_min" in details:
-                        details["dur"] = details["duration_min"] 
                 except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
@@ -282,8 +252,6 @@ async def play_commnd(
         elif await Resso.valid(url):
             try:
                 details, track_id = await Resso.track(url)
-                if "duration_min" in details:
-                    details["dur"] = details["duration_min"] 
             except:
                 return await mystic.edit_text(_["play_3"])
             streamtype = "youtube"
@@ -292,8 +260,6 @@ async def play_commnd(
         elif await SoundCloud.valid(url):
             try:
                 details, track_path = await SoundCloud.download(url)
-                details["path"] = track_path 
-                details["dur"] = details["duration_min"] 
             except:
                 return await mystic.edit_text(_["play_3"])
             duration_sec = details["duration_sec"]
@@ -313,11 +279,10 @@ async def play_commnd(
                     chat_id,
                     user_name,
                     message.chat.id,
-                    streamtype="soundcloud", 
+                    streamtype="soundcloud",
                     forceplay=fplay,
                 )
             except Exception as e:
-                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
@@ -328,11 +293,10 @@ async def play_commnd(
             except NoActiveGroupCall:
                 await mystic.edit_text(_["black_9"])
                 return await app.send_message(
-                    chat_id=config.LOG_GROUP_ID,
+                    chat_id=config.LOGGER_ID,
                     text=_["play_17"],
                 )
             except Exception as e:
-                print(f"Error: {e}")
                 return await mystic.edit_text(_["general_2"].format(type(e).__name__))
             await mystic.edit_text(_["str_2"])
             try:
@@ -349,13 +313,10 @@ async def play_commnd(
                     forceplay=fplay,
                 )
             except Exception as e:
-                print(f"Error: {e}")
                 ex_type = type(e).__name__
                 err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
                 return await mystic.edit_text(err)
             return await play_logs(message, streamtype="M3u8 or Index Link")
-    
-    # --- START: L1 (Search Query) Cache Logic ---
     else:
         if len(message.command) < 2:
             buttons = botplaylist_markup(_)
@@ -367,59 +328,20 @@ async def play_commnd(
         query = message.text.split(None, 1)[1]
         if "-v" in query:
             query = query.replace("-v", "")
-
-        track_id = None
-        details = None
-        
-        cached_search_details = await get_search_query(query)
-        
-        if cached_search_details:
-            logger.info(f"[L1 Cache HIT] Found search query: {query}")
-            details = cached_search_details
-            track_id = details["vidid"]
-            
-            if "dur" not in details and "duration_min" in details:
-                details["dur"] = details["duration_min"]
-                
-        else:
-            logger.info(f"[L1 Cache MISS] Searching YouTube for: {query}")
-            try:
-                details, track_id = await YouTube.track(query)
-                
-                current_duration = details.get("duration_min")
-                details["dur"] = current_duration 
-                
-                clean_details = {
-                    "title": details.get("title"),
-                    "link": details.get("link"),
-                    "vidid": details.get("vidid"),
-                    "duration_min": current_duration,
-                    "thumb": details.get("thumb"),
-                    "dur": current_duration, 
-                }
-                asyncio.create_task(save_search_query(query, clean_details))
-                
-            except Exception as e:
-                logger.error(f"YouTube.track failed for query '{query}': {e}")
-                return await mystic.edit_text(_["play_3"])
-        
-        if not details or not track_id:
-             return await mystic.edit_text(_["play_3"])
-        
+        try:
+            details, track_id = await YouTube.track(query)
+        except:
+            return await mystic.edit_text(_["play_3"])
         streamtype = "youtube"
-    # --- END: L1 (Search Query) Cache Logic ---
-
-
-    # --- Playmode Logic (Direct or Inline) ---
     if str(playmode) == "Direct":
-        if not plist_type: 
+        if not plist_type:
             if details["duration_min"]:
                 duration_sec = time_to_seconds(details["duration_min"])
                 if duration_sec > config.DURATION_LIMIT:
                     return await mystic.edit_text(
                         _["play_6"].format(config.DURATION_LIMIT_MIN, app.mention)
                     )
-            else: 
+            else:
                 buttons = livestream_markup(
                     _,
                     track_id,
@@ -432,166 +354,26 @@ async def play_commnd(
                     _["play_13"],
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
-
-        # --- START: L2 (File ID) Cache Logic (Single Tracks Only) ---
-        if not plist_type and streamtype == "youtube":
-            video_id = details.get("vidid")
-            title = details.get("title")
-            duration_min = details.get("duration_min")
-
-            cached_track = await get_cached_track(video_id)
-            
-            if cached_track:
-                # --- L2 CACHE HIT ---
-                logger.info(f"[L2 Cache HIT] Playing from DB: {title} ({video_id})")
-                
-                details = cached_track 
-                details["path"] = cached_track["file_id"] 
-                
-                if "dur" not in details and "duration_min" in details:
-                    details["dur"] = details["duration_min"]
-                
-                try:
-                    await stream(
-                        _,
-                        mystic,
-                        user_id,
-                        details, 
-                        chat_id,
-                        user_name,
-                        message.chat.id,
-                        video=video,
-                        streamtype="telegram", 
-                        spotify=spotify,
-                        forceplay=fplay,
-                    )
-                except Exception as e:
-                    print(f"Error: {e}")
-                    ex_type = type(e).__name__
-                    err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-                    return await mystic.edit_text(err)
-                
-                await mystic.delete()
-                return await play_logs(message, streamtype="Cached YouTube")
-            
-            else:
-                # --- L2 CACHE MISS ---
-                logger.info(f"[L2 Cache MISS] Downloading: {title} ({video_id})")
-                await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
-                
-                downloaded_path = None
-                try:
-                    downloaded_path, _direct = await YouTube.download(
-                        link=details["link"],
-                        mystic=mystic,
-                        video=video, 
-                    )
-                    
-                    if not downloaded_path or not os.path.exists(downloaded_path):
-                        raise Exception("Download failed, file path not found.")
-
-                    details["path"] = downloaded_path 
-                    
-                    await stream(
-                        _,
-                        mystic,
-                        user_id,
-                        details, 
-                        chat_id,
-                        user_name,
-                        message.chat.id,
-                        video=video,
-                        streamtype="telegram", 
-                        spotify=spotify,
-                        forceplay=fplay,
-                    )
-                    
-                    # --- START: Background Cache & Cleanup (Error Handling) ---
-                    async def cache_and_cleanup():
-                        try:
-                            # --- 🟢 [FIX] Userbot1 ကို အသုံးပြုပါ ---
-                            if not Hotty.userbot1:
-                                logger.error("Userbot1 (String1) is not defined, cannot cache.")
-                                return
-
-                            sent_media = None
-                            file_id_to_cache = None
-                            
-                            if video:
-                                sent_media = await Hotty.userbot1.send_video(
-                                    chat_id=STORAGE_CHANNEL_ID,
-                                    video=downloaded_path,
-                                    caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
-                                )
-                                if sent_media and sent_media.video:
-                                    file_id_to_cache = sent_media.video.file_id
-                            else:
-                                sent_media = await Hotty.userbot1.send_audio(
-                                    chat_id=STORAGE_CHANNEL_ID,
-                                    audio=downloaded_path,
-                                    caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
-                                )
-                                if sent_media and sent_media.audio:
-                                    file_id_to_cache = sent_media.audio.file_id
-                            
-                            if file_id_to_cache:
-                                await save_cached_track(
-                                    video_id=video_id,
-                                    file_id=file_id_to_cache,
-                                    title=title,
-                                    duration=duration_min 
-                                )
-                            else:
-                                logger.error(
-                                    f"Failed to cache file: Userbot1 could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
-                                    f"Check if Userbot1 (Assistant) is a member of the group."
-                                )
-                                
-                        except Exception as e:
-                            logger.error(f"Failed to cache to storage channel (Exception): {e}")
-                        finally:
-                            if os.path.exists(downloaded_path):
-                                os.remove(downloaded_path)
-                    # --- END: Background Cache & Cleanup (Error Handling) ---
-
-                    asyncio.create_task(cache_and_cleanup()) 
-                    
-                    await mystic.delete()
-                    return await play_logs(message, streamtype="Downloaded YouTube")
-
-                except Exception as e:
-                    if downloaded_path and os.path.exists(downloaded_path):
-                        os.remove(downloaded_path) 
-                    print(f"Error: {e}")
-                    ex_type = type(e).__name__
-                    err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-                    return await mystic.edit_text(err)
-        
-        else:
-            try:
-                await stream(
-                    _,
-                    mystic,
-                    user_id,
-                    details,
-                    chat_id,
-                    user_name,
-                    message.chat.id,
-                    video=video,
-                    streamtype=streamtype,
-                    spotify=spotify,
-                    forceplay=fplay,
-                )
-            except Exception as e:
-                print(f"Error: {e}")
-                ex_type = type(e).__name__
-                err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-                return await mystic.edit_text(err)
-            
-            await mystic.delete()
-            return await play_logs(message, streamtype=streamtype)
-    
-    # --- Inline Mode (Buttons) ---
+        try:
+            await stream(
+                _,
+                mystic,
+                user_id,
+                details,
+                chat_id,
+                user_name,
+                message.chat.id,
+                video=video,
+                streamtype=streamtype,
+                spotify=spotify,
+                forceplay=fplay,
+            )
+        except Exception as e:
+            ex_type = type(e).__name__
+            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+            return await mystic.edit_text(err)
+        await mystic.delete()
+        return await play_logs(message, streamtype=streamtype)
     else:
         if plist_type:
             ran_hash = "".join(
@@ -677,11 +459,8 @@ async def play_music(client, CallbackQuery, _):
     )
     try:
         details, track_id = await YouTube.track(vidid, True)
-        if "duration_min" in details:
-            details["dur"] = details["duration_min"] 
     except:
         return await mystic.edit_text(_["play_3"])
-    
     if details["duration_min"]:
         duration_sec = time_to_seconds(details["duration_min"])
         if duration_sec > config.DURATION_LIMIT:
@@ -701,146 +480,33 @@ async def play_music(client, CallbackQuery, _):
             _["play_13"],
             reply_markup=InlineKeyboardMarkup(buttons),
         )
-    
     video = True if mode == "v" else None
     ffplay = True if fplay == "f" else None
-    
-    # --- START: L2 (File ID) Cache Logic (Callback) ---
-    video_id = details.get("vidid")
-    title = details.get("title")
-    duration_min = details.get("duration_min")
-
-    cached_track = await get_cached_track(video_id)
-    
-    if cached_track:
-        # --- L2 CACHE HIT ---
-        logger.info(f"[L2 Cache HIT] Playing from DB: {title} ({video_id})")
-        
-        details = cached_track
-        details["path"] = cached_track["file_id"]
-
-        if "dur" not in details and "duration_min" in details:
-            details["dur"] = details["duration_min"]
-        
-        try:
-            await stream(
-                _,
-                mystic,
-                CallbackQuery.from_user.id,
-                details, 
-                chat_id,
-                user_name,
-                CallbackQuery.message.chat.id,
-                video,
-                streamtype="telegram", 
-                forceplay=ffplay,
-            )
-        except Exception as e:
-            print(f"Error: {e}")
-            ex_type = type(e).__name__
-            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-            return await mystic.edit_text(err)
-        
-        return await mystic.delete()
-
-    else:
-        # --- L2 CACHE MISS ---
-        logger.info(f"[L2 Cache MISS] Downloading: {title} ({video_id})")
-        await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
-        
-        downloaded_path = None
-        try:
-            downloaded_path, _direct = await YouTube.download(
-                link=details["link"],
-                mystic=mystic,
-                video=video,
-            )
-            
-            if not downloaded_path or not os.path.exists(downloaded_path):
-                raise Exception("Download failed, file path not found.")
-
-            details["path"] = downloaded_path
-            
-            await stream(
-                _,
-                mystic,
-                CallbackQuery.from_user.id,
-                details, 
-                chat_id,
-                user_name,
-                CallbackQuery.message.chat.id,
-                video,
-                streamtype="telegram", 
-                forceplay=ffplay,
-            )
-            
-            # --- START: Background Cache & Cleanup (Error Handling) ---
-            async def cache_and_cleanup():
-                try:
-                    # --- 🟢 [FIX] Userbot1 ကို အသုံးပြုပါ ---
-                    if not Hotty.userbot1:
-                        logger.error("Userbot1 (String1) is not defined, cannot cache.")
-                        return
-
-                    sent_media = None
-                    file_id_to_cache = None
-                    
-                    if video:
-                        sent_media = await Hotty.userbot1.send_video(
-                            chat_id=STORAGE_CHANNEL_ID,
-                            video=downloaded_path,
-                            caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
-                        )
-                        if sent_media and sent_media.video:
-                            file_id_to_cache = sent_media.video.file_id
-                    else:
-                        sent_media = await Hotty.userbot1.send_audio(
-                            chat_id=STORAGE_CHANNEL_ID,
-                            audio=downloaded_path,
-                            caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
-                        )
-                        if sent_media and sent_media.audio:
-                            file_id_to_cache = sent_media.audio.file_id
-                    
-                    if file_id_to_cache:
-                        await save_cached_track(
-                            video_id=video_id,
-                            file_id=file_id_to_cache,
-                            title=title,
-                            duration=duration_min
-                        )
-                    else:
-                        logger.error(
-                            f"Failed to cache file: Userbot1 could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
-                            f"Check if Userbot1 (Assistant) is a member of the group."
-                        )
-                        
-                except Exception as e:
-                    logger.error(f"Failed to cache to storage channel (Exception): {e}")
-                finally:
-                    if os.path.exists(downloaded_path):
-                        os.remove(downloaded_path)
-            # --- END: Background Cache & Cleanup (Error Handling) ---
-            
-            asyncio.create_task(cache_and_cleanup())
-            
-            return await mystic.delete()
-
-        except Exception as e:
-            if downloaded_path and os.path.exists(downloaded_path):
-                os.remove(downloaded_path)
-            print(f"Error: {e}")
-            ex_type = type(e).__name__
-            err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
-            return await mystic.edit_text(err)
-    # --- END: L2 (File ID) Cache Logic ---
+    try:
+        await stream(
+            _,
+            mystic,
+            CallbackQuery.from_user.id,
+            details,
+            chat_id,
+            user_name,
+            CallbackQuery.message.chat.id,
+            video,
+            streamtype="youtube",
+            forceplay=ffplay,
+        )
+    except Exception as e:
+        ex_type = type(e).__name__
+        err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
+        return await mystic.edit_text(err)
+    return await mystic.delete()
 
 
 @app.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)
-async def anonymous_check(client, CallbackQuery):
+async def piyush_check(client, CallbackQuery):
     try:
         await CallbackQuery.answer(
-            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪss_ɪᴏns.",
+            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏɴs.",
             show_alert=True,
         )
     except:
@@ -850,7 +516,6 @@ async def anonymous_check(client, CallbackQuery):
 @app.on_callback_query(filters.regex("HottyPlaylists") & ~BANNED_USERS)
 @languageCB
 async def play_playlists_command(client, CallbackQuery, _):
-    # (Playlist ဖွင့်တာဖြစ်လို့ Cache Logic မထည့်ပါ)
     callback_data = CallbackQuery.data.strip()
     callback_request = callback_data.split(None, 1)[1]
     (
@@ -929,7 +594,6 @@ async def play_playlists_command(client, CallbackQuery, _):
             forceplay=ffplay,
         )
     except Exception as e:
-        print(f"Error: {e}")
         ex_type = type(e).__name__
         err = e if ex_type == "AssistantErr" else _["general_2"].format(ex_type)
         return await mystic.edit_text(err)
@@ -997,4 +661,4 @@ async def slider_queries(client, CallbackQuery, _):
         )
         return await CallbackQuery.edit_message_media(
             media=med, reply_markup=InlineKeyboardMarkup(buttons)
-        )
+)
