@@ -1,3 +1,5 @@
+തീർച്ചയായും! ဒါကတော့ Caching logic (သီချင်းအချက်အလက်တွေကို ခဏမှတ်ထားတဲ့စနစ်) ကို ထည့်သွင်းပြီး ပြင်ဆင်ထားတဲ့ youtube.py file အပြည့်အစုံ ဖြစ်ပါတယ်။
+api_dl (API ဖြင့် download ဆွဲခြင်း)၊ get_cookies (Cookie ဖြင့် download ဆွဲခြင်း) နဲ့ Caching (အချက်အလက် မြန်မြန်ရှာခြင်း) တို့ အားလုံး ပေါင်းစပ်ပြီးသား ဖြစ်ပါတယ်။
 import asyncio
 import os
 import re
@@ -5,7 +7,7 @@ import json
 from typing import Union
 
 import yt_dlp
-import requests  # <--- ဒီမှာ import ထည့်ထားပါတယ်
+import requests  # api_dl အတွက် ထည့်သွင်းထားသည်
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
@@ -216,6 +218,9 @@ class YouTubeAPI:
         self.status = "https://www.youtube.com/oembed?url="
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        
+        # --- Caching အတွက် Dictionary ---
+        self._search_cache = {}
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -249,52 +254,116 @@ class YouTubeAPI:
             return None
         return text[offset : offset + length]
 
-    async def details(self, link: str, videoid: Union[bool, str] = None):
+    # --- START: Caching Logic Functions ---
+
+    async def _fetch_from_youtube(self, link: str):
+        """
+        YouTube ကို တကယ်သွားရှာမယ့် private function အသစ်
+        """
+        results = VideosSearch(link, limit=1)
+        try:
+            result = (await results.next())["result"][0]
+        except IndexError:
+            logger.error(f"YouTube မှာ {link} ကို ရှာမတွေ့ပါ။")
+            return None
+
+        title = result["title"]
+        duration_min = result["duration"]
+        thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+        vidid = result["id"]
+        yturl = result["link"] # track method အတွက် link ကိုပါ ယူထားပါ
+
+        if str(duration_min) == "None":
+            duration_sec = 0
+        else:
+            duration_sec = int(time_to_seconds(duration_min))
+            
+        # အချက်အလက် အစုံအလင်ကို Dictionary အဖြစ် တည်ဆောက်ပါ
+        video_details = {
+            "title": title,
+            "duration_min": duration_min,
+            "duration_sec": duration_sec,
+            "thumbnail": thumbnail,
+            "vidid": vidid,
+            "link": yturl, # track method အတွက်
+        }
+        
+        # Cache ထဲကို vidid ကို key အနေနဲ့ သုံးပြီး သိမ်းထားပါ
+        self._search_cache[vidid] = video_details
+        # Link ကို key အနေနဲ့ သုံးပြီးလည်း သိမ်းထားနိုင်ပါတယ်
+        self._search_cache[link] = video_details
+        
+        return video_details
+
+    async def _get_video_details(self, link: str, videoid: Union[bool, str] = None):
+        """
+        အချက်အလက် လိုအပ်တိုင်း ဒီ function ကို ခေါ်သုံးပါမယ်။
+        ဒါက Cache ကို အရင်စစ်ပါမယ်။
+        """
         if videoid:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-            vidid = result["id"]
-            if str(duration_min) == "None":
-                duration_sec = 0
-            else:
-                duration_sec = int(time_to_seconds(duration_min))
-        return title, duration_min, duration_sec, thumbnail, vidid
+
+        # 1. Cache ထဲမှာ link နဲ့ အရင်ရှာကြည့်ပါ
+        if link in self._search_cache:
+            return self._search_cache[link]
+            
+        # 2. Cache ထဲမှာမရှိရင် YouTube ကို တကယ်သွားရှာပါ
+        details = await self._fetch_from_youtube(link)
+        
+        # 3. ရှာတွေ့ခဲ့ရင် Cache ထဲကို vidid နဲ့ပါ ထပ်သိမ်းပါ
+        if details:
+            self._search_cache[details["vidid"]] = details
+            
+        return details
+
+    # --- END: Caching Logic Functions ---
+
+    # --- START: Caching ကို အသုံးပြုထားသော Functions များ ---
+
+    async def details(self, link: str, videoid: Union[bool, str] = None):
+        details = await self._get_video_details(link, videoid)
+        if not details:
+            return None, None, 0, None, None
+            
+        return (
+            details["title"],
+            details["duration_min"],
+            details["duration_sec"],
+            details["thumbnail"],
+            details["vidid"],
+        )
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-        return title
+        details = await self._get_video_details(link, videoid)
+        return details["title"] if details else "Unknown Title"
 
     async def duration(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            duration = result["duration"]
-        return duration
+        details = await self._get_video_details(link, videoid)
+        return details["duration_min"] if details else "00:00"
 
     async def thumbnail(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        return thumbnail
+        details = await self._get_video_details(link, videoid)
+        return details["thumbnail"] if details else None
+
+    async def track(self, link: str, videoid: Union[bool, str] = None):
+        details = await self._get_video_details(link, videoid)
+        if not details:
+            return {}, None
+            
+        track_details = {
+            "title": details["title"],
+            "link": details["link"],
+            "vidid": details["vidid"],
+            "duration_min": details["duration_min"],
+            "thumb": details["thumbnail"],
+        }
+        return track_details, details["vidid"]
+
+    # --- END: Caching ကို အသုံးပြုထားသော Functions များ ---
+
+    # --- START: မူလ Functions များ (Caching မလိုပါ) ---
 
     async def video(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -332,27 +401,6 @@ class YouTubeAPI:
         except:
             result = []
         return result
-
-    async def track(self, link: str, videoid: Union[bool, str] = None):
-        if videoid:
-            link = self.base + link
-        if "&" in link:
-            link = link.split("&")[0]
-        results = VideosSearch(link, limit=1)
-        for result in (await results.next())["result"]:
-            title = result["title"]
-            duration_min = result["duration"]
-            vidid = result["id"]
-            yturl = result["link"]
-            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-        track_details = {
-            "title": title,
-            "link": yturl,
-            "vidid": vidid,
-            "duration_min": duration_min,
-            "thumb": thumbnail,
-        }
-        return track_details, vidid
 
     async def formats(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -407,6 +455,10 @@ class YouTubeAPI:
         vidid = result[query_type]["id"]
         thumbnail = result[query_type]["thumbnails"][0]["url"].split("?")[0]
         return title, duration_min, thumbnail, vidid
+
+    # --- END: မူလ Functions များ ---
+
+    # --- START: API-First Download Function ---
 
     async def download(
         self,
@@ -587,3 +639,4 @@ class YouTubeAPI:
             # --- END: API Logic ---
 
         return downloaded_file, direct
+
