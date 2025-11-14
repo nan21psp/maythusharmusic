@@ -9,7 +9,7 @@ load_dotenv()
 
 MONGO_URL = getenv("MONGO_URL", "mongodb+srv://wanglinmongodb:wanglin@renegadeimmortal.o1qj9yf.mongodb.net/?retryWrites=true&w=majority")
 
-STORAGE_CHANNEL_ID = -1003394125419
+STORAGE_CHANNEL_ID = -1002470419378
 
 # Get this value from my.telegram.org/apps
 API_ID = int(getenv("API_ID", None))
