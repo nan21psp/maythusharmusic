@@ -70,11 +70,15 @@ async def save_cached_track(
     title: str, 
     duration: str
 ) -> None:
+    """
+    သီချင်းရဲ့ အချက်အလက် (အဓိက file_id) ကို MongoDB မှာ သိမ်းမယ်။
+    """
     document = {
         "video_id": video_id,
         "file_id": file_id,
         "title": title,
-        "duration": duration,
+        "duration_min": duration, # မူလ key
+        "dur": duration,         # stream.py အတွက် key
     }
     await tracks_db.update_one(
         {"video_id": video_id},
@@ -99,6 +103,10 @@ async def save_search_query(search_query: str, details: Dict[str, Any]) -> None:
     """
     Search query နဲ့ ရလာတဲ့ details ကို cache သိမ်းမယ်။
     """
+    # "dur" key ကို details dict ထဲမှာ ထည့်ပါ
+    if "duration_min" in details and "dur" not in details:
+        details["dur"] = details["duration_min"]
+        
     document = {
         "query": search_query,
         "details": details
