@@ -12,14 +12,15 @@ from youtubesearchpython.__future__ import VideosSearch
 
 # --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
 import config  # CACHE_CHANNEL_ID အတွက်
-from maythusharmusic import userbot # Channel သို့ Upload လုပ်ရန်
+from maythusharmusic import userbot # (FIX) STRING_SESSION userbot ကို တိုက်ရိုက် import လုပ်
+# from maythusharmusic.core.userbot import assistants # (FIX) မလိုအပ်တော့ပါ
 from maythusharmusic.utils.database import (
     is_on_off,
     get_yt_cache, 
     save_yt_cache,
     get_telegram_cache,  # Telegram Cache
     save_telegram_cache, # Telegram Cache
-    get_client           # Assistant (userbot) ကို ရယူရန်
+    # get_client           # (FIX) မလိုအပ်တော့ပါ
 )
 # --- (ဒီနေရာအထိ) ---
 from maythusharmusic.utils.formatters import time_to_seconds
@@ -685,21 +686,20 @@ class YouTubeAPI:
                 downloaded_file and video_id and direct and 
                 not video and not songaudio and not songvideo
             ):
-                if os.path.exists(downloaded_file) and config.CACHE_CHANNEL_ID:
-                    logger.info(f"Uploading {video_id} to Telegram Cache Channel...")
+                if os.path.exists(downloaded_file) and hasattr(config, "CACHE_CHANNEL_ID") and config.CACHE_CHANNEL_ID:
+                    logger.info(f"Uploading {video_id} to Telegram Cache Channel using STRING_SESSION...")
                     try:
-                        # Upload လုပ်ရန် assistant တစ်ခုကို Random ရွေးပါ
-                        assistant_num = random.randint(1, 5)
-                        assistant = await get_client(assistant_num) 
-                        if not assistant:
-                            assistant = userbot.one # Fallback
-                            
+                        # --- (FIX START: 'STRING_SESSION' userbot ကိုသာ အသုံးပြု) ---
+                        if not userbot: 
+                            raise Exception("Main userbot (STRING_SESSION) is not active or 'None'.")
+                        
                         # Channel သို့ ပို့ပါ
-                        msg = await assistant.send_audio(
+                        msg = await userbot.send_audio(
                             chat_id=config.CACHE_CHANNEL_ID,
                             audio=downloaded_file,
                             caption=f"#cache {video_id}\n{link}"
                         )
+                        # --- (FIX END) ---
                         
                         new_file_id = msg.audio.file_id
                         
