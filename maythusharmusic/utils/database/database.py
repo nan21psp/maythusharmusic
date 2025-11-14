@@ -1,10 +1,9 @@
-import motor.motor_asyncio
 import random
-from typing import Dict, List, Union, Optional, Any
+import string
+from typing import Dict, List, Union
 
 from maythusharmusic import userbot
 from maythusharmusic.core.mongo import mongodb, pymongodb
-from config import MONGO_URL
 
 authdb = mongodb.adminauth
 authuserdb = mongodb.authuser
@@ -31,10 +30,13 @@ userdb = mongodb.userstats
 videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
-db = client.SongCache          
-tracks_db = db.tracks          # File ID Cache (L2)
-search_db = db.search_queries  # Search Query Cache (L1) - <--- အသစ်
+
+# --- (CACHE COLLECTIONS) ---
+ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
+songfiles_db = mongodb.songfiles  # Downloaded file path cache (ယခင်တောင်းဆိုမှုမှ)
+telegram_cache_db = mongodb.telegram_cache # Telegram File ID Cache (အခု တောင်းဆိုမှု)
+# --- (ဒီနေရာအထိ) ---
+
 
 # Shifting to memory [mongo sucks often]
 active = []
@@ -58,68 +60,8 @@ mute = {}
 audio = {}
 video = {}
 
-async def get_cached_track(video_id: str) -> Optional[Dict[str, Any]]:
-    track = await tracks_db.find_one({"video_id": video_id})
-    if track:
-        return track
-    return None
-
-async def save_cached_track(
-    video_id: str, 
-    file_id: str, 
-    title: str, 
-    duration: str
-) -> None:
-    """
-    သီချင်းရဲ့ အချက်အလက် (အဓိက file_id) ကို MongoDB မှာ သိမ်းမယ်။
-    """
-    document = {
-        "video_id": video_id,
-        "file_id": file_id,
-        "title": title,
-        "duration_min": duration, # မူလ key
-        "dur": duration,         # stream.py အတွက် key
-    }
-    await tracks_db.update_one(
-        {"video_id": video_id},
-        {"$set": document},
-        upsert=True
-    )
-    print(f"MongoDB L2 Cache: Saved File ID for '{title}' ({video_id})")
-
-# --- (L1) Search Query Cache Functions (ဒါတွေက အသစ်) ---
-
-async def get_search_query(search_query: str) -> Optional[Dict[str, Any]]:
-    """
-    User ရဲ့ search query ကို key အဖြစ်သုံးပြီး cache ရှာမယ်။
-    """
-    # query ကို case insensitive ဖြစ်အောင် regex သုံးပြီး ရှာပါ
-    query_data = await search_db.find_one({"query": {"$regex": f"^{search_query}$", "$options": "i"}})
-    if query_data:
-        return query_data.get("details") # details dict ကို ပြန်ပေးမယ်
-    return None
-
-async def save_search_query(search_query: str, details: Dict[str, Any]) -> None:
-    """
-    Search query နဲ့ ရလာတဲ့ details ကို cache သိမ်းမယ်။
-    """
-    # "dur" key ကို details dict ထဲမှာ ထည့်ပါ
-    if "duration_min" in details and "dur" not in details:
-        details["dur"] = details["duration_min"]
-        
-    document = {
-        "query": search_query,
-        "details": details
-    }
-    await search_db.update_one(
-        {"query": {"$regex": f"^{search_query}$", "$options": "i"}},
-        {"$set": document},
-        upsert=True
-    )
-    print(f"MongoDB L1 Cache: Saved Search Query '{search_query}'")
-
-#___________________________________________________________________#
 # Total Queries on bot
+
 
 async def get_queries() -> int:
     chat_id = 98324
@@ -476,8 +418,8 @@ async def get_lang(chat_id: int) -> str:
     if not mode:
         lang = await langdb.find_one({"chat_id": chat_id})
         if not lang:
-            langm[chat_id] = "en"
-            return "en"
+            langm[chat_id] = "my"
+            return "my"
         langm[chat_id] = lang["lang"]
         return lang["lang"]
     return mode
@@ -1037,3 +979,80 @@ async def save_filter(chat_id: int, name: str, _filter: dict):
         {"$set": {"filters": _filters}},
         upsert=True,
     )
+
+# --- (CACHE FUNCTIONS အသစ်များ) ---
+
+# 1. Search Result Cache (သီချင်းအချက်အလက်)
+async def get_yt_cache(key: str) -> Union[dict, None]:
+    """MongoDB မှ cache လုပ်ထားသော YouTube search results ကို ပြန်ရှာသည်"""
+    try:
+        cached_result = await ytcache_db.find_one({"key": key})
+        if cached_result:
+            return cached_result["details"]
+    except Exception as e:
+        print(f"Error getting YT cache: {e}")
+        return None
+    return None
+
+# 2. Search Result Cache (သီချင်းအချက်အလက်)
+async def save_yt_cache(key: str, details: dict):
+    """YouTube search results များကို MongoDB တွင် သိမ်းဆည်းသည်"""
+    try:
+        await ytcache_db.update_one(
+            {"key": key},
+            {"$set": {"details": details}},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"Error saving YT cache: {e}")
+
+# 3. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+async def get_cached_song_path(video_id: str) -> Union[str, None]:
+    try:
+        cached_song = await songfiles_db.find_one({"video_id": video_id})
+        if cached_song:
+            return cached_song["file_path"]
+    except Exception as e:
+        print(f"Error getting song path cache: {e}")
+    return None
+
+# 4. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+async def save_cached_song_path(video_id: str, file_path: str):
+    try:
+        await songfiles_db.update_one(
+            {"video_id": video_id},
+            {"$set": {"file_path": file_path}},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"Error saving song path cache: {e}")
+
+# 5. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+async def remove_cached_song_path(video_id: str):
+    try:
+        await songfiles_db.delete_one({"video_id": video_id})
+    except Exception as e:
+        print(f"Error removing song path cache: {e}")
+
+# --- (Telegram Channel Cache Functions အသစ်) ---
+
+async def get_telegram_cache(video_id: str) -> Union[str, None]:
+    """MongoDB မှ Telegram Channel file_id ကို ပြန်ရှာသည်"""
+    try:
+        cached_file = await telegram_cache_db.find_one({"video_id": video_id})
+        if cached_file:
+            return cached_file["file_id"]
+    except Exception as e:
+        print(f"Error getting Telegram cache: {e}")
+    return None
+
+async def save_telegram_cache(video_id: str, file_id: str):
+    """Telegram Channel file_id ကို MongoDB တွင် သိမ်းဆည်းသည်"""
+    try:
+        await telegram_cache_db.update_one(
+            {"video_id": video_id},
+            {"$set": {"file_id": file_id}},
+            upsert=True
+        )
+    except Exception as e:
+        print(f"Error saving Telegram cache: {e}")
