@@ -31,8 +31,8 @@ from config import BANNED_USERS, lyrical, STORAGE_CHANNEL_ID
 from maythusharmusic.utils.database import (
     get_cached_track, 
     save_cached_track,
-    get_search_query, 
-    save_search_query 
+    get_search_query,  
+    save_search_query  
 )
 # --- END: DB Cache Imports ---
 
@@ -106,7 +106,7 @@ async def play_commnd(
                 "title": file_name,
                 "link": message_link,
                 "path": file_path,
-                "dur": dur, # Telegram file က "dur" key ပါပြီးသား
+                "dur": dur, 
             }
 
             try:
@@ -151,7 +151,7 @@ async def play_commnd(
                 "title": file_name,
                 "link": message_link,
                 "path": file_path,
-                "dur": dur, # Telegram file က "dur" key ပါပြီးသား
+                "dur": dur, 
             }
             try:
                 await stream(
@@ -198,7 +198,7 @@ async def play_commnd(
                 try:
                     details, track_id = await YouTube.track(url)
                     if "duration_min" in details:
-                        details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+                        details["dur"] = details["duration_min"] 
                 except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
@@ -217,14 +217,13 @@ async def play_commnd(
                 try:
                     details, track_id = await Spotify.track(url)
                     if "duration_min" in details:
-                        details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+                        details["dur"] = details["duration_min"] 
                 except Exception as e:
                     print(f"play_3 error: fail to process your query | Exception: {e}")
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
                 img = details["thumb"]
                 cap = _["play_10"].format(details["title"], details["duration_min"])
-            # ... (ကျန်တဲ့ Spotify playlist/album/artist logic တွေက cache မလုပ်လို့ ပြင်စရာမလိုပါ) ...
             elif "playlist" in url:
                 try:
                     details, plist_id = await Spotify.playlist(url)
@@ -260,7 +259,7 @@ async def play_commnd(
                 try:
                     details, track_id = await Apple.track(url)
                     if "duration_min" in details:
-                        details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+                        details["dur"] = details["duration_min"] 
                 except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
@@ -282,7 +281,7 @@ async def play_commnd(
             try:
                 details, track_id = await Resso.track(url)
                 if "duration_min" in details:
-                    details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+                    details["dur"] = details["duration_min"] 
             except:
                 return await mystic.edit_text(_["play_3"])
             streamtype = "youtube"
@@ -292,7 +291,7 @@ async def play_commnd(
             try:
                 details, track_path = await SoundCloud.download(url)
                 details["path"] = track_path 
-                details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+                details["dur"] = details["duration_min"] 
             except:
                 return await mystic.edit_text(_["play_3"])
             duration_sec = details["duration_sec"]
@@ -376,15 +375,17 @@ async def play_commnd(
             logger.info(f"[L1 Cache HIT] Found search query: {query}")
             details = cached_search_details
             track_id = details["vidid"]
-            # DB ကနေလာတဲ့ details မှာ "dur" key ပါပြီးသား (database.py ကို ပြင်ပြီးရင်)
+            
+            if "dur" not in details and "duration_min" in details:
+                details["dur"] = details["duration_min"]
+                
         else:
             logger.info(f"[L1 Cache MISS] Searching YouTube for: {query}")
             try:
                 details, track_id = await YouTube.track(query)
                 
-                # --- START: "dur" Key Fix (L1 Miss) ---
                 current_duration = details.get("duration_min")
-                details["dur"] = current_duration # လက်ရှိ run ဖို့ "dur" ထည့်ပါ
+                details["dur"] = current_duration 
                 
                 clean_details = {
                     "title": details.get("title"),
@@ -392,10 +393,9 @@ async def play_commnd(
                     "vidid": details.get("vidid"),
                     "duration_min": current_duration,
                     "thumb": details.get("thumb"),
-                    "dur": current_duration, # Cache ထဲသိမ်းဖို့ "dur" ထည့်ပါ
+                    "dur": current_duration, 
                 }
                 asyncio.create_task(save_search_query(query, clean_details))
-                # --- END: "dur" Key Fix (L1 Miss) ---
                 
             except Exception as e:
                 logger.error(f"YouTube.track failed for query '{query}': {e}")
@@ -443,11 +443,11 @@ async def play_commnd(
                 # --- L2 CACHE HIT ---
                 logger.info(f"[L2 Cache HIT] Playing from DB: {title} ({video_id})")
                 
-                # --- START: "dur" Key Fix (L2 Hit) ---
-                # details ကို DB က data နဲ့ လုံးဝ အစားထိုးပါ
                 details = cached_track 
-                details["path"] = cached_track["file_id"] # path ကို သတ်မှတ်ပါ
-                # --- END: "dur" Key Fix (L2 Hit) ---
+                details["path"] = cached_track["file_id"] 
+                
+                if "dur" not in details and "duration_min" in details:
+                    details["dur"] = details["duration_min"]
                 
                 try:
                     await stream(
@@ -479,16 +479,17 @@ async def play_commnd(
                 
                 downloaded_path = None
                 try:
-                    downloaded_path, _ = await YouTube.download(
+                    # --- [FIX] _ ကို _direct လို့ ပြောင်းလိုက်ပါ ---
+                    downloaded_path, _direct = await YouTube.download(
                         link=details["link"],
                         mystic=mystic,
                         video=video, 
                     )
+                    
                     if not downloaded_path or not os.path.exists(downloaded_path):
                         raise Exception("Download failed, file path not found.")
 
                     details["path"] = downloaded_path 
-                    # "dur" key က L1 logic ကနေ ပါလာပြီးသား
                     
                     await stream(
                         _,
@@ -527,7 +528,6 @@ async def play_commnd(
                                 file_id=file_id_to_cache,
                                 title=title,
                                 duration=duration_min 
-                                # database.py က "dur" key ကိုပါ ထည့်သိမ်းပေးပါလိမ့်မယ်
                             )
                         except Exception as e:
                             logger.error(f"Failed to cache to storage channel: {e}")
@@ -659,7 +659,7 @@ async def play_music(client, CallbackQuery, _):
     try:
         details, track_id = await YouTube.track(vidid, True)
         if "duration_min" in details:
-            details["dur"] = details["duration_min"] # <-- "dur" key ထည့်ပါ
+            details["dur"] = details["duration_min"] 
     except:
         return await mystic.edit_text(_["play_3"])
     
@@ -697,10 +697,11 @@ async def play_music(client, CallbackQuery, _):
         # --- L2 CACHE HIT ---
         logger.info(f"[L2 Cache HIT] Playing from DB: {title} ({video_id})")
         
-        # --- START: "dur" Key Fix (L2 Hit - Callback) ---
         details = cached_track
         details["path"] = cached_track["file_id"]
-        # --- END: "dur" Key Fix (L2 Hit - Callback) ---
+
+        if "dur" not in details and "duration_min" in details:
+            details["dur"] = details["duration_min"]
         
         try:
             await stream(
@@ -730,16 +731,17 @@ async def play_music(client, CallbackQuery, _):
         
         downloaded_path = None
         try:
-            downloaded_path, _ = await YouTube.download(
+            # --- [FIX] _ ကို _direct လို့ ပြောင်းလိုက်ပါ ---
+            downloaded_path, _direct = await YouTube.download(
                 link=details["link"],
                 mystic=mystic,
                 video=video,
             )
+            
             if not downloaded_path or not os.path.exists(downloaded_path):
                 raise Exception("Download failed, file path not found.")
 
             details["path"] = downloaded_path
-            # "dur" key က အပေါ်က YouTube.track() ကတည်းက ပါလာပြီးသား
             
             await stream(
                 _,
@@ -777,7 +779,6 @@ async def play_music(client, CallbackQuery, _):
                         file_id=file_id_to_cache,
                         title=title,
                         duration=duration_min
-                        # database.py က "dur" key ကိုပါ ထည့်သိမ်းပေးပါလိမ့်မယ်
                     )
                 except Exception as e:
                     logger.error(f"Failed to cache to storage channel: {e}")
