@@ -32,8 +32,9 @@ videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL)
-db = client.SongCache          # Database နာမည်ကို "SongCache" လို့ ပေးလိုက်ပါ
-tracks_db = db.tracks          # Collection (Table) နာမည်ကို "tracks" လို့ ပေးလိုက်ပါ
+db = client.SongCache          
+tracks_db = db.tracks          # File ID Cache (L2)
+search_db = db.search_queries  # Search Query Cache (L1) - <--- အသစ်
 
 # Shifting to memory [mongo sucks often]
 active = []
@@ -58,9 +59,6 @@ audio = {}
 video = {}
 
 async def get_cached_track(video_id: str) -> Optional[Dict[str, Any]]:
-    """
-    MongoDB ထဲမှာ video_id နဲ့ သိမ်းထားတဲ့ သီချင်းအချက်အလက်ကို ရှာမယ်။
-    """
     track = await tracks_db.find_one({"video_id": video_id})
     if track:
         return track
@@ -72,26 +70,47 @@ async def save_cached_track(
     title: str, 
     duration: str
 ) -> None:
-    """
-    သီချင်းရဲ့ အချက်အလက် (အဓိက file_id) ကို MongoDB မှာ သိမ်းမယ်။
-    """
-    # သိမ်းမယ့် အချက်အလက်များ
     document = {
         "video_id": video_id,
         "file_id": file_id,
         "title": title,
         "duration": duration,
     }
-    
-    # "upsert=True" က video_id မရှိသေးရင် အသစ်ထည့်ပြီး၊ ရှိနေရင် အဟောင်းကို update လုပ်ပေးပါလိမ့်မယ်။
     await tracks_db.update_one(
-        {"video_id": video_id}, # ဒီ video_id နဲ့ ရှာမယ်
-        {"$set": document},     # ဒီ data တွေကို ထည့်မယ်/ပြင်မယ်
-        upsert=True             # မရှိရင် အသစ်ဖန်တီးမယ်
+        {"video_id": video_id},
+        {"$set": document},
+        upsert=True
     )
-    print(f"MongoDB Cache: Saved '{title}' ({video_id})")
+    print(f"MongoDB L2 Cache: Saved File ID for '{title}' ({video_id})")
 
+# --- (L1) Search Query Cache Functions (ဒါတွေက အသစ်) ---
 
+async def get_search_query(search_query: str) -> Optional[Dict[str, Any]]:
+    """
+    User ရဲ့ search query ကို key အဖြစ်သုံးပြီး cache ရှာမယ်။
+    """
+    # query ကို case insensitive ဖြစ်အောင် regex သုံးပြီး ရှာပါ
+    query_data = await search_db.find_one({"query": {"$regex": f"^{search_query}$", "$options": "i"}})
+    if query_data:
+        return query_data.get("details") # details dict ကို ပြန်ပေးမယ်
+    return None
+
+async def save_search_query(search_query: str, details: Dict[str, Any]) -> None:
+    """
+    Search query နဲ့ ရလာတဲ့ details ကို cache သိမ်းမယ်။
+    """
+    document = {
+        "query": search_query,
+        "details": details
+    }
+    await search_db.update_one(
+        {"query": {"$regex": f"^{search_query}$", "$options": "i"}},
+        {"$set": document},
+        upsert=True
+    )
+    print(f"MongoDB L1 Cache: Saved Search Query '{search_query}'")
+
+#___________________________________________________________________#
 # Total Queries on bot
 
 async def get_queries() -> int:
