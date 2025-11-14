@@ -354,6 +354,15 @@ async def play_commnd(
                     _["play_13"],
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
+        
+        # --- START: MODIFICATION ---
+        try:
+            title = details.get("title", "သီချင်း") 
+            await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+        except Exception as e:
+            pass 
+        # --- END: MODIFICATION ---
+            
         try:
             await stream(
                 _,
@@ -461,6 +470,15 @@ async def play_music(client, CallbackQuery, _):
         details, track_id = await YouTube.track(vidid, True)
     except:
         return await mystic.edit_text(_["play_3"])
+
+    # --- START: MODIFICATION ---
+    try:
+        title = details.get("title", "သီချင်း")
+        await mystic.edit_text(f"📥 Download ဆွဲနေပါသည်: {title}")
+    except Exception as e:
+        pass
+    # --- END: MODIFICATION ---
+
     if details["duration_min"]:
         duration_sec = time_to_seconds(details["duration_min"])
         if duration_sec > config.DURATION_LIMIT:
