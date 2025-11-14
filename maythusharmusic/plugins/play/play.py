@@ -479,7 +479,6 @@ async def play_commnd(
                 
                 downloaded_path = None
                 try:
-                    # --- [FIX] _ ကို _direct လို့ ပြောင်းလိုက်ပါ ---
                     downloaded_path, _direct = await YouTube.download(
                         link=details["link"],
                         mystic=mystic,
@@ -505,36 +504,49 @@ async def play_commnd(
                         forceplay=fplay,
                     )
                     
+                    # --- START: Background Cache & Cleanup (Error Handling) ---
                     async def cache_and_cleanup():
                         try:
                             sent_media = None
+                            file_id_to_cache = None
+                            
                             if video:
                                 sent_media = await app.send_video(
                                     chat_id=STORAGE_CHANNEL_ID,
                                     video=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
-                                file_id_to_cache = sent_media.video.file_id
+                                if sent_media and sent_media.video:
+                                    file_id_to_cache = sent_media.video.file_id
                             else:
                                 sent_media = await app.send_audio(
                                     chat_id=STORAGE_CHANNEL_ID,
                                     audio=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                                 )
-                                file_id_to_cache = sent_media.audio.file_id
+                                if sent_media and sent_media.audio:
+                                    file_id_to_cache = sent_media.audio.file_id
                             
-                            await save_cached_track(
-                                video_id=video_id,
-                                file_id=file_id_to_cache,
-                                title=title,
-                                duration=duration_min 
-                            )
+                            if file_id_to_cache:
+                                await save_cached_track(
+                                    video_id=video_id,
+                                    file_id=file_id_to_cache,
+                                    title=title,
+                                    duration=duration_min 
+                                )
+                            else:
+                                logger.error(
+                                    f"Failed to cache file: Bot could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
+                                    f"Check if bot is admin and has 'Post Messages' permission."
+                                )
+                                
                         except Exception as e:
-                            logger.error(f"Failed to cache to storage channel: {e}")
+                            logger.error(f"Failed to cache to storage channel (Exception): {e}")
                         finally:
                             if os.path.exists(downloaded_path):
                                 os.remove(downloaded_path)
-                    
+                    # --- END: Background Cache & Cleanup (Error Handling) ---
+
                     asyncio.create_task(cache_and_cleanup()) 
                     
                     await mystic.delete()
@@ -731,7 +743,6 @@ async def play_music(client, CallbackQuery, _):
         
         downloaded_path = None
         try:
-            # --- [FIX] _ ကို _direct လို့ ပြောင်းလိုက်ပါ ---
             downloaded_path, _direct = await YouTube.download(
                 link=details["link"],
                 mystic=mystic,
@@ -756,35 +767,48 @@ async def play_music(client, CallbackQuery, _):
                 forceplay=ffplay,
             )
             
+            # --- START: Background Cache & Cleanup (Error Handling) ---
             async def cache_and_cleanup():
                 try:
                     sent_media = None
+                    file_id_to_cache = None
+                    
                     if video:
                         sent_media = await app.send_video(
                             chat_id=STORAGE_CHANNEL_ID,
                             video=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
-                        file_id_to_cache = sent_media.video.file_id
+                        if sent_media and sent_media.video:
+                            file_id_to_cache = sent_media.video.file_id
                     else:
                         sent_media = await app.send_audio(
                             chat_id=STORAGE_CHANNEL_ID,
                             audio=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
                         )
-                        file_id_to_cache = sent_media.audio.file_id
+                        if sent_media and sent_media.audio:
+                            file_id_to_cache = sent_media.audio.file_id
                     
-                    await save_cached_track(
-                        video_id=video_id,
-                        file_id=file_id_to_cache,
-                        title=title,
-                        duration=duration_min
-                    )
+                    if file_id_to_cache:
+                        await save_cached_track(
+                            video_id=video_id,
+                            file_id=file_id_to_cache,
+                            title=title,
+                            duration=duration_min
+                        )
+                    else:
+                        logger.error(
+                            f"Failed to cache file: Bot could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
+                            f"Check if bot is admin and has 'Post Messages' permission."
+                        )
+                        
                 except Exception as e:
-                    logger.error(f"Failed to cache to storage channel: {e}")
+                    logger.error(f"Failed to cache to storage channel (Exception): {e}")
                 finally:
                     if os.path.exists(downloaded_path):
                         os.remove(downloaded_path)
+            # --- END: Background Cache & Cleanup (Error Handling) ---
             
             asyncio.create_task(cache_and_cleanup())
             
@@ -804,7 +828,7 @@ async def play_music(client, CallbackQuery, _):
 async def anonymous_check(client, CallbackQuery):
     try:
         await CallbackQuery.answer(
-            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏɴs.",
+            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏns.",
             show_alert=True,
         )
     except:
