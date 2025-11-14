@@ -1,553 +1,92 @@
-import os
-from random import randint
+import asyncio
 from typing import Union
-import logging 
-
-from pyrogram.types import InlineKeyboardMarkup
-
-import config
-from maythusharmusic import Carbon, YouTube, app
-from maythusharmusic.core.call import Hotty
+from pyrogram import Client, client
 from maythusharmusic.misc import db
-from maythusharmusic.utils.database import add_active_video_chat, is_active_chat
-from maythusharmusic.utils.exceptions import AssistantErr
-from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
-from maythusharmusic.utils.pastebin import HottyBin
-from maythusharmusic.utils.stream.queue import put_queue, put_queue_index
-from maythusharmusic.utils.thumbnails import get_thumb
-
-# Logger ကို သတ်မှတ်ပါ
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from maythusharmusic.utils.formatters import check_duration, seconds_to_min
+from config import autoclean, time_to_seconds
 
 
-async def stream(
-    _,
-    mystic,
-    user_id,
-    result,
+async def put_queue(
     chat_id,
-    user_name,
     original_chat_id,
-    video: Union[bool, str] = None,
-    streamtype: Union[bool, str] = None,
-    spotify: Union[bool, str] = None,
+    file,
+    title,
+    duration,
+    user,
+    vidid,
+    user_id,
+    stream,
     forceplay: Union[bool, str] = None,
 ):
-    if not result:
-        return
+    title = title.title()
+    try:
+        duration_in_seconds = time_to_seconds(duration) - 3
+    except:
+        duration_in_seconds = 0
+    put = {
+        "title": title,
+        "dur": duration,
+        "streamtype": stream,
+        "by": user,
+        "user_id": user_id,
+        "chat_id": original_chat_id,
+        "file": file,
+        "vidid": vidid,
+        "seconds": duration_in_seconds,
+        "played": 0,
+    }
     if forceplay:
-        await Hotty.force_stop_stream(chat_id)
-    if streamtype == "playlist":
-        msg = f"{_['play_19']}\n\n"
-        count = 0
-        
-        # --- Playlist အတွက် ပထမဆုံး သီချင်းကို သီးသန့် ခွဲထုတ် ---
-        # (ဒါမှ vidid ကို အောက်မှာ စစ်လို့ရမယ်)
-        first_track_vidid = None
-        
-        for search in result:
-            if int(count) == config.PLAYLIST_FETCH_LIMIT:
-                continue
-            try:
-                (
-                    title,
-                    duration_min,
-                    duration_sec,
-                    thumbnail,
-                    vidid,
-                ) = await YouTube.details(search, False if spotify else True)
-            except:
-                continue
-            if str(duration_min) == "None":
-                continue
-            if duration_sec > config.DURATION_LIMIT:
-                continue
-            if await is_active_chat(chat_id):
-                await put_queue(
-                    chat_id,
-                    original_chat_id,
-                    f"vid_{vidid}",
-                    title,
-                    duration_min,
-                    user_name,
-                    vidid,
-                    user_id,
-                    "video" if video else "audio",
-                )
-                position = len(db.get(chat_id)) - 1
-                count += 1
-                msg += f"{count}. {title[:70]}\n"
-                msg += f"{_['play_20']} {position}\n\n"
-            else:
-                # --- ပထမဆုံးအကြိမ် (VC မဝင်ရသေး) ---
-                if not forceplay:
-                    db[chat_id] = []
-                status = True if video else None
-                try:
-                    file_path, direct = await YouTube.download(
-                        vidid, mystic, video=status, videoid=True
-                    )
-                except:
-                    raise AssistantErr(_["play_14"])
-                
-                if count == 0:
-                    first_track_vidid = vidid # ပထမဆုံး သီချင်းရဲ့ vidid ကို မှတ်ထား
-
-                # --- Queue ထဲ အရင်ထည့် ---
-                await put_queue(
-                    chat_id,
-                    original_chat_id,
-                    file_path if direct else f"vid_{vidid}",
-                    title,
-                    duration_min,
-                    user_name,
-                    vidid,
-                    user_id,
-                    "video" if video else "audio",
-                    forceplay=forceplay if count == 0 else None, # forceplay ကို ပထမဆုံး သီချင်းမှာပဲ သုံး
-                )
-                
-                # --- ပြီးမှ VC ကို join (ပထမဆုံး သီချင်းအတွက်) ---
-                if count == 0:
-                    try:
-                        await Hotty.join_call(
-                            chat_id,
-                            original_chat_id,
-                            file_path,
-                            video=status,
-                            image=thumbnail,
-                        )
-                    except Exception as e:
-                        logger.error(f"[Hotty.join_call FAILED] streamtype=playlist. Error: {e}")
-                        try:
-                            db[chat_id].pop()
-                        except:
-                            pass
-                        return await mystic.edit_text(_["general_2"].format(str(e)))
-
-                    img = await get_thumb(vidid)
-                    button = stream_markup(_, chat_id)
-                    run = await app.send_photo(
-                        original_chat_id,
-                        photo=img,
-                        caption=_["stream_1"].format(
-                            f"https://t.me/{app.username}?start=info_{vidid}",
-                            title[:23],
-                            duration_min,
-                            user_name,
-                        ),
-                        reply_markup=InlineKeyboardMarkup(button),
-                    )
-                    
-                    # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-                    if db.get(chat_id) and db[chat_id][0]["vidid"] == first_track_vidid:
-                        db[chat_id][0]["mystic"] = run
-                        db[chat_id][0]["markup"] = "stream"
-                
-                # --- ကျန်တဲ့ သီချင်းတွေကို Queue Message ပို့ ---
-                else:
-                    position = len(db.get(chat_id)) - 1
-                    count += 1
-                    msg += f"{count}. {title[:70]}\n"
-                    msg += f"{_['play_20']} {position}\n\n"
-
-        if count == 0:
-            return
+        check = db.get(chat_id)
+        if check:
+            check.insert(0, put)
         else:
-            link = await HottyBin(msg)
-            lines = msg.count("\n")
-            if lines >= 17:
-                car = os.linesep.join(msg.split(os.linesep)[:17])
-            else:
-                car = msg
-            carbon = await Carbon.generate(car, randint(100, 10000000))
-            upl = close_markup(_)
-            return await app.send_photo(
-                original_chat_id,
-                photo=carbon,
-                caption=_["play_21"].format(position, link),
-                reply_markup=upl,
-            )
-            
-    elif streamtype == "youtube":
-        link = result["link"]
-        vidid = result["vidid"]
-        title = (result["title"]).title()
-        duration_min = result["duration_min"] 
-        thumbnail = result["thumb"]
-        status = True if video else None
-    
-        current_queue = db.get(chat_id)
-        if current_queue is not None and len(current_queue) >= 50:
-            return await app.send_message(original_chat_id, "You can't add more than 50 songs to the queue.")
+            db[chat_id] = []
+            db[chat_id].append(put)
+    else:
+        db[chat_id].append(put)
+    autoclean.append(file)
 
+
+async def put_queue_index(
+    chat_id,
+    original_chat_id,
+    file,
+    title,
+    duration,
+    user,
+    vidid,
+    stream,
+    forceplay: Union[bool, str] = None,
+):
+    if "20.212.146.162" in vidid:
         try:
-            file_path, direct = await YouTube.download(
-                vidid, mystic, videoid=True, video=status
+            dur = await asyncio.get_event_loop().run_in_executor(
+                None, check_duration, vidid
             )
+            duration = seconds_to_min(dur)
         except:
-            raise AssistantErr(_["play_14"])
-
-        if await is_active_chat(chat_id):
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path if direct else f"vid_{vidid}",
-                title,
-                duration_min,
-                user_name,
-                vidid,
-                user_id,
-                "video" if video else "audio",
-            )
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            await app.send_message(
-                chat_id=original_chat_id,
-                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
+            duration = "ᴜʀʟ sᴛʀᴇᴀᴍ"
+            dur = 0
+    else:
+        dur = 0
+    put = {
+        "title": title,
+        "dur": duration,
+        "streamtype": stream,
+        "by": user,
+        "chat_id": original_chat_id,
+        "file": file,
+        "vidid": vidid,
+        "seconds": dur,
+        "played": 0,
+    }
+    if forceplay:
+        check = db.get(chat_id)
+        if check:
+            check.insert(0, put)
         else:
-            if not forceplay:
-                db[chat_id] = []
+            db[chat_id] = []
+            db[chat_id].append(put)
+    else:
+        db[chat_id].append(put)
 
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path if direct else f"vid_{vidid}",
-                title,
-                duration_min,
-                user_name,
-                vidid,
-                user_id,
-                "video" if video else "audio",
-                forceplay=forceplay,
-            )
-            
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=youtube. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
-            img = await get_thumb(vidid)
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
-                    title[:23],
-                    duration_min,
-                    user_name,
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            # (Queue ထဲမှာ သီချင်း ရှိနေသေးမှ၊ vidid လည်း တူနေမှ update လုပ်)
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "stream"
-                
-    elif streamtype == "soundcloud":
-        file_path = result["filepath"]
-        title = result["title"]
-        duration_min = result["duration_min"]
-        vidid = "soundcloud" # vidid ကို သတ်မှတ်
-        
-        if await is_active_chat(chat_id):
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path,
-                title,
-                duration_min,
-                user_name,
-                vidid, # vidid ကို ထည့်ပေး
-                user_id,
-                "audio",
-            )
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            await app.send_message(
-                chat_id=original_chat_id,
-                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path,
-                title,
-                duration_min,
-                user_name,
-                vidid, # vidid ကို ထည့်ပေး
-                user_id,
-                "audio",
-                forceplay=forceplay,
-            )
-
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=soundcloud. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.SOUNCLOUD_IMG_URL,
-                caption=_["stream_1"].format(
-                    config.SUPPORT_GROUP, title[:23], duration_min, user_name
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
-    elif streamtype == "telegram":
-        file_path = result["path"]
-        link = result["link"]
-        title = (result["title"]).title()
-        vidid = "telegram" # vidid ကို သတ်မှတ်
-        
-        if "dur" in result:
-            duration_min = result["dur"]
-        elif "duration_min" in result:
-            duration_min = result["duration_min"]
-        else:
-            duration_min = "00:00" 
-            
-        status = True if video else None
-        if await is_active_chat(chat_id):
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path,
-                title,
-                duration_min,
-                user_name,
-                vidid, # vidid ကို ထည့်ပေး
-                user_id,
-                "video" if video else "audio",
-            )
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            await app.send_message(
-                chat_id=original_chat_id,
-                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                file_path,
-                title,
-                duration_min,
-                user_name,
-                vidid, # vidid ကို ထည့်ပေး
-                user_id,
-                "video" if video else "audio",
-                forceplay=forceplay,
-            )
-
-            try:
-                await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=telegram. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
-            if video:
-                await add_active_video_chat(chat_id)
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.TELEGRAM_VIDEO_URL if video else config.TELEGRAM_AUDIO_URL,
-                caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
-    elif streamtype == "live":
-        link = result["link"]
-        vidid = result["vidid"]
-        title = (result["title"]).title()
-        thumbnail = result["thumb"]
-        duration_min = "Live Track"
-        status = True if video else None
-        if await is_active_chat(chat_id):
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                f"live_{vidid}",
-                title,
-                duration_min,
-                user_name,
-                vidid,
-                user_id,
-                "video" if video else "audio",
-            )
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            await app.send_message(
-                chat_id=original_chat_id,
-                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            n, file_path = await YouTube.video(link)
-            if n == 0:
-                raise AssistantErr(_["str_3"])
-            
-            await put_queue(
-                chat_id,
-                original_chat_id,
-                f"live_{vidid}",
-                title,
-                duration_min,
-                user_name,
-                vidid,
-                user_id,
-                "video" if video else "audio",
-                forceplay=forceplay,
-            )
-
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    file_path,
-                    video=status,
-                    image=thumbnail if thumbnail else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=live. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
-            img = await get_thumb(vidid)
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
-                    title[:23],
-                    duration_min,
-                    user_name,
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-
-    elif streamtype == "index":
-        link = result
-        title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
-        duration_min = "00:00"
-        vidid = "index_url" # vidid ကို သတ်မှတ်
-        
-        if await is_active_chat(chat_id):
-            await put_queue_index(
-                chat_id,
-                original_chat_id,
-                "index_url",
-                title,
-                duration_min,
-                user_name,
-                link,
-                "video" if video else "audio",
-            )
-            position = len(db.get(chat_id)) - 1
-            button = aq_markup(_, chat_id)
-            await mystic.edit_text(
-                text=_["queue_4"].format(position, title[:27], duration_min, user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-        else:
-            if not forceplay:
-                db[chat_id] = []
-            
-            await put_queue_index(
-                chat_id,
-                original_chat_id,
-                "index_url",
-                title,
-                duration_min,
-                user_name,
-                link,
-                "video" if video else "audio",
-                forceplay=forceplay,
-            )
-
-            try:
-                await Hotty.join_call(
-                    chat_id,
-                    original_chat_id,
-                    link,
-                    video=True if video else None,
-                )
-            except Exception as e:
-                logger.error(f"[Hotty.join_call FAILED] streamtype=index. Error: {e}")
-                try:
-                    db[chat_id].pop()
-                except:
-                    pass
-                return await mystic.edit_text(_["general_2"].format(str(e)))
-
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=config.STREAM_IMG_URL,
-                caption=_["stream_2"].format(user_name),
-                reply_markup=InlineKeyboardMarkup(button),
-            )
-            
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
-                db[chat_id][0]["mystic"] = run
-                db[chat_id][0]["markup"] = "tg"
-            await mystic.delete()
