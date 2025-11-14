@@ -9,9 +9,9 @@ from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
-# --- 🟢 [FIX 1] Config ကနေ STORAGE_CHANNEL_ID ကို import လုပ်ပါ ---
 from config import STORAGE_CHANNEL_ID 
 from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
+# --- 🟢 [FIX] Hotty (Userbot) ကို import လုပ် ---
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
 from maythusharmusic.utils.channelplay import get_channeplayCB
@@ -28,7 +28,6 @@ from maythusharmusic.utils.inline import (
 from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 
-# --- START: DB Cache Imports (L1 & L2) ---
 from config import BANNED_USERS, lyrical
 from maythusharmusic.utils.database import (
     get_cached_track, 
@@ -36,7 +35,6 @@ from maythusharmusic.utils.database import (
     get_search_query,  
     save_search_query  
 )
-# --- END: DB Cache Imports ---
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +88,7 @@ async def play_commnd(
         else None
     )
     
-    # --- Telegram Audio/Video (Cache မလိုအပ်ပါ) ---
+    # --- Telegram Audio/Video ---
     if audio_telegram:
         if audio_telegram.file_size > 104857600:
             return await mystic.edit_text(_["play_5"])
@@ -101,8 +99,6 @@ async def play_commnd(
             )
         file_path = await Telegram.get_filepath(audio=audio_telegram)
         
-        # --- 🟢 [FIX 3] Telegram file တွေကို Chat ထဲ ပြန်မကျအောင် ---
-        # --- (await Telegram.download) ကို ဖယ်ရှားပြီး file_path ကို တိုက်ရိုက်သုံး ---
         if file_path:
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(audio_telegram, audio=True)
@@ -110,7 +106,7 @@ async def play_commnd(
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path, # Download လုပ်မယ့်အစား file_id (path) ကို တိုက်ရိုက် သုံး
+                "path": file_path, 
                 "dur": dur, 
             }
 
@@ -149,7 +145,6 @@ async def play_commnd(
             return await mystic.edit_text(_["play_8"])
         file_path = await Telegram.get_filepath(video=video_telegram)
 
-        # --- 🟢 [FIX 3] Telegram file တွေကို Chat ထဲ ပြန်မကျအောင် ---
         if file_path:
             message_link = await Telegram.get_link(message)
             file_name = await Telegram.get_filename(video_telegram)
@@ -157,7 +152,7 @@ async def play_commnd(
             details = {
                 "title": file_name,
                 "link": message_link,
-                "path": file_path, # Download လုပ်မယ့်အစား file_id (path) ကို တိုက်ရိုက် သုံး
+                "path": file_path, 
                 "dur": dur, 
             }
             try:
@@ -514,12 +509,16 @@ async def play_commnd(
                     # --- START: Background Cache & Cleanup (Error Handling) ---
                     async def cache_and_cleanup():
                         try:
+                            # --- 🟢 [FIX] Userbot1 ကို အသုံးပြုပါ ---
+                            if not Hotty.userbot1:
+                                logger.error("Userbot1 (String1) is not defined, cannot cache.")
+                                return
+
                             sent_media = None
                             file_id_to_cache = None
                             
                             if video:
-                                sent_media = await app.send_video(
-                                    # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                                sent_media = await Hotty.userbot1.send_video(
                                     chat_id=STORAGE_CHANNEL_ID,
                                     video=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
@@ -527,8 +526,7 @@ async def play_commnd(
                                 if sent_media and sent_media.video:
                                     file_id_to_cache = sent_media.video.file_id
                             else:
-                                sent_media = await app.send_audio(
-                                    # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                                sent_media = await Hotty.userbot1.send_audio(
                                     chat_id=STORAGE_CHANNEL_ID,
                                     audio=downloaded_path,
                                     caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
@@ -545,14 +543,13 @@ async def play_commnd(
                                 )
                             else:
                                 logger.error(
-                                    f"Failed to cache file: Bot could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
-                                    f"Check if bot is admin and has 'Post Messages' permission."
+                                    f"Failed to cache file: Userbot1 could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
+                                    f"Check if Userbot1 (Assistant) is a member of the group."
                                 )
                                 
                         except Exception as e:
                             logger.error(f"Failed to cache to storage channel (Exception): {e}")
                         finally:
-                            # --- 🟢 [FIX 3] Download ဆွဲပြီးသား file ကို ပြန်ဖျက် (Chat ထဲ မကျအောင်) ---
                             if os.path.exists(downloaded_path):
                                 os.remove(downloaded_path)
                     # --- END: Background Cache & Cleanup (Error Handling) ---
@@ -780,12 +777,16 @@ async def play_music(client, CallbackQuery, _):
             # --- START: Background Cache & Cleanup (Error Handling) ---
             async def cache_and_cleanup():
                 try:
+                    # --- 🟢 [FIX] Userbot1 ကို အသုံးပြုပါ ---
+                    if not Hotty.userbot1:
+                        logger.error("Userbot1 (String1) is not defined, cannot cache.")
+                        return
+
                     sent_media = None
                     file_id_to_cache = None
                     
                     if video:
-                        sent_media = await app.send_video(
-                            # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                        sent_media = await Hotty.userbot1.send_video(
                             chat_id=STORAGE_CHANNEL_ID,
                             video=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
@@ -793,8 +794,7 @@ async def play_music(client, CallbackQuery, _):
                         if sent_media and sent_media.video:
                             file_id_to_cache = sent_media.video.file_id
                     else:
-                        sent_media = await app.send_audio(
-                            # --- 🟢 [FIX 2] Hardcode ကို ဖျက်ပြီး Render Variable ကို သုံး ---
+                        sent_media = await Hotty.userbot1.send_audio(
                             chat_id=STORAGE_CHANNEL_ID,
                             audio=downloaded_path,
                             caption=f"Title: {title}\nID: {video_id}\nDuration: {duration_min}"
@@ -811,14 +811,13 @@ async def play_music(client, CallbackQuery, _):
                         )
                     else:
                         logger.error(
-                            f"Failed to cache file: Bot could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
-                            f"Check if bot is admin and has 'Post Messages' permission."
+                            f"Failed to cache file: Userbot1 could not send message to STORAGE_CHANNEL_ID ({STORAGE_CHANNEL_ID}). "
+                            f"Check if Userbot1 (Assistant) is a member of the group."
                         )
                         
                 except Exception as e:
                     logger.error(f"Failed to cache to storage channel (Exception): {e}")
                 finally:
-                    # --- 🟢 [FIX 3] Download ဆွဲပြီးသား file ကို ပြန်ဖျက် (Chat ထဲ မကျအောင်) ---
                     if os.path.exists(downloaded_path):
                         os.remove(downloaded_path)
             # --- END: Background Cache & Cleanup (Error Handling) ---
@@ -841,7 +840,7 @@ async def play_music(client, CallbackQuery, _):
 async def anonymous_check(client, CallbackQuery):
     try:
         await CallbackQuery.answer(
-            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏns.",
+            "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪss_ɪᴏns.",
             show_alert=True,
         )
     except:
