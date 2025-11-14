@@ -162,10 +162,27 @@ async def save_cookies(urls: list[str]) -> None:
 
 async def check_file_size(link):
     async def get_format_info(link):
-        proc = await asyncio.create_subprocess_exec(
+        
+        # --- Cookie Logic ---
+        # 1. (ဒီ file ထဲမှာ ရှိပြီးသား) get_cookies() function ကို ခေါ်သုံးပါ
+        cookie_file = get_cookies() 
+        
+        # 2. Command arguments တွေကို list အနေနဲ့ တည်ဆောက်ပါ
+        proc_args = [
             "yt-dlp",
-            "-J",
-            link,
+            "-J", # JSON output
+        ]
+        
+        # 3. Cookie file ရှိခဲ့ရင် command ထဲကို ထည့်ပါ
+        if cookie_file:
+            proc_args.extend(["--cookies", cookie_file])
+        
+        # 4. နောက်ဆုံးမှာ link ကို ထည့်ပါ
+        proc_args.append(link)
+        # --- End Cookie Logic ---
+
+        proc = await asyncio.create_subprocess_exec(
+            *proc_args,  # List ကို unpack လုပ်ပြီး ထည့်ပါ
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -193,6 +210,7 @@ async def check_file_size(link):
     
     total_size = parse_size(formats)
     return total_size
+
 
 async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
