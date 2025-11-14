@@ -12,8 +12,8 @@ from youtubesearchpython.__future__ import VideosSearch
 
 # --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
 import config  # CACHE_CHANNEL_ID အတွက်
-# from maythusharmusic import userbot # (FIX) ဒါကို တိုက်ရိုက်မသုံးတော့ပါ
-from maythusharmusic.core.userbot import assistants # (FIX) Active assistants list ကို ပြန်သုံးပါ
+# from maythusharmusic import userbot # (FIX) တိုက်ရိုက်မသုံးတော့ပါ
+from maythusharmusic.core.userbot import assistants # (FIX) Active assistants list ကို သုံးပါ
 from maythusharmusic.utils.database import (
     is_on_off,
     get_yt_cache, 
@@ -63,7 +63,7 @@ def get_random_api_key():
     """Randomly select an API key from the list"""
     return random.choice(API_KEYS)
 
-API_BASE_URL = "http://deadlinetech.site"
+API_BASE_URL = "https://tgmusic.fallenapi.fun"
 
 MIN_FILE_SIZE = 51200
 
@@ -540,26 +540,41 @@ class YouTubeAPI:
         
         cookie_file = get_cookies()
 
+        # --- (FIX START: audio_dl function ကို .mp3 format သို့ force) ---
         def audio_dl():
+            # .mp3 file path ကို သတ်မှတ်
+            fpath = os.path.join("downloads", f"%(id)s.mp3")
+            
             ydl_optssx = {
                 "format": "bestaudio/best",
-                "outtmpl": "downloads/%(id)s.%(ext)s",
+                "outtmpl": fpath, # .mp3 path ကို သုံး
                 "geo_bypass": True,
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
+                "prefer_ffmpeg": True, # ffmpeg သုံး
+                "postprocessors": [      # .mp3 သို့ convert
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "320", # Quality
+                    }
+                ],
             }
             if cookie_file:
                 ydl_optssx["cookiefile"] = cookie_file
             
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
-            xyz = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+            
+            # Final path က .mp3 ဖြစ်ရမည်
+            xyz = os.path.join("downloads", f"{info['id']}.mp3") 
             
             if os.path.exists(xyz):
                 return xyz
             x.download([link])
             return xyz
+        # --- (FIX END) ---
 
         def video_dl():
             ydl_optssx = {
@@ -676,6 +691,7 @@ class YouTubeAPI:
 
             if not downloaded_file:
                 logger.warning(f"API download failed for {link}. Falling back to yt-dlp...")
+                # (FIX: အခု ဒီ function က .mp3 ကိုပဲ return လုပ်ပါမယ်)
                 downloaded_file = await loop.run_in_executor(None, audio_dl)
             else:
                 logger.info(f"API download successful: {downloaded_file}")
@@ -690,16 +706,19 @@ class YouTubeAPI:
                     logger.info(f"Uploading {video_id} to Telegram Cache Channel...")
                     try:
                         # --- (FIX START: Active Assistant List ထဲက တစ်ခုကို ရွေးသုံးပါ) ---
+                        
+                        # Active assistant list (userbot.py ထဲက) ကို စစ်ဆေးပါ
                         if not assistants:
                             raise Exception("No active assistants (userbots) found to upload cache.")
                             
                         # Active list ထဲက random ID တစ်ခု ရွေးပါ (e.g., 1, 2, 3...)
-                        assistantids = random.choice(assistants) 
+                        assistant_id = random.choice(assistants) 
+                        
                         # အဲ့ဒီ ID နဲ့ သက်ဆိုင်တဲ့ client object (userbot.one, .two, etc.) ကို ယူပါ
-                        assistant = await get_client(assistantids) 
+                        assistant = await get_client(assistant_id) 
                         
                         if not assistant: # client object က None ဖြစ်နေလား စစ်ဆေးပါ
-                            raise Exception(f"Failed to get client for assistant ID: {assistant_id}. It might be None.")
+                            raise Exception(f"Failed to get client for assistant ID: {assistant_id}. It might be None (SESSION မထည့်ထား).")
                         
                         # Channel သို့ ပို့ပါ
                         msg = await assistant.send_audio(
@@ -709,23 +728,35 @@ class YouTubeAPI:
                         )
                         # --- (FIX END) ---
                         
-                        new_file_id = msg.audio.file_id
+                        # --- (FIX START: Document Fallback Check) ---
+                        new_file_id = None
+                        if msg and msg.audio:
+                            new_file_id = msg.audio.file_id
+                        elif msg and msg.document:
+                            # Fallback: File ကို Document အဖြစ် ပို့ခဲ့လျှင်
+                            logger.warning(f"File was sent as Document, not Audio. Using document file_id. File: {msg.document.file_name}")
+                            new_file_id = msg.document.file_id
+                        # --- (FIX END) ---
                         
-                        # DB ထဲတွင် File ID အသစ်ကို သိမ်းဆည်းပါ
-                        await save_telegram_cache(video_id, new_file_id)
-                        logger.info(f"Saved to Telegram Cache DB: {video_id} -> {new_file_id}")
-                        
-                        # လက်ရှိဖွင့်မယ့် သီချင်းကို Local File အစား Telegram File ID သို့ ပြောင်းလိုက်ပါ
-                        local_file_path = downloaded_file # မဖျက်ခင် မှတ်ထားပါ
-                        downloaded_file = new_file_id
-                        direct = True 
-                        
-                        # Local file ကို ဖျက်ပစ်ပါ (Storage မကုန်အောင်)
-                        try:
-                            os.remove(local_file_path)
-                            logger.info(f"Removed local file: {local_file_path}")
-                        except Exception as e:
-                            logger.error(f"Failed to remove local file: {e}")
+                        if new_file_id:
+                            # DB ထဲတွင် File ID အသစ်ကို သိမ်းဆည်းပါ
+                            await save_telegram_cache(video_id, new_file_id)
+                            logger.info(f"Saved to Telegram Cache DB: {video_id} -> {new_file_id}")
+                            
+                            # လက်ရှိဖွင့်မယ့် သီချင်းကို Local File အစား Telegram File ID သို့ ပြောင်းလိုက်ပါ
+                            local_file_path = downloaded_file # မဖျက်ခင် မှတ်ထားပါ
+                            downloaded_file = new_file_id
+                            direct = True 
+                            
+                            # Local file ကို ဖျက်ပစ်ပါ (Storage မကုန်အောင်)
+                            try:
+                                os.remove(local_file_path)
+                                logger.info(f"Removed local file: {local_file_path}")
+                            except Exception as e:
+                                logger.error(f"Failed to remove local file: {e}")
+                        else:
+                            # (FIX) msg က None ဖြစ်နေရင် ဒါမှမဟုတ် audio/document နှစ်ခုလုံးမပါရင်
+                            logger.error(f"Failed to get file_id from sent message. Message: {msg}")
                             
                     except Exception as e:
                         logger.error(f"Failed to upload to Telegram Cache: {e}")
