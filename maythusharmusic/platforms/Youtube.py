@@ -719,4 +719,3 @@ class YouTubeAPI:
 
         return downloaded_file, direct
         
-YouTube.py ထဲမှာသိမ်းဆည်းထားတဲ့ဖိုင်လမ်းကြောင်းတွေကို mongodb database ဖန်တီးပြီး သိမ်းဆည်းလို့ရလား။
