@@ -42,8 +42,6 @@ async def stream(
         msg = f"{_['play_19']}\n\n"
         count = 0
         
-        # --- Playlist အတွက် ပထမဆုံး သီချင်းကို သီးသန့် ခွဲထုတ် ---
-        # (ဒါမှ vidid ကို အောက်မှာ စစ်လို့ရမယ်)
         first_track_vidid = None
         
         for search in result:
@@ -80,7 +78,6 @@ async def stream(
                 msg += f"{count}. {title[:70]}\n"
                 msg += f"{_['play_20']} {position}\n\n"
             else:
-                # --- ပထမဆုံးအကြိမ် (VC မဝင်ရသေး) ---
                 if not forceplay:
                     db[chat_id] = []
                 status = True if video else None
@@ -92,9 +89,8 @@ async def stream(
                     raise AssistantErr(_["play_14"])
                 
                 if count == 0:
-                    first_track_vidid = vidid # ပထမဆုံး သီချင်းရဲ့ vidid ကို မှတ်ထား
+                    first_track_vidid = vidid 
 
-                # --- Queue ထဲ အရင်ထည့် ---
                 await put_queue(
                     chat_id,
                     original_chat_id,
@@ -105,10 +101,9 @@ async def stream(
                     vidid,
                     user_id,
                     "video" if video else "audio",
-                    forceplay=forceplay if count == 0 else None, # forceplay ကို ပထမဆုံး သီချင်းမှာပဲ သုံး
+                    forceplay=forceplay if count == 0 else None,
                 )
                 
-                # --- ပြီးမှ VC ကို join (ပထမဆုံး သီချင်းအတွက်) ---
                 if count == 0:
                     try:
                         await Hotty.join_call(
@@ -140,12 +135,10 @@ async def stream(
                         reply_markup=InlineKeyboardMarkup(button),
                     )
                     
-                    # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
                     if db.get(chat_id) and db[chat_id][0]["vidid"] == first_track_vidid:
                         db[chat_id][0]["mystic"] = run
                         db[chat_id][0]["markup"] = "stream"
                 
-                # --- ကျန်တဲ့ သီချင်းတွေကို Queue Message ပို့ ---
                 else:
                     position = len(db.get(chat_id)) - 1
                     count += 1
@@ -247,7 +240,7 @@ async def stream(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
+                    f"https.t.me/{app.username}?start=info_{vidid}",
                     title[:23],
                     duration_min,
                     user_name,
@@ -255,8 +248,6 @@ async def stream(
                 reply_markup=InlineKeyboardMarkup(button),
             )
             
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
-            # (Queue ထဲမှာ သီချင်း ရှိနေသေးမှ၊ vidid လည်း တူနေမှ update လုပ်)
             if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -265,7 +256,7 @@ async def stream(
         file_path = result["filepath"]
         title = result["title"]
         duration_min = result["duration_min"]
-        vidid = "soundcloud" # vidid ကို သတ်မှတ်
+        vidid = "soundcloud"
         
         if await is_active_chat(chat_id):
             await put_queue(
@@ -275,7 +266,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid, # vidid ကို ထည့်ပေး
+                vidid, 
                 user_id,
                 "audio",
             )
@@ -297,7 +288,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid, # vidid ကို ထည့်ပေး
+                vidid,
                 user_id,
                 "audio",
                 forceplay=forceplay,
@@ -323,7 +314,6 @@ async def stream(
                 reply_markup=InlineKeyboardMarkup(button),
             )
             
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
             if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -332,7 +322,7 @@ async def stream(
         file_path = result["path"]
         link = result["link"]
         title = (result["title"]).title()
-        vidid = "telegram" # vidid ကို သတ်မှတ်
+        vidid = "telegram"
         
         if "dur" in result:
             duration_min = result["dur"]
@@ -350,7 +340,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid, # vidid ကို ထည့်ပေး
+                vidid,
                 user_id,
                 "video" if video else "audio",
             )
@@ -372,7 +362,7 @@ async def stream(
                 title,
                 duration_min,
                 user_name,
-                vidid, # vidid ကို ထည့်ပေး
+                vidid,
                 user_id,
                 "video" if video else "audio",
                 forceplay=forceplay,
@@ -398,7 +388,6 @@ async def stream(
                 reply_markup=InlineKeyboardMarkup(button),
             )
             
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
             if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -471,7 +460,7 @@ async def stream(
                 original_chat_id,
                 photo=img,
                 caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
+                    f"https.t.me/{app.username}?start=info_{vidid}",
                     title[:23],
                     duration_min,
                     user_name,
@@ -479,7 +468,6 @@ async def stream(
                 reply_markup=InlineKeyboardMarkup(button),
             )
             
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
             if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
@@ -488,7 +476,7 @@ async def stream(
         link = result
         title = "ɪɴᴅᴇx ᴏʀ ᴍ3ᴜ8 ʟɪɴᴋ"
         duration_min = "00:00"
-        vidid = "index_url" # vidid ကို သတ်မှတ်
+        vidid = "index_url"
         
         if await is_active_chat(chat_id):
             await put_queue_index(
@@ -546,7 +534,6 @@ async def stream(
                 reply_markup=InlineKeyboardMarkup(button),
             )
             
-            # --- 🟢 [FIX] Race Condition အတွက် စစ်ဆေး ---
             if db.get(chat_id) and db[chat_id][0]["vidid"] == vidid:
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
