@@ -31,10 +31,10 @@ dependencies = [
     "future==0.18.3",
     "search_engine_parser",
     "speedtest",
-    "pytgcalls =^4.0.0",
+    "pytgcalls >= 4.0.0, < 5.0.0"၊
     "pytube",
     "MukeshAPI",
-    "ntgcalls=^2.0.0",
+    "ntgcalls >= 2.0.0, < 3.0.0"
     "gitpython",
     "pykeyboard",
     "python-dotenv",
