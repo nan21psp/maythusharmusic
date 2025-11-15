@@ -603,3 +603,5 @@ class Call:
 
         for assistant in assistants:
             assistant.on_update(unified_update_handler)
+            
+Hotty = Call()
