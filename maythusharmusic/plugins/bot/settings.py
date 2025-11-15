@@ -54,7 +54,7 @@ async def settings_mar(client, message: Message, _):
 @languageCB
 async def gib_repo(client, CallbackQuery, _):
     await CallbackQuery.edit_message_media(
-        InputMediaVideo("https://files.catbox.moe/0tuzil.mp4"),
+        InputMediaVideo("https://files.catbox.moe/y2cu6k.mp4"),
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton(text="ʙᴀᴄᴋ", callback_data=f"settingsback_helper")]]
         ),
@@ -405,4 +405,5 @@ async def vote_change(client, CallbackQuery, _):
         )
     except MessageNotModified:
         return
+
 
