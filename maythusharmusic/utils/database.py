@@ -1,3 +1,4 @@
+#database.py
 import random
 import string
 from typing import Dict, List, Union
@@ -31,10 +32,9 @@ videodb = mongodb.vipvideocalls
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
 
-# --- (CACHE COLLECTIONS) ---
+# --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
-songfiles_db = mongodb.songfiles  # Downloaded file path cache (ယခင်တောင်းဆိုမှုမှ)
-telegram_cache_db = mongodb.telegram_cache # Telegram File ID Cache (အခု တောင်းဆိုမှု)
+songfiles_db = mongodb.songfiles  # Downloaded file path cache
 # --- (ဒီနေရာအထိ) ---
 
 
@@ -980,7 +980,7 @@ async def save_filter(chat_id: int, name: str, _filter: dict):
         upsert=True,
     )
 
-# --- (CACHE FUNCTIONS အသစ်များ) ---
+# --- (CACHE FUNCTIONS အသစ် (၅) ခု) ---
 
 # 1. Search Result Cache (သီချင်းအချက်အလက်)
 async def get_yt_cache(key: str) -> Union[dict, None]:
@@ -1006,8 +1006,9 @@ async def save_yt_cache(key: str, details: dict):
     except Exception as e:
         print(f"Error saving YT cache: {e}")
 
-# 3. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+# 3. Downloaded File Path Cache
 async def get_cached_song_path(video_id: str) -> Union[str, None]:
+    """MongoDB မှ cache လုပ်ထားသော local file path ကို ပြန်ရှာသည်"""
     try:
         cached_song = await songfiles_db.find_one({"video_id": video_id})
         if cached_song:
@@ -1016,8 +1017,9 @@ async def get_cached_song_path(video_id: str) -> Union[str, None]:
         print(f"Error getting song path cache: {e}")
     return None
 
-# 4. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+# 4. Downloaded File Path Cache
 async def save_cached_song_path(video_id: str, file_path: str):
+    """local file path ကို MongoDB တွင် သိမ်းဆည်းသည်"""
     try:
         await songfiles_db.update_one(
             {"video_id": video_id},
@@ -1027,32 +1029,10 @@ async def save_cached_song_path(video_id: str, file_path: str):
     except Exception as e:
         print(f"Error saving song path cache: {e}")
 
-# 5. Downloaded File Path Cache (Local Disk - မသုံးတော့ပါ)
+# 5. Downloaded File Path Cache
 async def remove_cached_song_path(video_id: str):
+    """MongoDB cache မှ file path ကို ဖယ်ရှားသည် (Clean Mode ကြောင့်)"""
     try:
         await songfiles_db.delete_one({"video_id": video_id})
     except Exception as e:
         print(f"Error removing song path cache: {e}")
-
-# --- (Telegram Channel Cache Functions အသစ်) ---
-
-async def get_telegram_cache(video_id: str) -> Union[str, None]:
-    """MongoDB မှ Telegram Channel file_id ကို ပြန်ရှာသည်"""
-    try:
-        cached_file = await telegram_cache_db.find_one({"video_id": video_id})
-        if cached_file:
-            return cached_file["file_id"]
-    except Exception as e:
-        print(f"Error getting Telegram cache: {e}")
-    return None
-
-async def save_telegram_cache(video_id: str, file_id: str):
-    """Telegram Channel file_id ကို MongoDB တွင် သိမ်းဆည်းသည်"""
-    try:
-        await telegram_cache_db.update_one(
-            {"video_id": video_id},
-            {"$set": {"file_id": file_id}},
-            upsert=True
-        )
-    except Exception as e:
-        print(f"Error saving Telegram cache: {e}")
