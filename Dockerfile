@@ -27,7 +27,7 @@ RUN apt-get update -y && apt-get upgrade -y \
     # Install Python dependencies
     && pip3 install -U pip \
     # requirements.txt အစား "pip3 install ." ကို အသုံးပြုပါ
-    && pip3 install -U . \
+    && pip3 install -U . --no-cache-dir \
     # Clean up apt cache
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
