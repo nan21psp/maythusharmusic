@@ -1,3 +1,4 @@
+#youtube.py
 import asyncio
 import os
 import re
@@ -11,13 +12,13 @@ from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
 
 # --- (ဒီနေရာကို ပြင်ဆင်/ထပ်ထည့်ပါ) ---
-from maythusharmusic.utils.database import (
+from maythusharmusic.utils.database.youtubedatabase import (
     is_on_off,
-    get_yt_cache,  # Search Result Cache
-    save_yt_cache, # Search Result Cache
-    get_cached_song_path,  # File Path Cache
-    save_cached_song_path, # File Path Cache
-    remove_cached_song_path # File Path Cache
+    get_yt_cache,
+    save_yt_cache,
+    get_cached_song_path,
+    save_cached_song_path,
+    remove_cached_song_path
 )
 # --- (ဒီနေရာအထိ) ---
 from maythusharmusic.utils.formatters import time_to_seconds
@@ -718,4 +719,3 @@ class YouTubeAPI:
             # --- END: API Logic ---
 
         return downloaded_file, direct
-        
