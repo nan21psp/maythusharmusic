@@ -230,7 +230,7 @@ async def check_file_size(link):
     return total_size
 
 
-asyncasync def shell_cmd(cmd):
+async def shell_cmd(cmd):
     proc = await asyncio.create_subprocess_shell(
         cmd,
         stdout=asyncio.subprocess.PIPE,
