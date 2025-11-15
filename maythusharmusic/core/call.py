@@ -1,6 +1,7 @@
+#call.py (Join/Leave Mention ဖြင့် ပြင်ဆင်ပြီး)
 import asyncio
 import os
-import traceback  # <-- 1. NameError အတွက် ဒီတစ်ကြောင်း ထည့်ပါ
+import traceback
 from datetime import datetime, timedelta
 from typing import Union
 
@@ -391,8 +392,50 @@ class Call:
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "tg"
+                
+            # --- START: FAST JOIN (Stream Link) LOGIC ---
+            # 'queued' ထဲမှာ http link ပါလာရင် ဒီကနေ ဖွင့်ပါမယ်
+            elif queued.startswith("https://") or queued.startswith("http://"):
+                stream = dynamic_media_stream(path=queued, video=video)
+                try:
+                    await client.play(chat_id, stream)
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+                
+                # --- Stream Link အတွက် ပုံနဲ့ စာသား ပြန်ပို့ပါ ---
+                img = await get_thumb(videoid)
+                button = stream_markup(_, chat_id)
+                try:
+                    run = await app.send_photo(
+                        chat_id=original_chat_id,
+                        photo=img,
+                        caption=_["stream_1"].format(
+                            f"https://t.me/{app.username}?start=info_{videoid}",
+                            title[:23],
+                            check[0]["dur"],
+                            user,
+                        ),
+                        reply_markup=InlineKeyboardMarkup(button),
+                    )
+                except FloodWait as e:
+                    LOGGER(__name__).warning(f"FloodWait: Sleeping for {e.value}")
+                    await asyncio.sleep(e.value)
+                    run = await app.send_photo(
+                        chat_id=original_chat_id,
+                        photo=img,
+                        caption=_["stream_1"].format(
+                            f"https://t.me/{app.username}?start=info_{videoid}",
+                            title[:23],
+                            check[0]["dur"],
+                            user,
+                        ),
+                        reply_markup=InlineKeyboardMarkup(button),
+                    )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
+            # --- END: FAST JOIN LOGIC ---
 
-            else:
+            else: # --- (ဒါက Telegram file တွေအတွက်) ---
                 stream = dynamic_media_stream(path=queued, video=video)
                 try:
                     await client.play(chat_id, stream)
@@ -429,37 +472,9 @@ class Call:
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "tg"
 
-                else:
-                    img = await get_thumb(videoid)
-                    button = stream_markup(_, chat_id)
-                    try:
-                        run = await app.send_photo(
-                            chat_id=original_chat_id,
-                            photo=img,
-                            caption=_["stream_1"].format(
-                                f"https://t.me/{app.username}?start=info_{videoid}",
-                                title[:23],
-                                check[0]["dur"],
-                                user,
-                            ),
-                            reply_markup=InlineKeyboardMarkup(button),
-                        )
-                    except FloodWait as e:
-                        LOGGER(__name__).warning(f"FloodWait: Sleeping for {e.value}")
-                        await asyncio.sleep(e.value)
-                        run = await app.send_photo(
-                            chat_id=original_chat_id,
-                            photo=img,
-                            caption=_["stream_1"].format(
-                                f"https://t.me/{app.username}?start=info_{videoid}",
-                                title[:23],
-                                check[0]["dur"],
-                                user,
-                            ),
-                            reply_markup=InlineKeyboardMarkup(button),
-                        )
-                    db[chat_id][0]["mystic"] = run
-                    db[chat_id][0]["markup"] = "stream"
+                # --- (ဒီ else ကို ဖယ်ရှားလိုက်ပါပြီ၊ Fast Join logic ထဲကို ပေါင်းထည့်လိုက်ပါပြီ) ---
+                # else:
+                #    ...
 
 
     async def start(self) -> None:
@@ -501,32 +516,90 @@ class Call:
             ChatUpdate.Status.DISCARDED_CALL |
             ChatUpdate.Status.BUSY_CALL
         )
-
+        
+        # --- START: JOIN/LEAVE MENTION HANDLER ---
+        # --- 'unified_update_handler' function တစ်ခုလုံးကို အသစ် လဲထည့်ပါ ---
+        
         async def unified_update_handler(client, update: Update) -> None:
             try:
                 if isinstance(update, ChatUpdate):
+                    chat_id = update.chat_id
+
+                    # --- (Request 2: Join Mention) ---
+                    if update.joined_participants:
+                        try:
+                            lang = await get_lang(chat_id)
+                            _ = get_string(lang)
+                        except:
+                            # Bot က chat data မရသေးခင် join/leave ဖြစ်သွားရင်
+                            _ = get_string("en") # Default to English
+                            
+                        for user in update.joined_participants:
+                            if user.is_self:  # Don't announce the bot itself
+                                continue
+                            try:
+                                user_mention = f"[{user.first_name}](tg://user?id={user.user_id})"
+                                # Use a try-except for the string in case user doesn't add it
+                                try:
+                                    text = _["call_join"].format(user_mention)
+                                except KeyError:
+                                    text = f"👋 {user_mention} joined the video chat."
+                                    
+                                await app.send_message(
+                                    chat_id,
+                                    text=text,
+                                    disable_web_page_preview=True
+                                )
+                            except Exception as e:
+                                LOGGER(__name__).error(f"Error sending join mention: {e}")
+
+                    # --- (Request 3: Leave Mention) ---
+                    if update.left_participants:
+                        try:
+                            lang = await get_lang(chat_id)
+                            _ = get_string(lang)
+                        except:
+                            _ = get_string("en")
+                            
+                        for user in update.left_participants:
+                            if user.is_self: # Bot leaving is handled below
+                                continue
+                            try:
+                                user_mention = f"[{user.first_name}](tg://user?id={user.user_id})"
+                                # Use a try-except for the string
+                                try:
+                                    text = _["call_leave"].format(user_mention)
+                                except KeyError:
+                                    text = f"👋 {user_mention} left the video chat."
+                                    
+                                await app.send_message(
+                                    chat_id,
+                                    text=text,
+                                    disable_web_page_preview=True
+                                )
+                            except Exception as e:
+                                LOGGER(__name__).error(f"Error sending leave mention: {e}")
+
+                    # --- (Original Critical Failure Logic) ---
                     if update.status & ChatUpdate.Status.LEFT_CALL or update.status & CRITICAL_FLAGS:
-                        await self.stop_stream(update.chat_id)
+                        await self.stop_stream(chat_id)
                         return
 
-                elif isinstance(update, StreamEnded) and update.stream_type == StreamEnded.Type.AUDIO:
-                    assistant = await group_assistant(self, update.chat_id)
-                    await self.play(assistant, update.chat_id)
+                elif isinstance(update, StreamEnded):
+                    chat_id = update.chat_id
+                    if update.stream_type == StreamEnded.StreamType.LEGACY:
+                        await self.play(client, chat_id)
+                    elif update.stream_type == StreamEnded.StreamType.VIDEO:
+                        await self.play(client, chat_id)
+                    elif update.stream_type == StreamEnded.StreamType.AUDIO:
+                        await self.play(client, chat_id)
 
             except Exception as e:
-                import sys, traceback
-                exc_type, exc_obj, exc_tb = sys.exc_info()
-                full_trace = "".join(traceback.format_exception(exc_type, exc_obj, exc_tb))
-                caption = (
-                    f"🚨 <b>Stream Update Error</b>\n"
-                    f"📍 <b>Update Type:</b> <code>{type(update).__name__}</code>\n"
-                    f"📍 <b>Error Type:</b> <code>{exc_type.__name__}</code>"
-                )
-                filename = f"update_error_{getattr(update, 'chat_id', 'unknown')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                await send_large_error(full_trace, caption, filename)
+                # Use the user's existing error handling
+                tb_str = traceback.format_exc() 
+                await send_large_error(f"CRITICAL ERROR in PyTgCalls Handler:\n{str(e)}\n\n{tb_str}")
+        
+        # --- END: JOIN/LEAVE MENTION HANDLER ---
 
         for assistant in assistants:
-            assistant.on_update()(unified_update_handler)
-
-
-Hotty = Call()
+            assistant.on_update(unified_update_handler)
