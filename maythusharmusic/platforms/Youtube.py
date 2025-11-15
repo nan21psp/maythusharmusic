@@ -39,30 +39,30 @@ logger = logging.getLogger(__name__)
 # ... (API_KEYS, api_dl, get_cookies, save_cookies, check_file_size, shell_cmd functions တွေ ဒီအတိုင်းရှိနေပါမယ်) ...
 # ... (ခင်ဗျားပို့ထားတဲ့ code အတိုင်း မပြောင်းလဲပါ) ...
 
+# ✅ Configurable constants
 API_KEYS = [
-    "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
-    "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
-    "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
-    "AIzaSyCqJ3KJhoWTnYC5N0jzRWWeDxTaj4nnhPE",
-    "AIzaSyC7ar1C5OBsIxhkZz6-l1fjJuRFqatxV_k",
-    "AIzaSyBxbgHrDdAZrMMRd74xjT56Ekbbm7r2C7o",
-    "AIzaSyCkBCShmwhFNU_bybOIqdvUghWhH1nYPj4",
-    "AIzaSyDf5befJSwPCDey0p1yPd_VaneoIFbSJhA",
-    "AIzaSyDw5sEKPhxaOs9qU4Y7WsrL4JvpFQRXQDY",
-    "AIzaSyB_Ta275uWxtX_kkieTW7Kut11RIY1FLwU",
-    "AIzaSyAeI8Pz3CeteoAkUVIO3fnBRdSNRHEpwfw",
-    "AIzaSyDs-1JGzNChWKkW3MqXbO-2upYOmUjvhE4",
-    "AIzaSyAKJl_SuQh5xeEBRSskL7VBZLSKJaT-j9s",
-    "AIzaSyAPsHm8tlYJJyrdI6QpVF8p3BIWrY4qnBg",
-    "AIzaSyAgj6SbEncvCKnF6-1cffeckBSbk7IXBNk",
-    "AIzaSyDwUT_cdur25HlAL01xLHrLfZRIPzzmf7s",
-    "AIzaSyB7370l-ModxTfuhIlXnz7k8yR7LzuCOzI",
-    "AIzaSyAsxU61WrtIE1dRe1YZDV0XkP_n8sJggPk",
-    "AIzaSyA70vtRZ-HtXAdwQTNIhaiAhb5RUPQHJVA",
-    "AIzaSyDMUPINKHWjXfH3rX2kwYiH8sGtiQF4bHs",
-    "AIzaSyAfCk6zut2ggu_qJ3WrH_iYlvVc3upG9lk" 
+    "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
+    "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
+    "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
+    "AIzaSyCqJ3KJhoWTnYC5N0jzRWWeDxTaj4nnhPE",
+    "AIzaSyC7ar1C5OBsIxhkZz6-l1fjJuRFqatxV_k",
+    "AIzaSyBxbgHrDdAZrMMRd74xjT56Ekbbm7r2C7o",
+    "AIzaSyCkBCShmwhFNU_bybOIqdvUghWhH1nYPj4",
+    "AIzaSyDf5befJSwPCDey0p1yPd_VaneoIFbSJhA",
+    "AIzaSyDw5sEKPhxaOs9qU4Y7WsrL4JvpFQRXQDY",
+    "AIzaSyB_Ta275uWxtX_kkieTW7Kut11RIY1FLwU",
+    "AIzaSyAeI8Pz3CeteoAkUVIO3fnBRdSNRHEpwfw",
+    "AIzaSyDs-1JGzNChWKkW3MqXbO-2upYOmUjvhE4",
+    "AIzaSyAKJl_SuQh5xeEBRSskL7VBZLSKJaT-j9s",
+    "AIzaSyAPsHm8tlYJJyrdI6QpVF8p3BIWrY4qnBg",
+    "AIzaSyAgj6SbEncvCKnF6-1cffeckBSbk7IXBNk",
+    "AIzaSyDwUT_cdur25HlAL01xLHrLfZRIPzzmf7s",
+    "AIzaSyB7370l-ModxTfuhIlXnz7k8yR7LzuCOzI",
+    "AIzaSyAsxU61WrtIE1dRe1YZDV0XkP_n8sJggPk",
+    "AIzaSyA70vtRZ-HtXAdwQTNIhaiAhb5RUPQHJVA",
+    "AIzaSyDMUPINKHWjXfH3rX2kwYiH8sGtiQF4bHs",
+    "AIzaSyAfCk6zut2ggu_qJ3WrH_iYlvVc3upG9lk" 
 ]
-
 def get_random_api_key():
     return random.choice(API_KEYS)
 
