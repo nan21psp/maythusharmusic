@@ -40,98 +40,129 @@ import aiohttp
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-API_KEYS = [
-    "AIzaSyCVwFq4QsxUsdpVY3lFr2sW48-YiS6wQQw",
-    "AIzaSyDElbd6obEzWVcnnKHu8ioWlk64pzqLLP8",
-    "AIzaSyCUMRm288rXsdj2jP4x6-9femdZ_WL7Y9g",
-    "AIzaSyCqJ3KJhoWTnYC5N0jzRWWeDxTaj4nnhPE",
-    "AIzaSyC7ar1C5OBsIxhkZz6-l1fjJuRFqatxV_k",
-    "AIzaSyBxbgHrDdAZrMMRd74xjT56Ekbbm7r2C7o",
-    "AIzaSyCkBCShmwhFNU_bybOIqdvUghWhH1nYPj4",
-    "AIzaSyDf5befJSwPCDey0p1yPd_VaneoIFbSJhA",
-    "AIzaSyDw5sEKPhxaOs9qU4Y7WsrL4JvpFQRXQDY",
-    "AIzaSyB_Ta275uWxtX_kkieTW7Kut11RIY1FLwU",
-    "AIzaSyAeI8Pz3CeteoAkUVIO3fnBRdSNRHEpwfw",
-    "AIzaSyDs-1JGzNChWKkW3MqXbO-2upYOmUjvhE4",
-    "AIzaSyAKJl_SuQh5xeEBRSskL7VBZLSKJaT-j9s",
-    "AIzaSyAPsHm8tlYJJyrdI6QpVF8p3BIWrY4qnBg",
-    "AIzaSyAgj6SbEncvCKnF6-1cffeckBSbk7IXBNk",
-    "AIzaSyDwUT_cdur25HlAL01xLHrLfZRIPzzmf7s",
-    "AIzaSyB7370l-ModxTfuhIlXnz7k8yR7LzuCOzI",
-    "AIzaSyAsxU61WrtIE1dRe1YZDV0XkP_n8sJggPk",
-    "AIzaSyA70vtRZ-HtXAdwQTNIhaiAhb5RUPQHJVA",
-    "AIzaSyDMUPINKHWjXfH3rX2kwYiH8sGtiQF4bHs",
-    "AIzaSyAfCk6zut2ggu_qJ3WrH_iYlvVc3upG9lk" 
-]
 
-def get_random_api_key():
-    """Randomly select an API key from the list"""
-    return random.choice(API_KEYS)  # <-- Error 3: IndentationError ကို ပြင်ထားသည်
 
-API_BASE_URL = "http://deadlinetech.site"
+API_URL = "https://teaminflex.xyz"  # Change to your API server URL
+API_KEY = "INFLEX93454428D"
 
-MIN_FILE_SIZE = 51200
+# ==============================================
+# 🎵 AUDIO DOWNLOAD
+# ==============================================
+async def download_song(link: str) -> str:
+    video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
+    logger = LOGGER("InflexMusic/platforms/Youtube.py")
+    logger.info(f"🎵 [AUDIO] Starting download process for ID: {video_id}")
 
-def extract_video_id(link: str) -> str:
-    patterns = [
-        r'youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=)([0-9A-Za-z_-]{11})',
-        r'youtu\.be\/([0-9A-Za-z_-]{11})',
-        r'youtube\.com\/(?:playlist\?list=[^&]+&v=|v\/)([0-9A-Za-z_-]{11})',
-        r'youtube\.com\/(?:.*\?v=|.*\/)([0-9A-Za-z_-]{11})'
-    ]
+    if not video_id or len(video_id) < 3:
+        return
 
-    for pattern in patterns:
-        match = re.search(pattern, link)
-        if match:
-            return match.group(1)
+    DOWNLOAD_DIR = "downloads"
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.webm")
 
-    raise ValueError("Invalid YouTube link provided.")
-    
-
-def api_dl(video_id: str) -> str | None:
-    # Use random API key
-    api_key = get_random_api_key()
-    api_url = f"{API_BASE_URL}/download/song/{video_id}?key={api_key}"
-    file_path = os.path.join("downloads", f"{video_id}.mp3")
-
-    # ✅ Check if already downloaded
     if os.path.exists(file_path):
-        logger.info(f"{file_path} already exists. Skipping download.")
+        logger.info(f"🎵 [LOCAL] Found existing file for ID: {video_id}")
         return file_path
 
     try:
-        response = requests.get(api_url, stream=True, timeout=10)
+        async with aiohttp.ClientSession() as session:
+            payload = {"url": video_id, "type": "audio"}
+            headers = {
+                "Content-Type": "application/json",
+                "X-API-KEY": API_KEY
+            }
 
-        if response.status_code == 200:
-            os.makedirs("downloads", exist_ok=True)
-            with open(file_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
+            # 🔹 Step 1: Trigger API and wait until it's ready (API handles waiting)
+            async with session.post(f"{API_URL}/download", json=payload, headers=headers) as response:
+                if response.status == 401:
+                    logger.error("[API] Invalid API key")
+                    return
+                if response.status != 200:
+                    logger.error(f"[AUDIO] API returned {response.status}")
+                    return
+
+                data = await response.json()
+                if data.get("status") != "success" or not data.get("download_url"):
+                    logger.error(f"[AUDIO] API response error: {data}")
+                    return
+
+                download_link = f"{API_URL}{data['download_url']}"
+
+            # 🔹 Step 2: Download file (file is ready now)
+            async with session.get(download_link) as file_response:
+                if file_response.status != 200:
+                    logger.error(f"[AUDIO] Download failed ({file_response.status}) for ID: {video_id}")
+                    return
+                with open(file_path, "wb") as f:
+                    async for chunk in file_response.content.iter_chunked(8192):
                         f.write(chunk)
 
-            # ✅ Check file size
-            file_size = os.path.getsize(file_path)
-            if file_size < MIN_FILE_SIZE:
-                logger.warning(f"Downloaded file is too small ({file_size} bytes). Removing.")
-                os.remove(file_path)
-                return None
+        logger.info(f"🎵 [API] Download completed successfully for ID: {video_id}")
+        return file_path
 
-            logger.info(f"Downloaded {file_path} ({file_size} bytes) using API key: {api_key[:10]}...")
-            return file_path
+    except Exception as e:
+        logger.error(f"[AUDIO] Exception for ID: {video_id} - {e}")
+        return
 
-        else:
-            logger.warning(f"Failed to download {video_id}. Status: {response.status_code} using API key: {api_key[:10]}...")
-            return None
 
-    except requests.RequestException as e:
-        logger.error(f"Download error for {video_id}: {e} using API key: {api_key[:10]}...")
-        return None
+# ==============================================
+# 🎥 VIDEO DOWNLOAD
+# ==============================================
+async def download_video(link: str) -> str:
+    video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
+    logger = LOGGER("InflexMusic/platforms/Youtube.py")
+    logger.info(f"🎥 [VIDEO] Starting download process for ID: {video_id}")
 
-    except OSError as e:
-        logger.error(f"File error for {video_id}: {e}")
-        return None
+    if not video_id or len(video_id) < 3:
+        return
 
-_cookies_warned = False
+    DOWNLOAD_DIR = "downloads"
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mkv")
+
+    if os.path.exists(file_path):
+        logger.info(f"🎥 [LOCAL] Found existing file for ID: {video_id}")
+        return file_path
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            payload = {"url": video_id, "type": "video"}
+            headers = {
+                "Content-Type": "application/json",
+                "X-API-KEY": API_KEY
+            }
+
+            # 🔹 Step 1: Trigger API (it waits internally until file is ready)
+            async with session.post(f"{API_URL}/download", json=payload, headers=headers) as response:
+                if response.status == 401:
+                    logger.error("[API] Invalid API key")
+                    return
+                if response.status != 200:
+                    logger.error(f"[VIDEO] API returned {response.status}")
+                    return
+
+                data = await response.json()
+                if data.get("status") != "success" or not data.get("download_url"):
+                    logger.error(f"[VIDEO] API response error: {data}")
+                    return
+
+                download_link = f"{API_URL}{data['download_url']}"
+
+            # 🔹 Step 2: Download the ready file
+            async with session.get(download_link) as file_response:
+                if file_response.status != 200:
+                    logger.error(f"[VIDEO] Download failed ({file_response.status}) for ID: {video_id}")
+                    return
+                with open(file_path, "wb") as f:
+                    async for chunk in file_response.content.iter_chunked(8192):
+                        f.write(chunk)
+
+        logger.info(f"🎥 [API] Download completed successfully for ID: {video_id}")
+        return file_path
+
+    except Exception as e:
+        logger.error(f"[VIDEO] Exception for ID: {video_id} - {e}")
+        return
 
 def get_cookies():
     """
