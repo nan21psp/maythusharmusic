@@ -1,6 +1,7 @@
 import asyncio
 import config  # <-- 1. config file ကို import လုပ်ပါ
 from pyrogram import Client, filters
+import config
 from pyrogram.types import Message
 from pyrogram.errors import (
     ApiIdInvalid, ApiIdPublishedFlood, FloodWait,
