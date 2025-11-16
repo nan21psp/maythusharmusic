@@ -8,7 +8,7 @@ from pyrogram.errors import (
 )
 
 # Bot ရဲ့ main app (Cailin) ကို import လုပ်ပြီး 'app' လို့ နာမည်ပြောင်း သုံးပါ
-from maythusharmusic.core.bot import Cailin as app
+from maythusharmusic.core.bot import Hotty as app
 # SUDOERS တွေကိုပဲ ခွင့်ပြုဖို့ import လုပ်ပါ
 from maythusharmusic.misc import SUDOERS
 
