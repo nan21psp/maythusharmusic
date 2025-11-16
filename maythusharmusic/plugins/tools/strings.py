@@ -1,12 +1,11 @@
 import asyncio
-from pyrogram import Client, filters
+from pyrogram import Client, filters, tgcrypto
 from pyrogram.types import Message
 from pyrogram.errors import (
     ApiIdInvalid, ApiIdPublishedFlood, FloodWait,
     PhoneNumberInvalid, PhoneCodeInvalid,
     PasswordHashInvalid, PasswordRequired, UserNotParticipant
 )
-from maythusharmusic import app
 # Bot ရဲ့ main app ကို import လုပ်ပါ
 from maythusharmusic.core.call import Hotty
 # SUDOERS တွေကိုပဲ ခွင့်ပြုဖို့ import လုပ်ပါ
