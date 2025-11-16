@@ -1,4 +1,5 @@
 import asyncio
+import config  # <-- 1. config file ကို import လုပ်ပါ
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import (
@@ -7,13 +8,13 @@ from pyrogram.errors import (
     PasswordHashInvalid, PasswordRequired, UserNotParticipant
 )
 
-# Bot ရဲ့ main app (Cailin) ကို import လုပ်ပြီး 'app' လို့ နာမည်ပြောင်း သုံးပါ
-from maythusharmusic.core.bot import Hotty as app
-# SUDOERS တွေကိုပဲ ခွင့်ပြုဖို့ import လုပ်ပါ
-from maythusharmusic.misc import SUDOERS
+# Bot ရဲ့ main app (Hotty) ကို import လုပ်ပြီး 'app' လို့ နာမည်ပြောင်း သုံးပါ
+from maythusharmusic.core.bot import Hotty, app
+# SUDOERS import ကို မသုံးတော့ပါ (သို့မဟုတ် တခြားနေရာမှာ သုံးရင် ထားခဲ့နိုင်)
+# from maythusharmusic.misc import SUDOERS 
 
-# Bot Owner (SUDOERS) တွေက Bot ရဲ့ Private Chat (DM) မှာပဲ သုံးလို့ရအောင် filter လုပ်ထားပါ
-@app.on_message(filters.command(["string", "session", "genstring"]) & SUDOERS & filters.private)
+# --- 2. Filter ကို SUDOERS အစား config.OWNER_ID ဖြင့် ပြောင်းပါ ---
+@app.on_message(filters.command(["string", "session", "genstring"]) & filters.user(config.OWNER_ID) & filters.private)
 async def string_gen(client: Client, message: Message):
     user_id = message.from_user.id
     ask_msg = None
