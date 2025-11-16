@@ -8,7 +8,7 @@ from pyrogram.errors import (
 )
 
 # Bot ရဲ့ main app ကို import လုပ်ပါ
-from maythusharmusic import app
+from maythusharmusic.core.bot import app
 # SUDOERS တွေကိုပဲ ခွင့်ပြုဖို့ import လုပ်ပါ
 from maythusharmusic.misc import SUDOERS
 
