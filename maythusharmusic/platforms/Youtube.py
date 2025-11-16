@@ -1,4 +1,4 @@
-#youtube.py (Stable Download + Instant Join Caching)
+#youtube.py (Fast Join + Video/Audio Fix)
 import asyncio
 import os
 import re
@@ -547,7 +547,7 @@ class YouTubeAPI:
 
     # --- END: မူလ Functions များ ---
     
-    # --- START: "Instant Join" (Caching) Download Function ---
+    # --- START: FAST JOIN (2-SECOND) MODIFICATION ---
     # --- ဒီ 'download' function တစ်ခုလုံးကို အသစ် လဲထည့်ပါ ---
     
     async def download(
@@ -560,15 +560,14 @@ class YouTubeAPI:
         songvideo: Union[bool, str] = None,
         format_id: Union[bool, str] = None,
         title: Union[bool, str] = None,
-    ) -> tuple[str, bool]: # <-- Return type ကို သေချာပြင်ထားသည်
-
+    ) -> tuple[str, bool]:
         if videoid:
             link = self.base + link
         loop = asyncio.get_running_loop()
-        
         cookie_file = get_cookies()
 
-        def audio_dl():
+        # --- (Slow Download) Fallback Functions ---
+        def audio_dl_fallback():
             """Slow Download (Fallback) for Audio"""
             ydl_optssx = {
                 "format": "bestaudio[ext=m4a]/bestaudio/best",
@@ -587,7 +586,7 @@ class YouTubeAPI:
                 x.download([link])
             return xyz
 
-        def video_dl():
+        def video_dl_fallback():
             """Slow Download (Fallback) for Video"""
             ydl_optssx = {
                 "format": "bestvideo[height<=?720][width<=?1280]+bestaudio/best[height<=?720][width<=?1280]",
@@ -607,90 +606,113 @@ class YouTubeAPI:
             if not os.path.exists(xyz):
                 x.download([link])
             return xyz
-
-        def song_video_dl():
-            formats = f"{format_id}+140"
-            fpath = f"downloads/{title}"
-            ydl_optssx = {"format": formats, "outtmpl": fpath, "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "no_warnings": True, "prefer_ffmpeg": True, "merge_output_format": "mp4"}
-            if cookie_file: ydl_optssx["cookiefile"] = cookie_file
-            x = yt_dlp.YoutubeDL(ydl_optssx); x.download([link])
-
-        def song_audio_dl():
-            fpath = f"downloads/{title}.%(ext)s"
-            ydl_optssx = {"format": format_id, "outtmpl": fpath, "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "no_warnings": True, "prefer_ffmpeg": True, "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "320"}]}
-            if cookie_file: ydl_optssx["cookiefile"] = cookie_file
-            x = yt_dlp.YoutubeDL(ydl_optssx); x.download([link])
-
+        
+        # --- (songaudio/songvideo - এগুলোকে fast join এর দরকার নেই) ---
         if songvideo:
+            # This part is for /song command, not /play or /vplay
+            # It needs to download, so we use the original logic (but fixed)
+            def song_video_dl():
+                formats = f"{format_id}+140"
+                fpath = f"downloads/{title}"
+                ydl_optssx = {"format": formats, "outtmpl": fpath, "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "no_warnings": True, "prefer_ffmpeg": True, "merge_output_format": "mp4"}
+                if cookie_file: ydl_optssx["cookiefile"] = cookie_file
+                x = yt_dlp.YoutubeDL(ydl_optssx); x.download([link])
             await loop.run_in_executor(None, song_video_dl)
             fpath = f"downloads/{title}.mp4"
-            return fpath, True
+            return fpath, True  # Return as (filepath, direct=True)
+            
         elif songaudio:
+            # This part is for /song command, not /play or /vplay
+            def song_audio_dl():
+                fpath = f"downloads/{title}.%(ext)s"
+                ydl_optssx = {"format": format_id, "outtmpl": fpath, "geo_bypass": True, "nocheckcertificate": True, "quiet": True, "no_warnings": True, "prefer_ffmpeg": True, "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "320"}]}
+                if cookie_file: ydl_optssx["cookiefile"] = cookie_file
+                x = yt_dlp.YoutubeDL(ydl_optssx); x.download([link])
             await loop.run_in_executor(None, song_audio_dl)
             fpath = f"downloads/{title}.mp3"
-            return fpath, True
-            
-        # --- START OF INSTANT JOIN (Caching) LOGIC ---
+            return fpath, True # Return as (filepath, direct=True)
+
+        # --- (Fast Join) Logic for /play and /vplay ---
         
-        downloaded_file = None
-        direct = True  # Cached files are always direct
-        video_id = None 
-
-        try:
-            video_id = extract_video_id(link)
-            cached_path = await get_cached_song_path(video_id)
-            
-            if cached_path:
-                if os.path.exists(cached_path):
-                    logger.info(f"DB Cache Hit (File Exists): {cached_path}")
-                    downloaded_file = cached_path
-                    return downloaded_file, direct # ချက်ချင်းပြန်ပေးလိုက်ပါ
-                else:
-                    logger.warning(f"DB Cache Stale (File Missing): {cached_path}. Removing entry.")
-                    await remove_cached_song_path(video_id)
-            
-            # --- Cache Miss: Download the file for the first time ---
-            if video:
-                # --- /vplay (Video) Caching ---
-                logger.info(f"DB Cache Miss for Video. Downloading... (Slow 1st Join): {video_id}")
-                downloaded_file = await loop.run_in_executor(None, video_dl)
-            
-            else:
-                # --- /play (Audio) Caching ---
-                logger.info(f"DB Cache Miss for Audio. Attempting API download...: {video_id}")
-                downloaded_file = await loop.run_in_executor(None, api_dl, video_id)
-                
-                if not downloaded_file:
-                    logger.warning(f"API download failed for {link}. Falling back to yt-dlp (cookies)...")
-                    downloaded_file = await loop.run_in_executor(None, audio_dl)
-                else:
-                    logger.info(f"API download successful: {downloaded_file}")
-
-        except ValueError as e:
-            logger.warning(f"Could not extract video ID for Caching: {e}")
+        # 'is_on_off(1)' check ကို 'if False:' လို့ ပြောင်းပြီး stream mode ကို force လုပ်ပါ
+        # ဒါက slow download (video_dl/audio_dl) ကို လုံးဝ မခေါ်တော့ပါဘူး
+        if await is_on_off(1) and not video: # API/DB Cache logic only for AUDIO
+             # --- START: API Logic (DB File Path Cache ဖြင့်) ---
             downloaded_file = None
-        except Exception as e:
-            logger.error(f"An error occurred during Caching/Download attempt: {e}")
-            downloaded_file = None
+            direct = True  # API or audio_dl will be a direct file path
+            video_id = None # video_id ကို အစပြုထားပါ
 
-        # --- Final Fallback (if everything above failed) ---
-        if not downloaded_file:
-            logger.error(f"All download methods failed for {link}. Final attempt...")
-            if video:
-                downloaded_file = await loop.run_in_executor(None, video_dl)
-            else:
-                downloaded_file = await loop.run_in_executor(None, audio_dl)
-        
-        # --- Save the newly downloaded file to DB Cache ---
-        if downloaded_file and video_id:
-            await save_cached_song_path(video_id, downloaded_file)
-        elif downloaded_file and not video_id:
             try:
-                vid_from_path = os.path.basename(downloaded_file).split('.')[0]
-                if len(vid_from_path) == 11:
-                    await save_cached_song_path(vid_from_path, downloaded_file)
+                video_id = extract_video_id(link)
+                cached_path = await get_cached_song_path(video_id)
+                if cached_path:
+                    if os.path.exists(cached_path):
+                        logger.info(f"DB Cache Hit (File Exists): {cached_path}")
+                        downloaded_file = cached_path
+                        return downloaded_file, direct # ချက်ချင်းပြန်ပေးလိုက်ပါ
+                    else:
+                        logger.warning(f"DB Cache Stale (File Missing): {cached_path}. Removing entry.")
+                        await remove_cached_song_path(video_id)
+                
+                logger.info(f"DB Cache Miss. Attempting API download for {video_id}...")
+                downloaded_file = await loop.run_in_executor(None, api_dl, video_id)
+
+            except ValueError as e:
+                logger.warning(f"Could not extract video ID for API download: {e}")
+                downloaded_file = None
             except Exception as e:
-                logger.error(f"Could not save fallback path to DB: {e}")
-        
-        return downloaded_file, direct
-        # --- END OF INSTANT JOIN (Caching) LOGIC ---
+                logger.error(f"An error occurred during API download attempt: {e}")
+                downloaded_file = None
+
+            if not downloaded_file:
+                logger.warning(f"API download failed for {link}. Falling back to yt-dlp (cookies)...")
+                downloaded_file = await loop.run_in_executor(None, audio_dl_fallback)
+            else:
+                logger.info(f"API download successful: {downloaded_file}")
+                
+            if downloaded_file and video_id:
+                await save_cached_song_path(video_id, downloaded_file)
+            elif downloaded_file and not video_id:
+                try:
+                    vid_from_path = os.path.basename(downloaded_file).split('.')[0]
+                    if len(vid_from_path) == 11:
+                        await save_cached_song_path(vid_from_path, downloaded_file)
+                except Exception as e:
+                    logger.error(f"Could not save fallback path to DB: {e}")
+            
+            return downloaded_file, direct
+            
+        else:
+            # --- This is the FAST JOIN (2-Second) part ---
+            if video:
+                logger.info(f"Fast Join (Video) requested for: {link}")
+                # --- (START: အသံမပါတဲ့ ပြဿနာကို ဖြေရှင်းရန်) ---
+                # "bestvideo+bestaudio" (အသံမပါ) အစား "ရုပ်ရောသံရောပါတဲ့" format ကို တောင်းပါ
+                format = "best[height<=?720][acodec!=none]/best[ext=mp4][height<=?720]/best[height<=?720]"
+                # --- (END: ဖြေရှင်းရန်) ---
+                fallback_func = video_dl_fallback
+            else:
+                logger.info(f"Fast Join (Audio) requested for: {link}")
+                format = "bestaudio[ext=m4a]/bestaudio/best"
+                fallback_func = audio_dl_fallback
+
+            proc_args = ["yt-dlp", "-g", "-f", format]
+            if cookie_file:
+                proc_args.extend(["--cookies", cookie_file])
+            proc_args.append(link)
+
+            proc = await asyncio.create_subprocess_exec(
+                *proc_args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await proc.communicate()
+            
+            if stdout:
+                stream_link = stdout.decode().split("\n")[0]
+                logger.info(f"Fast Join (Stream Link) found: {stream_link[:50]}...")
+                return stream_link, False  # Return (URL, direct=False)
+            else:
+                logger.warning(f"FAST STREAM မရပါ ({'Video' if video else 'Audio'})။ SLOW DOWNLOAD သို့ Fallback လုပ်နေပါသည်: {stderr.decode()}")
+                downloaded_file = await loop.run_in_executor(None, fallback_func)
+                return downloaded_file, True # Return (Local File Path, direct=True)
