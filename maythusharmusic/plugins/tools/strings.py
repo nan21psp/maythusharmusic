@@ -9,7 +9,7 @@ from pyrogram.errors import (
 )
 
 # Bot ရဲ့ main app (Hotty) ကို import လုပ်ပြီး 'app' လို့ နာမည်ပြောင်း သုံးပါ
-from maythusharmusic.core.bot import Hotty, app
+from maythusharmusic.core.bot import Hotty
 # SUDOERS import ကို မသုံးတော့ပါ (သို့မဟုတ် တခြားနေရာမှာ သုံးရင် ထားခဲ့နိုင်)
 # from maythusharmusic.misc import SUDOERS 
 
