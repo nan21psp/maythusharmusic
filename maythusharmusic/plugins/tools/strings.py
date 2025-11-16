@@ -1,5 +1,5 @@
 import asyncio
-from pyrogram import Client, filters, tgcrypto
+from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.errors import (
     ApiIdInvalid, ApiIdPublishedFlood, FloodWait,
