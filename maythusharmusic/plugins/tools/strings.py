@@ -6,7 +6,7 @@ from pyrogram.errors import (
     PhoneNumberInvalid, PhoneCodeInvalid,
     PasswordHashInvalid, PasswordRequired, UserNotParticipant
 )
-
+from maythusharmusic import app
 # Bot ရဲ့ main app ကို import လုပ်ပါ
 from maythusharmusic.core.call import Hotty
 # SUDOERS တွေကိုပဲ ခွင့်ပြုဖို့ import လုပ်ပါ
