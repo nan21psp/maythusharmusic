@@ -14,12 +14,12 @@ CACHE_CHANNEL_ID = -1003329159824
 API_ID = int(getenv("API_ID", None))
 API_HASH = getenv("API_HASH", None)
 
-COOKIES_URL = [
-            url for url in getenv("COOKIES_URL", "").split(" ")
-            if url and "batbin.me" in url
-        ]
+#COOKIES_URL = [
+ #           url for url in getenv("COOKIES_URL", "").split(" ")
+#            if url and "batbin.me" in url
+  #      ]
 
-#COOKIE_URL = getenv("https://batbin.me/difluence")
+COOKIE_URL = "https://pastebin.com/raw/xxxxxxxx"
 
 API_URL = getenv("API_URL", "https://api.thequickearn.xyz")
 API_KEY = getenv("API_KEY", "30DxNexGenBotsfcfad8")
