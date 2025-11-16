@@ -19,7 +19,7 @@ API_HASH = getenv("API_HASH", None)
 #            if url and "batbin.me" in url
   #      ]
 
-COOKIE_URL = "https://pastebin.com/raw/xxxxxxxx"
+COOKIE_URL = "https://batbin.me/cutlets"
 
 API_URL = getenv("API_URL", "https://api.thequickearn.xyz")
 API_KEY = getenv("API_KEY", "30DxNexGenBotsfcfad8")
