@@ -5,10 +5,15 @@ import re
 import aiofiles
 import aiohttp
 import traceback  # <-- FIX 1: NameError အတွက် import ထည့်ပါ
+import json       # <-- JSONDecodeError အတွက် import ထည့်ပါ
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
-from youtubesearchpython.__future__ import VideosSearch
+from py-yt import VideosSearch
 
 logging.basicConfig(level=logging.INFO)
+
+# ==============================================
+# 🖼️ Helper Functions (No changes needed)
+# ==============================================
 
 def changeImageSize(maxWidth, maxHeight, image):
     widthRatio = maxWidth / image.size[0]
@@ -29,7 +34,7 @@ def truncate(text):
             text2 += " " + i
 
     text1 = text1.strip()
-    text2 = text2.strip()     
+    text2 = text2.strip()      
     return [text1,text2]
 
 def random_color():
@@ -105,6 +110,10 @@ def draw_text_with_shadow(background, draw, position, text, font, fill, shadow_o
     
     draw.text(position, text, font=font, fill=fill)
 
+# ==============================================
+# 🏞️ Main Thumbnail Generation Function
+# ==============================================
+
 async def get_thumb(videoid: str):
     try:
         if os.path.isfile(f"cache/{videoid}_v4.png"):
@@ -112,7 +121,7 @@ async def get_thumb(videoid: str):
 
         url = f"https://www.youtube.com/watch?v={videoid}"
         
-        # --- START FIX 2: UnboundLocalError အတွက် ---
+        # --- START FIX 2: UnboundLocalError အတွက် (Correctly implemented) ---
         # Variable တွေကို loop မစခင် ကြိုသတ်မှတ်ပါ
         title = "Unsupported Title"
         duration = "Live"
@@ -122,7 +131,18 @@ async def get_thumb(videoid: str):
         # --- END FIX 2 ---
 
         results = VideosSearch(url, limit=1)
-        search_results = (await results.next()).get("result", []) # .get() သုံးပါ
+        
+        # --- START FIX 5: JSONDecodeError (Rate Limit) Fix ---
+        try:
+            search_results = (await results.next()).get("result", [])
+        except json.JSONDecodeError:
+            logging.warning(f"YouTube search for {videoid} failed (JSONDecodeError) - Probably Rate Limited.")
+            search_results = [] # Treat as no result
+        except Exception as e:
+            # Handle other potential errors from .next()
+            logging.error(f"YouTube search for {videoid} failed unexpectedly: {e}")
+            search_results = [] # Treat as no result
+        # --- END FIX 5 ---
 
         if search_results: # list ထဲမှာ data ရှိမှ loop ပတ်ပါ
             result = search_results[0]
@@ -154,7 +174,7 @@ async def get_thumb(videoid: str):
             else:
                 channel = "Unknown Channel"
 
-        # --- START FIX 3: thumbnail ကို စစ်ဆေးပါ ---
+        # --- START FIX 3: thumbnail ကို စစ်ဆေးပါ (Correctly implemented) ---
         if thumbnail is None:
             logging.error(f"Could not find thumbnail URL for videoid {videoid}")
             return None # thumbnail မရှိရင် None (သို့) default ပုံ ပြန်ပါ
@@ -233,10 +253,10 @@ async def get_thumb(videoid: str):
             end_point_white = (text_x_position + line_length, 380)
             draw.line([start_point_white, end_point_white], fill="white", width=8)
         
-            circle_radius = 10 
+            circle_radius = 10  
             circle_position = (end_point_color[0], end_point_color[1])
             draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
-                          circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
+                            circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
     
         else:
             line_color = (255, 0, 0)
@@ -244,10 +264,10 @@ async def get_thumb(videoid: str):
             end_point_color = (text_x_position + line_length, 380)
             draw.line([start_point_color, end_point_color], fill=line_color, width=9)
         
-            circle_radius = 10 
+            circle_radius = 10  
             circle_position = (end_point_color[0], end_point_color[1])
             draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
-                                  circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
+                                    circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
 
         draw_text_with_shadow(background, draw, (text_x_position, 400), "00:00", arial, (255, 255, 255))
         draw_text_with_shadow(background, draw, (1080, 400), duration, arial, (255, 255, 255))
@@ -266,4 +286,4 @@ async def get_thumb(videoid: str):
     except Exception as e:
         logging.error(f"Error generating thumbnail for video {videoid}: {e}")
         traceback.print_exc()
-        return None # <-- FIX 4: Exception ဖြစ်ရင် None ပြန်ပါ
+        return None # <-- FIX 4: Exception ဖြစ်ရင် None ပြန်ပါ (Correctly implemented)
