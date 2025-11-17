@@ -7,7 +7,7 @@ import aiohttp
 import traceback  # <-- FIX 1: NameError အတွက် import ထည့်ပါ
 import json       # <-- JSONDecodeError အတွက် import ထည့်ပါ
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
-from py-yt import VideosSearch
+from youtubesearchpython.__future__ import VideosSearch
 
 logging.basicConfig(level=logging.INFO)
 
