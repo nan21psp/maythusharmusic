@@ -8,7 +8,7 @@ import requests
 import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
-from py-yt import VideosSearch
+from youtubesearchpython.__future__ import VideosSearch
 # from maythusharmusic.utils.database import is_on_off # <-- ဒီ import ကို အသစ်နဲ့ အစားထိုးပါမယ်
 from maythusharmusic import app
 from maythusharmusic.utils.formatters import time_to_seconds
