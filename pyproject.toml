@@ -9,7 +9,7 @@ name = "maythusharmusic"
 version = "0.1.0"
 description = "Hello Gays"
 readme = "README.md"
-requires-python = ">=3.11" # သင်သုံးမယ့် Python version ကို သတ်မှတ်ပါ
+requires-python = "3.12" # သင်သုံးမယ့် Python version ကို သတ်မှတ်ပါ
 
 # --- Project Dependencies (requirements.txt မှ) ---
 dependencies = [
@@ -47,7 +47,6 @@ dependencies = [
     "lyricsgenius",
     "spotipy",
     "youtube_search",
-    "py-yt-search==0.5.1",
     "youtube-search-python",
     "googlesearch-python",
     "unidecode",
