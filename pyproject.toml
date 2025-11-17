@@ -47,6 +47,7 @@ dependencies = [
     "lyricsgenius",
     "spotipy",
     "youtube_search",
+    "py-yt-search",
     "youtube-search-python",
     "googlesearch-python",
     "unidecode",
