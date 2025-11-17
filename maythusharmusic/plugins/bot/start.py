@@ -4,7 +4,7 @@ from pyrogram import filters
 from pyrogram.enums import ChatType, ChatMemberStatus
 from pyrogram.errors import UserNotParticipant
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
-from py-yt import VideosSearch
+from youtubesearchpython.__future__ import VideosSearch
 
 import config
 from maythusharmusic import app
