@@ -236,6 +236,24 @@ class YouTubeAPI:
         self.status = "https://www.youtube.com/oembed?url="
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        
+        # --- (၁) ဒီစာကြောင်းလေး ထပ်ထည့်ပေးပါ (Cache သိမ်းဖို့ Dictionary) ---
+        self.cache = {} 
+        # -------------------------------------------------------------
+
+    # --- (၂) ဒီ Function အသစ်ကို Class ထဲမှာ ထည့်ပေးပါ ---
+    async def load_cache(self):
+        """Bot စဖွင့်ချိန်တွင် Database မှ Cache များကို Memory ထဲသို့ ကြိုတင်ထည့်သွင်းသည်"""
+        try:
+            if hasattr(self, 'cache'):
+                data = await get_all_yt_cache()
+                if data:
+                    self.cache.update(data)
+                    print(f"✅ YouTube Cache Loaded: {len(data)} items.")
+                else:
+                    print("ℹ️ No YouTube Cache found in Database.")
+        except Exception as e:
+            print(f"❌ Failed to load YouTube Cache: {e}")
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
