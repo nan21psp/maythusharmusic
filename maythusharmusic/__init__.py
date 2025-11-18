@@ -1,31 +1,29 @@
-# maythusharmusic/__init__.py (ပြင်ဆင်ပြီး)
+from maythusharmusic.core.dir import dirr
+from maythusharmusic.core.git import git
+from maythusharmusic.core.userbot import Userbot
+from maythusharmusic.misc import dbb, heroku
 
-import asyncio
-import os
-from pyrogram import Client
-from telethon import TelegramClient
+from SafoneAPI import SafoneAPI
+from .logging import LOGGER
 
-from maythusharmusic.logging import LOGGER
-import config
+dirr()
+git()
+dbb()
+heroku()
 
-# --- (၁) Helper တွေနဲ့ Variable တွေကို အရင် ကြေညာပါ ---
+app = []
+userbot = None
+api = SafoneAPI()
 
-# (Circular Import Error ဖြေရှင်းရန်)
-# YouTube helper ကို အရင်ဆုံး instance ဆောက်ပါ
+
 from .platforms import *
+
+Apple = AppleAPI()
+Carbon = CarbonAPI()
+SoundCloud = SoundAPI()
+Spotify = SpotifyAPI()
+Resso = RessoAPI()
+Telegram = TeleAPI()
 YouTube = YouTubeAPI()
 
-# Bot client တွေ ထည့်မယ့် list
-app = []
-userbot = None  # Assistant (None)
-
-# Telethon client
-telethn = TelegramClient("maythushar", config.API_ID, config.API_HASH)
-
-
-# --- (၂) Core Class/Instance တွေကို အခုမှ Import လုပ်ပါ ---
-# (ဒီ module တွေက အပေါ်က 'app', 'YouTube' တွေကို ပြန် import လုပ်နိုင်ပါပြီ)
-
-from .core.bot import Hotty          # Main Bot Class
-from .core.userbot import Userbot      # Assistant Class
-from .core.call import Hotty as Pytgcalls # Call Instance (Call())
+APP = "sasukevipmusicbot"  # connect music api key "Dont change it"
