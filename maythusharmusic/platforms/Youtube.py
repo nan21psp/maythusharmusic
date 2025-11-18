@@ -9,7 +9,7 @@ import yt_dlp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 from youtubesearchpython.__future__ import VideosSearch
-# from maythusharmusic.utils.database import is_on_off # <-- ဒီ import ကို အသစ်နဲ့ အစားထိုးပါမယ်
+from maythusharmusic.utils.database import is_on_off
 from maythusharmusic import app
 from maythusharmusic.utils.formatters import time_to_seconds
 import os
@@ -22,28 +22,6 @@ import aiohttp
 import config
 import traceback # <--- traceback ကို import လုပ်ထားကြောင်း သေချာပါစေ
 from maythusharmusic import LOGGER
-
-# ==============================================
-# ⬇️⬇️⬇️ DATABASE IMPORTS (User's Request) ⬇️⬇️⬇️
-# ==============================================
-try:
-    from maythusharmusic.utils.database.youtubedatabase import (
-        is_on_off,
-        get_yt_cache,
-        save_yt_cache,
-        get_cached_song_path,
-        save_cached_song_path,
-        remove_cached_song_path,
-        get_all_yt_cache
-    )
-    LOGGER(__name__).info("Successfully imported YouTube cache functions from youtubedatabase.")
-except ImportError:
-    print("FATAL ERROR: youtubedatabase.py ကို ရှာမတွေ့ပါ")
-    # Cache function တွေမရှိရင် ဆက်မလုပ်နိုင်အောင် Error ပစ်ပါ
-    raise ImportError("youtubedatabase.py not found, cache functions cannot be loaded.")
-except Exception as e:
-    print(f"FATAL ERROR: Error importing from youtubedatabase: {e}")
-    raise
 
 API_URL = "https://teaminflex.xyz"  # Change to your API server URL
 API_KEY = "INFLEX68381428D"
@@ -192,7 +170,7 @@ async def check_file_size(link):
     def parse_size(formats):
         total_size = 0
         for format in formats:
-            if 'filesize' in format and format['filesize']:
+            if 'filesize' in format:
                 total_size += format['filesize']
         return total_size
 
@@ -223,12 +201,6 @@ async def shell_cmd(cmd):
     return out.decode("utf-8")
 
 
-# ==============================================
-# ❌❌❌ CACHE FUNCTIONS & MONGO SETUP REMOVED ❌❌❌
-# (They are now imported from youtubedatabase.py)
-# ==============================================
-
-
 class YouTubeAPI:
     def __init__(self):
         self.base = "https://www.youtube.com/watch?v="
@@ -236,24 +208,6 @@ class YouTubeAPI:
         self.status = "https://www.youtube.com/oembed?url="
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-        
-        # --- (၁) ဒီစာကြောင်းလေး ထပ်ထည့်ပေးပါ (Cache သိမ်းဖို့ Dictionary) ---
-        self.cache = {} 
-        # -------------------------------------------------------------
-
-    # --- (၂) ဒီ Function အသစ်ကို Class ထဲမှာ ထည့်ပေးပါ ---
-    async def load_cache(self):
-        """Bot စဖွင့်ချိန်တွင် Database မှ Cache များကို Memory ထဲသို့ ကြိုတင်ထည့်သွင်းသည်"""
-        try:
-            if hasattr(self, 'cache'):
-                data = await get_all_yt_cache()
-                if data:
-                    self.cache.update(data)
-                    print(f"✅ YouTube Cache Loaded: {len(data)} items.")
-                else:
-                    print("ℹ️ No YouTube Cache found in Database.")
-        except Exception as e:
-            print(f"❌ Failed to load YouTube Cache: {e}")
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -276,77 +230,19 @@ class YouTubeAPI:
                         return entity.url
         return None
 
-    # =================================================================
-    # ⬇️⬇️⬇️ CACHE ကိုသုံးရန် ဒီ FUNCTION ကို ပြင်ဆင်ထားပါသည် ⬇️⬇️⬇️
-    # (Imported functions များကို သုံးစွဲပါမည်)
-    # =================================================================
     async def details(self, link: str, videoid: Union[bool, str] = None):
-        vid_id_for_cache = None
         if videoid:
-            vid_id_for_cache = link # 'videoid' mode မှာ link က id ပဲ ဖြစ်တယ်
             link = self.base + link
-        else:
-            if "&" in link:
-                link = link.split("&")[0]
-            # Attempt to get video_id for caching
-            try:
-                if 'v=' in link:
-                    vid_id_for_cache = link.split('v=')[-1].split('&')[0]
-                elif "youtu.be" in link:
-                     vid_id_for_cache = link.split('/')[-1].split('?')[0]
-                
-                if not vid_id_for_cache:
-                    vid_id_for_cache = link # Fallback
-            except:
-                vid_id_for_cache = link # Fallback
-        
-        # Check cache (using imported function)
-        if vid_id_for_cache:
-            cached_data = await get_yt_cache(vid_id_for_cache)
-            if cached_data:
-                # Return data in the same tuple format
-                return (
-                    cached_data.get("title"),
-                    cached_data.get("duration_min"),
-                    cached_data.get("duration_sec"),
-                    cached_data.get("thumbnail"),
-                    cached_data.get("vidid")
-                )
-
-        # If not in cache, fetch using VideosSearch
+        if "&" in link:
+            link = link.split("&")[0]
         results = VideosSearch(link, limit=1)
-        try:
-            video_result = (await results.next())["result"][0]
-        except Exception as e:
-            LOGGER("InflexMusic/platforms/Youtube.py").error(f"VideosSearch failed for {link}: {e}")
-            return None, None, 0, None, None # Failed to fetch
-
-        title = video_result["title"]
-        duration_min = video_result["duration"]
-        thumbnail = video_result["thumbnails"][0]["url"].split("?")[0]
-        vidid = video_result["id"] # This is the canonical ID
-        duration_sec = int(time_to_seconds(duration_min)) if duration_min else 0
-        
-        # Save to cache (using imported function)
-        if vidid: 
-            details_to_cache = {
-                "video_id": vidid, # Store against the canonical ID
-                "title": title,
-                "duration_min": duration_min,
-                "duration_sec": duration_sec,
-                "thumbnail": thumbnail,
-                "vidid": vidid, 
-            }
-            await save_yt_cache(vidid, details_to_cache)
-            
-            # user က link (သို့) short id (vid_id_for_cache) နဲ့ ရှာခဲ့ရင်
-            # အဲ့ဒီ key နဲ့လည်း cache ကို သိမ်းပါ
-            if vid_id_for_cache and vid_id_for_cache != vidid:
-                 await save_yt_cache(vid_id_for_cache, details_to_cache)
-
+        for result in (await results.next())["result"]:
+            title = result["title"]
+            duration_min = result["duration"]
+            thumbnail = result["thumbnails"][0]["url"].split("?")[0]
+            vidid = result["id"]
+            duration_sec = int(time_to_seconds(duration_min)) if duration_min else 0
         return title, duration_min, duration_sec, thumbnail, vidid
-    
-    # ⬆️⬆️⬆️ (details function အဆုံး) ⬆️⬆️⬆️
 
     async def title(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
@@ -474,8 +370,7 @@ class YouTubeAPI:
         return title, duration_min, thumbnail, vidid
 
     # =================================================================
-    # ⬇️⬇️⬇️ CACHE ကိုသုံးရန် ဒီ FUNCTION ကို ပြင်ဆင်ထားပါသည် ⬇️⬇️⬇️
-    # (Imported functions များကို သုံးစွဲပါမည်)
+    # ⬇️⬇️⬇️ ဒီ FUNCTION ကို အသစ် ပြင်ဆင်ထားပါတယ် ⬇️⬇️⬇️
     # =================================================================
 
     async def download(
@@ -493,55 +388,24 @@ class YouTubeAPI:
             link = self.base + link
 
         logger = LOGGER("InflexMusic/platforms/Youtube.py")
-        
-        # Determine video_id for caching
-        video_id_for_cache = None
-        try:
-            if videoid:
-                 video_id_for_cache = link # 'videoid' mode မှာ link က id ပဲ ဖြစ်တယ်
-            elif 'v=' in link:
-                video_id_for_cache = link.split('v=')[-1].split('&')[0]
-            elif "youtu.be" in link:
-                video_id_for_cache = link.split('/')[-1].split('?')[0]
-            
-            if not video_id_for_cache:
-                 video_id_for_cache = link # Fallback
-        except:
-             video_id_for_cache = None # Cannot determine ID, caching will be skipped
-        
-        # ================================
-        # 0. CHECK CACHE FIRST (Audio only)
-        # ================================
-        if video_id_for_cache and not video and not songvideo: # Only cache audio
-             cached_path = await get_cached_song_path(video_id_for_cache) # Using imported function
-             if cached_path: # This function already checks os.path.exists
-                 logger.info(f"[Downloader] Using cached file for {video_id_for_cache}: {cached_path}")
-                 return cached_path, True # Return cached file
-
         downloaded_file = None
 
         # ================================
         # 1. API ကို အရင် ကြိုးစားပါ
         # ================================
         try:
-            if songvideo: # songvideo က video ကိုပဲ တောင်းတာ
-                logger.info(f"[Downloader] Trying API download (Video) for {link}")
-                downloaded_file = await download_video(link)
-            elif video: # video က video ကိုပဲ တောင်းတာ
-                logger.info(f"[Downloader] Trying API download (Video) for {link}")
-                downloaded_file = await download_video(link)
-            elif songaudio: # audio
+            if songvideo or songaudio:
                 logger.info(f"[Downloader] Trying API download (Audio) for {link}")
                 downloaded_file = await download_song(link)
+            elif video:
+                logger.info(f"[Downloader] Trying API download (Video) for {link}")
+                downloaded_file = await download_video(link)
             else: # Default to audio
                 logger.info(f"[Downloader] Trying API download (Audio) for {link}")
                 downloaded_file = await download_song(link)
             
             if downloaded_file and os.path.exists(downloaded_file):
                 logger.info(f"[Downloader] API download successful: {downloaded_file}")
-                # Save to cache if it was audio
-                if video_id_for_cache and not video and not songvideo:
-                    await save_cached_song_path(video_id_for_cache, downloaded_file) # Using imported function
                 return downloaded_file, True # API အောင်မြင်
             else:
                 logger.warning(f"[Downloader] API download failed or file not found for {link}.")
@@ -566,14 +430,13 @@ class YouTubeAPI:
         if not os.path.exists(cookie_file):
             logger.warning("[Downloader] cookies.txt not found. yt-dlp will proceed without cookies.")
             cookie_file = None
-        
-        # Use the video_id_for_cache if available
-        video_id = video_id_for_cache if video_id_for_cache else "video"
 
+        video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
+        
         # filename အတွက် title ကို သုံးပါ၊ မရှိမှ video_id ကို သုံးပါ
         file_name_base = title
         if title:
-             file_name_base = re.sub(r"[^\w\s-]", "", str(file_name_base)) # str() ထည့်ပြီး title က None ဖြစ်မနေတာ သေချာပါစေ
+             file_name_base = re.sub(r"[^\w\s-]", "", file_name_base) # စာလုံး အညစ်အကြေး ရှင်းပါ
              file_name_base = file_name_base.strip().replace(" ", "_")
              file_name_base = file_name_base[:50] # အရှည် ကန့်သတ်ပါ
         if not file_name_base: # title မရှိရင် (သို့) ရှင်းလိုက်လို့ ကုန်သွားရင်
@@ -596,9 +459,7 @@ class YouTubeAPI:
             ydl_opts["cookiefile"] = cookie_file
 
         final_file_path = ""
-        is_video_download = bool(video or songvideo) # video ဒါမှမဟုတ် songvideo တစ်ခုခု true ဖြစ်ရင် video download 
-        
-        if is_video_download: # Video လိုချင်လျှင်
+        if video or songvideo: # Video လိုချင်လျှင်
             ydl_opts["format"] = (
                 f"{format_id}+bestaudio" if format_id else "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
             )
@@ -629,9 +490,6 @@ class YouTubeAPI:
             # Download လုပ်ပြီးသား file ကို စစ်ဆေးပါ
             if os.path.exists(final_file_path):
                  logger.info(f"[Downloader] yt-dlp download successful: {final_file_path}")
-                 # Save to cache if it was audio
-                 if video_id_for_cache and not is_video_download:
-                     await save_cached_song_path(video_id_for_cache, final_file_path) # Using imported function
                  return final_file_path, True
             else:
                  logger.error(f"[Downloader] yt-dlp ran, but expected file not found: {final_file_path}")
@@ -642,9 +500,6 @@ class YouTubeAPI:
                  if files:
                     found_file = files[0] # တွေ့တဲ့ ပထမဆုံး file ကို ယူပါ
                     logger.warning(f"[Downloader] Found file via glob: {found_file}")
-                    # Save to cache if it was audio
-                    if video_id_for_cache and not is_video_download:
-                        await save_cached_song_path(video_id_for_cache, found_file) # Using imported function
                     return found_file, True
                  else:
                     logger.error(f"[Downloader] Glob search also failed for {glob_path}")
@@ -652,6 +507,4 @@ class YouTubeAPI:
 
         except Exception as e:
             logger.error(f"[Downloader] yt-dlp download exception: {e}\n{traceback.format_exc()}")
-            return None, False
-    
-    # ⬆️⬆️⬆️ (download function အဆုံး) ⬆️⬆️⬆️
+            return None, False # yt-dlp မအောင်မြင်ပါ
