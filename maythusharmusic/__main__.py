@@ -13,7 +13,7 @@ from maythusharmusic.utils.database import get_banned_users, get_gbanned
 from config import BANNED_USERS
 
 # --- Clone Bot Function ကို Import လုပ်ခြင်း ---
-from maythusharmusic.plugins.tools.clone import restart_clones 
+from maythusharmusic.plugins.bot.clone import restart_clones 
 # -------------------------------------------
 
 async def init():
