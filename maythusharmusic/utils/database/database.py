@@ -29,6 +29,7 @@ cleandb = mongodb.cleanmode
 queriesdb = mongodb.queries
 userdb = mongodb.userstats
 videodb = mongodb.vipvideocalls
+clonedb = mongodb.clonedb
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
 
@@ -59,6 +60,32 @@ suggestion = {}
 mute = {}
 audio = {}
 video = {}
+
+
+
+# Clone Bot Database Collection
+
+async def save_clone(bot_token: str, user_id: int, bot_username: str):
+    await clonedb.update_one(
+        {"bot_token": bot_token},
+        {"$set": {"user_id": user_id, "bot_username": bot_username}},
+        upsert=True,
+    )
+
+async def get_clones():
+    clones = []
+    async for doc in clonedb.find():
+        clones.append(doc)
+    return clones
+
+async def delete_clone(bot_token: str):
+    await clonedb.delete_one({"bot_token": bot_token})
+
+async def is_cloned(bot_token: str):
+    clone = await clonedb.find_one({"bot_token": bot_token})
+    return True if clone else False
+
+
 
 # Total Queries on bot
 
