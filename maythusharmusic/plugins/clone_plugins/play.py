@@ -1,12 +1,24 @@
 # maythusharmusic/plugins/clone_plugins/play.py
 
 from pyrogram import Client, filters
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import ChatAdminRequired, UserNotParticipant
-from maythusharmusic import YouTube
+
+import config
+from maythusharmusic import YouTube, app
 from maythusharmusic.utils.stream.stream import stream
 from maythusharmusic.utils.database import get_assistant, get_lang
 from strings import get_string
+
+# --- (၁) User တောင်းဆိုထားသော Imports များ ---
+from maythusharmusic.utils.inline import (
+    botplaylist_markup,
+    livestream_markup,
+    playlist_markup,
+    slider_markup,
+    track_markup,
+)
+# ------------------------------------------
 
 @Client.on_message(filters.command(["play", "vplay"]) & filters.group)
 async def play_clone(client: Client, message: Message):
@@ -17,11 +29,18 @@ async def play_clone(client: Client, message: Message):
     except:
         _ = get_string("en")
 
-    # URL သို့မဟုတ် Query ရှာဖွေခြင်း (YouTube.py ကို အသုံးပြုခြင်း)
+    # URL သို့မဟုတ် Query ရှာဖွေခြင်း
     url = await YouTube.url(message)
     
+    # --- (၂) အကယ်၍ စာသားမပါရင် Playlist Button ပြမည် ---
     if not url and len(message.command) < 2:
-        return await message.reply_text("<b>အသုံးပြုပုံ:</b>\n/play [သီချင်းအမည် (သို့) YouTube Link]\n(သို့မဟုတ်) Link ပါသောစာကို Reply ပြန်၍ /play နှိပ်ပါ။")
+        buttons = botplaylist_markup(_)
+        return await message.reply_photo(
+            photo=config.PLAYLIST_IMG_URL,
+            caption=_["playlist_1"],
+            reply_markup=InlineKeyboardMarkup(buttons),
+        )
+    # ------------------------------------------------
 
     mystic = await message.reply_text("🔍 <b>ရှာဖွေနေသည်...</b>")
 
@@ -29,7 +48,6 @@ async def play_clone(client: Client, message: Message):
     try:
         userbot = await get_assistant(message.chat.id)
         userbot_me = await userbot.get_me()
-        
         try:
             await client.get_chat_member(message.chat.id, userbot_me.id)
         except UserNotParticipant:
@@ -50,20 +68,33 @@ async def play_clone(client: Client, message: Message):
     except Exception as e:
         print(f"Assistant Check Error: {e}")
 
-    # ၂။ YouTube Data ရယူခြင်း (YouTube.py နှင့် ချိတ်ဆက်ခြင်း)
+    # ၂။ YouTube Data ရယူခြင်း & Inline Markup အသုံးပြုခြင်း
     try:
-        # URL ရှိရင် URL နဲ့ရှာမယ်၊ မရှိရင် Command နောက်က စာသားနဲ့ ရှာမယ်
         query = url if url else message.text.split(None, 1)[1]
         
         try:
-            # YouTube.py မှ details function ကို ခေါ်သုံးခြင်း
             result = await YouTube.details(query)
-            
             if not result:
                 return await mystic.edit_text("❌ မတွေ့ရှိပါ။")
             
-            # YouTube.py မှ ပြန်လာသော Data များကို ဖြည်ခြင်း
             (title, duration_min, duration_sec, thumbnail, vidid) = result
+            
+            # --- (၃) Live Stream စစ်ဆေးခြင်း ---
+            if duration_min == "Live" or not duration_min:
+                # Live ဖြစ်နေရင် ချက်ချင်းမဖွင့်ဘဲ ခလုတ်ပြမယ် (Main Bot လိုမျိုး)
+                buttons = livestream_markup(
+                    _,
+                    vidid,
+                    message.from_user.id,
+                    "v" if "vplay" in message.command[0] else "a",
+                    "g", # Mode (Group)
+                    "d", # Force Play (Default)
+                )
+                return await mystic.edit_text(
+                    _["play_13"], # "Live stream detected..."
+                    reply_markup=InlineKeyboardMarkup(buttons),
+                )
+            # --------------------------------
             
             details = {
                 "title": title,
@@ -93,3 +124,7 @@ async def play_clone(client: Client, message: Message):
         
     except Exception as e:
         await mystic.edit_text(f"🚫 Error: {e}")
+
+# Note: Callback Queries (ခလုတ်နှိပ်ရင် အလုပ်လုပ်ဖို့) အတွက်
+# သီးသန့် Callback Handler တွေ Clone Bot မှာ ထပ်ထည့်ဖို့ လိုအပ်နိုင်ပါတယ်။
+# Main Bot ရဲ့ Callback တွေက Clone Bot နဲ့ ချိတ်ဆက်ထားခြင်း မရှိရင် ခလုတ်တွေက အလုပ်လုပ်မှာ မဟုတ်ပါဘူး။
