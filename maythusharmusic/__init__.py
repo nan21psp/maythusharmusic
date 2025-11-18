@@ -1,3 +1,4 @@
+from maythusharmusic.core.bot import Hotty
 from maythusharmusic.core.dir import dirr
 from maythusharmusic.core.git import git
 from maythusharmusic.core.userbot import Userbot
@@ -11,8 +12,8 @@ git()
 dbb()
 heroku()
 
-app = []
-userbot = None
+app = Hotty()
+userbot = Userbot()
 api = SafoneAPI()
 
 
