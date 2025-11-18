@@ -12,7 +12,7 @@ import config
 
 # (Circular Import Error ဖြေရှင်းရန်)
 # YouTube helper ကို အရင်ဆုံး instance ဆောက်ပါ
-from .core.youtube import YouTubeAPI
+from .platforms import *
 YouTube = YouTubeAPI()
 
 # Bot client တွေ ထည့်မယ့် list
