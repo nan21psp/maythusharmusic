@@ -5,6 +5,7 @@ from pyrogram import idle
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
+# --- (ပြင်ဆင်ချက် ၁ - YouTube ကို ဒီမှာ import လုပ်ပါ) ---
 from maythusharmusic import LOGGER, app, userbot, YouTube
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.misc import sudo
@@ -50,7 +51,7 @@ async def init():
         pass
     await Hotty.decorators()
     LOGGER("maythusharmusic").info(
-        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport ᴊᴏɪɴ @sasukevipmusicbot , @sasukevipmusicbotsupport ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜꜱ"
+        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport ᴊᴏɪɴ @sasukevipmusicbot , @sasukevipmusicbotsupport ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
     )
     
     # --- (ပြင်ဆင်ချက် ၂ - Cache Pre-load လုပ်ရန် ဒီမှာ ထည့်ပါ) ---
@@ -69,11 +70,4 @@ async def init():
 
 
 if __name__ == "__main__":
-    # --- (ပြင်ဆင်ချက်) ---
-    # asyncio.get_event_loop().run_until_complete(init()) အစား
-    # Python 3.7+ (အထူးသဖြင့် 3.12) အတွက် ပုံစံအမှန်ကို သုံးပါ
-    try:
-        asyncio.run(init())
-    except KeyboardInterrupt:
-        LOGGER("maythusharmusic").info("Process stopped manually.")
-    # --- (ပြင်ဆင်မှု အဆုံး) ---
+    asyncio.get_event_loop().run_until_complete(init())
