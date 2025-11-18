@@ -34,13 +34,12 @@ async def clone_txt(client, message: Message):
     msg = await message.reply_text("♻️ Clone Bot ဖန်တီးနေပါသည်... ခေတ္တစောင့်ပါ...")
 
     try:
-        # Clone Client စမ်းသပ်ခြင်း
         ai = Client(
             name=bot_token,
             api_id=API_ID,
             api_hash=API_HASH,
             bot_token=bot_token,
-            plugins=dict(root="maythusharmusic.plugins"),
+            plugins=dict(root="maythusharmusic.plugins.clone_plugins"), # <--- ဒီနေရာ ပြင်လိုက်ပါ
         )
         
         await ai.start()
@@ -101,7 +100,7 @@ async def restart_clones():
                     api_id=API_ID,
                     api_hash=API_HASH,
                     bot_token=token,
-                    plugins=dict(root="maythusharmusic.plugins"),
+                    plugins=dict(root="maythusharmusic.plugins.clone_plugins"), # <--- ဒီနေရာ ပြင်လိုက်ပါ
                 )
                 await ai.start()
                 print(f"Started Clone: @{clone['bot_username']}")
