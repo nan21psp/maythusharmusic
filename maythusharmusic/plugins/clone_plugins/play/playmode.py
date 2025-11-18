@@ -18,7 +18,7 @@ from config import BANNED_USERS
 @language
 
 
-@app.on_message(filters.command(["playmode", "mode"]) & filters.group & ~BANNED_USERS)
+@Client.on_message(filters.command(["playmode", "mode"]) & filters.group & ~BANNED_USERS)
 @language
 async def playmode_(client, message: Message, _):
     playmode = await get_playmode(message.chat.id)
