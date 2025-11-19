@@ -39,12 +39,12 @@ def private_panel(_):
     return buttons
 
 
-def clone_private_panel(_):
+def clone_private_panel(_, bot_username):
     buttons = [
         [
             InlineKeyboardButton(
                 text=_["S_B_3"],
-                url=f"https://t.me/{client.me.username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
+                url=f"https://t.me/{bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
             )
         ],
         [
