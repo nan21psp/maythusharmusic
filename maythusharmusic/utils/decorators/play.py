@@ -33,6 +33,38 @@ def PlayWrapper(command):
     async def wrapper(client, message):
         language = await get_lang(message.chat.id)
         _ = get_string(language)
+
+        # --- (၁) MAIN BOT ADMIN CHECK (အသစ်ထည့်သွင်းထားသောအပိုင်း) ---
+        # Clone Bot (client ID != app ID) ဖြစ်မှသာ စစ်ဆေးမည်
+        if client.me.id != app.me.id:
+            try:
+                main_bot = await app.get_me()
+                try:
+                    # Clone Bot ကနေ Main Bot ကို Group ထဲမှာ ရှာခြင်း
+                    member = await client.get_chat_member(message.chat.id, main_bot.id)
+                    
+                    # Main Bot က Admin/Owner မဟုတ်ရင် တားမည်
+                    if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+                        return await message.reply_text(
+                            f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
+                            f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group တွင် <b>Admin</b> ခန့်ထားပေးရပါမည်။",
+                            reply_markup=InlineKeyboardMarkup([
+                                [InlineKeyboardButton("➕ Add Main Bot & Promote", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                            ])
+                        )
+                except UserNotParticipant:
+                    # Main Bot Group ထဲမရှိရင် တားမည်
+                    return await message.reply_text(
+                        f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                        f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                        ])
+                    )
+            except Exception as e:
+                print(f"Main Bot Check Error: {e}")
+        # ---------------------------------------------------------------
+
         if message.sender_chat:
             upl = InlineKeyboardMarkup(
                 [
@@ -49,7 +81,6 @@ def PlayWrapper(command):
         if await is_maintenance() is False:
             if message.from_user.id not in SUDOERS:
                 return await message.reply_text(
-                    # ပြင်ဆင်ချက်: client.me.mention
                     text=f"{client.me.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
                     disable_web_page_preview=True,
                 )
@@ -128,7 +159,6 @@ def PlayWrapper(command):
                     or get.status == ChatMemberStatus.RESTRICTED
                 ):
                     return await message.reply_text(
-                        # ပြင်ဆင်ချက်: client.me.mention
                         _["call_2"].format(
                             client.me.mention, userbot.id, userbot.name, userbot.username
                         )
@@ -150,7 +180,6 @@ def PlayWrapper(command):
                             return await message.reply_text(_["call_1"])
                         except Exception as e:
                             return await message.reply_text(
-                                # ပြင်ဆင်ချက်: client.me.mention
                                 _["call_3"].format(client.me.mention, type(e).__name__)
                             )
 
@@ -158,7 +187,6 @@ def PlayWrapper(command):
                     invitelink = invitelink.replace(
                         "https://t.me/+", "https://t.me/joinchat/"
                     )
-                # ပြင်ဆင်ချက်: client.me.mention
                 myu = await message.reply_text(_["call_4"].format(client.me.mention))
                 try:
                     await asyncio.sleep(1)
@@ -168,17 +196,14 @@ def PlayWrapper(command):
                         await client.approve_chat_join_request(chat_id, userbot.id)
                     except Exception as e:
                         return await message.reply_text(
-                            # ပြင်ဆင်ချက်: client.me.mention
                             _["call_3"].format(client.me.mention, type(e).__name__)
                         )
                     await asyncio.sleep(1)
-                    # ပြင်ဆင်ချက်: client.me.mention
                     await myu.edit(_["call_5"].format(client.me.mention))
                 except UserAlreadyParticipant:
                     pass
                 except Exception as e:
                     return await message.reply_text(
-                        # ပြင်ဆင်ချက်: client.me.mention
                         _["call_3"].format(client.me.mention, type(e).__name__)
                     )
 
@@ -203,11 +228,26 @@ def PlayWrapper(command):
 
     return wrapper
 
-
+# CPlayWrapper အတွက်လည်း Main Bot Check ထည့်ဖို့ လိုရင် ပြောပါ (Channel Play အတွက်ပါ)
 def CPlayWrapper(command):
     async def wrapper(client, message):
         language = await get_lang(message.chat.id)
         _ = get_string(language)
+        
+        # --- MAIN BOT ADMIN CHECK (FOR CHANNEL PLAY) ---
+        if client.me.id != app.me.id:
+            try:
+                main_bot = await app.get_me()
+                try:
+                    member = await client.get_chat_member(message.chat.id, main_bot.id)
+                    if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+                         return await message.reply_text(f"⚠️ Main Bot (@{main_bot.username}) must be Admin in this Group/Channel.")
+                except UserNotParticipant:
+                    return await message.reply_text(f"⚠️ Please add Main Bot (@{main_bot.username}) to this Group/Channel as Admin.")
+            except:
+                pass
+        # ----------------------------------------------
+
         if message.sender_chat:
             upl = InlineKeyboardMarkup(
                 [
