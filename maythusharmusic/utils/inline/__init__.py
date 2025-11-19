@@ -3,6 +3,8 @@ from .start import (
     private_panel,
 )
 from .help import (
+    first_page,
+    second_page,
     help_pannel,
     help_back_markup,
     private_help_panel,
