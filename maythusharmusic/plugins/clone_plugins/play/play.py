@@ -63,22 +63,27 @@ async def play_commnd(
     url,
     fplay,
 ):
-    # --- (၁) Main Bot Admin Check (အသစ်ထည့်သွင်းထားသောအပိုင်း) ---
+    # --- (၁) MAIN BOT ADMIN CHECK (Optimized Version) ---
     try:
-        # Main Bot အချက်အလက်ရယူခြင်း
-        main_bot = await app.get_me()
-        
-        try:
-            # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ လိုက်ရှာခြင်း
-            member = await client.get_chat_member(chat_id, main_bot.id)
+        # app.get_me() အစား app.me ကိုသုံးခြင်း (API call မခေါ်တော့ပါ)
+        if not app.me:
+            await app.get_me() # မရှိသေးမှ ခေါ်မည်
             
-            # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမယ်
+        main_bot_id = app.me.id
+        main_bot_username = app.me.username
+
+        try:
+            # Clone Bot (client) က Main Bot ကို Group ထဲမှာ လိုက်ရှာခြင်း
+            # ဒီအဆင့်ကတော့ API call ခေါ်ရပါမယ် (မခေါ်လို့မရပါ)
+            member = await client.get_chat_member(chat_id, main_bot_id)
+            
+            # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမည်
             if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
                 return await message.reply_text(
                     f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
-                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group တွင် <b>Admin (အက်ဒမင်)</b> ခန့်ထားပေးရပါမည်။",
+                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_username} ကို ဤ Group တွင် <b>Admin</b> ခန့်ထားပေးရပါမည်။",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("➕ Add Main Bot & Promote", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                        [InlineKeyboardButton("➕ Add Main Bot & Promote", url=f"https://t.me/{main_bot_username}?startgroup=true")]
                     ])
                 )
                 
@@ -86,9 +91,9 @@ async def play_commnd(
             # Main Bot Group ထဲမှာ လုံးဝမရှိရင်
             return await message.reply_text(
                 f"⚠️ <b>Main Bot Missing!</b>\n\n"
-                f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                    [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_username}?startgroup=true")]
                 ])
             )
     except Exception as e:
