@@ -45,6 +45,7 @@ from config import BANNED_USERS, lyrical
 )
 @PlayWrapper
 async def play_commnd(
+async def play_commnd(
     client,
     message: Message,
     _,
@@ -55,40 +56,34 @@ async def play_commnd(
     url,
     fplay,
 ):
-    # --- MAIN BOT ADMIN CHECK (START) ---
+    # --- (၁) MAIN BOT EXISTENCE CHECK (မဖြစ်မနေ Main Bot ရှိရမည်) ---
     try:
         # Main Bot (app) ၏ အချက်အလက်ကို ယူသည်
-        main_bot_user = await app.get_me()
+        main_bot = await app.get_me()
         
-        # လက်ရှိ Command ရိုက်နေတာ Clone Bot ဟုတ်မဟုတ် စစ်သည်
-        # (Clone Bot ID နဲ့ Main Bot ID မတူမှသာ စစ်ဆေးမယ်)
-        if client.me.id != main_bot_user.id:
+        # လက်ရှိ Command ရိုက်နေတာ Clone Bot ဖြစ်မှသာ စစ်ဆေးမည်
+        if client.me.id != main_bot.id:
             try:
                 # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ ရှာသည်
-                member = await client.get_chat_member(chat_id, main_bot_user.id)
+                await client.get_chat_member(chat_id, main_bot.id)
                 
-                # Main Bot သည် Admin (သို့) Owner မဟုတ်လျှင်
-                if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
-                    return await message.reply_text(
-                        f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
-                        f"သီချင်းဖွင့်ရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_user.username} ကို ဤ Group တွင် <b>Admin (အက်ဒမင်)</b> ပေးထားရန် လိုအပ်ပါသည်။",
-                        reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_user.username}?startgroup=true")]
-                        ])
-                    )
-                    
+                # (Optional) အကယ်၍ Main Bot ကို Admin ပါ ပေးထားစေချင်ရင် အောက်က 2 ကြောင်းကို ဖွင့်သုံးနိုင်ပါတယ်
+                # member = await client.get_chat_member(chat_id, main_bot.id)
+                # if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]: raise UserNotParticipant
+
             except UserNotParticipant:
-                # Main Bot Group ထဲမှာ လုံးဝမရှိလျှင် (UserNotParticipant Error တက်လျှင်)
+                # Main Bot Group ထဲမှာ မရှိလျှင် တားမည်
                 return await message.reply_text(
-                    f"⚠️ <b>Main Bot Missing!</b>\n\n"
-                    f"သီချင်းဖွင့်ရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_user.username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                    f"⚠️ <b>Main Bot လိုအပ်ပါသည်!</b>\n\n"
+                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} သည် ဤ Group ထဲတွင် ရှိနေရပါမည်။\n\n"
+                    f"ကျေးဇူးပြု၍ Main Bot ကို Group ထဲသို့ အရင်ထည့်ပါ။",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_user.username}?startgroup=true")]
+                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot.username}?startgroup=true")]
                     ])
                 )
     except Exception as e:
         print(f"Main Bot Check Error: {e}")
-
+        
     mystic = await message.reply_text(
         _["play_2"].format(channel) if channel else _["play_1"]
     )
