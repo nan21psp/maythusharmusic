@@ -91,9 +91,9 @@ async def remove_cached_song_path(video_id: str):
         logger.error(f"Error removing song path cache for vid '{video_id}': {e}")
 
 # --- (Function (၇) (အသစ်) - Get ALL Cache for Pre-loading) ---
-async def get_all_yt_cache() -> Dict[str, Any]:
+async def get_all_yt_cache() -> dict:
     """MongoDB မှ cache လုပ်ထားသော YouTube search results အားလုံးကို ယူသည်"""
-    all_cache: Dict[str, Any] = {}
+    all_cache = {}
     try:
         # filter မထည့်ဘဲ find() လုပ်ခြင်းဖြင့် document အားလုံးကို ယူပါ
         async for document in ytcache_db.find({}):
@@ -104,8 +104,8 @@ async def get_all_yt_cache() -> Dict[str, Any]:
         
         count = len(all_cache)
         if count > 0:
-            logger.info(f"MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
+            print(f"✅ MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
         return all_cache
     except Exception as e:
-        logger.error(f"Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
+        print(f"❌ Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
         return {} # Error ဖြစ်လျှင် အလွတ် dictionary ပြန်ပေး
