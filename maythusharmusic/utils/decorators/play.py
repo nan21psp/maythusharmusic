@@ -29,24 +29,22 @@ clinks = {}
 
 def PlayWrapper(command):
     async def wrapper(client, message):
-        # --- (၁) SILENT MODE (Main Bot ရှိရင် Clone Bot ငြိမ်နေမည်) ---
-        try:
-            # လက်ရှိ Run နေတာ Clone Bot ဖြစ်ပါက (Client ID != Main App ID)
-            if client.me.id != app.me.id:
-                try:
-                    # Main Bot ကို Group ထဲမှာ လိုက်ရှာခြင်း
-                    await client.get_chat_member(message.chat.id, app.me.id)
-                    
-                    # Error မတက်ရင် Main Bot ရှိနေလို့ပါ => Clone Bot အလုပ်မလုပ်ဘဲ ရပ်မည်
-                    return 
-                except UserNotParticipant:
-                    # Main Bot မရှိရင်တော့ Clone Bot ဆက်လုပ်မည်
-                    pass
-                except Exception:
-                    pass
-        except Exception as e:
-            print(f"Silent Mode Check Error: {e}")
-        # -----------------------------------------------------------------
+        # --- SILENT MODE LOGIC (အသစ်ထည့်သွင်းခြင်း) ---
+        # အလုပ်လုပ်နေတာ Clone Bot ဖြစ်မှသာ စစ်ဆေးမည် (Main Bot ကို မထိခိုက်စေရန်)
+        if client.me.id != app.me.id:
+            try:
+                # Main Bot (app) ကို Group ထဲမှာ ရှာခြင်း
+                await client.get_chat_member(message.chat.id, app.me.id)
+                
+                # Error မတက်ဘူးဆိုရင် Main Bot ရှိနေလို့ ဖြစ်သည်။
+                # ဒါကြောင့် Clone Bot က ဘာမှမလုပ်ဘဲ ရပ်လိုက်မည် (Silent)
+                return
+            except UserNotParticipant:
+                # Main Bot မရှိမှသာ အောက်က ကုဒ်တွေကို ဆက်လုပ်မည်
+                pass
+            except Exception:
+                pass
+        # --------------------------------------------------
 
         language = await get_lang(message.chat.id)
         _ = get_string(language)
@@ -216,6 +214,15 @@ def PlayWrapper(command):
 
 def CPlayWrapper(command):
     async def wrapper(client, message):
+        # --- SILENT MODE FOR CHANNEL PLAY ---
+        if client.me.id != app.me.id:
+            try:
+                await client.get_chat_member(message.chat.id, app.me.id)
+                return 
+            except:
+                pass
+        # -----------------------------------
+        
         language = await get_lang(message.chat.id)
         _ = get_string(language)
         if message.sender_chat:
