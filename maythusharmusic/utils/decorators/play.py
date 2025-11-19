@@ -48,7 +48,7 @@ def PlayWrapper(command):
         if await is_maintenance() is False:
             if message.from_user.id not in SUDOERS:
                 return await message.reply_text(
-                    text=f"{client.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
+                    text=f"{app.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
                     disable_web_page_preview=True,
                 )
 
@@ -83,7 +83,7 @@ def PlayWrapper(command):
             if chat_id is None:
                 return await message.reply_text(_["setting_12"])
             try:
-                chat = await client.get_chat(chat_id)
+                chat = await app.get_chat(chat_id)
             except:
                 return await message.reply_text(_["cplay_4"])
             channel = chat.title
@@ -118,8 +118,7 @@ def PlayWrapper(command):
             userbot = await get_assistant(chat_id)
             try:
                 try:
-                    # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
-                    get = await client.get_chat_member(chat_id, userbot.id)
+                    get = await app.get_chat_member(chat_id, userbot.id)
                 except ChatAdminRequired:
                     return await message.reply_text(_["call_1"])
                 if (
@@ -128,7 +127,7 @@ def PlayWrapper(command):
                 ):
                     return await message.reply_text(
                         _["call_2"].format(
-                            client.mention, userbot.id, userbot.name, userbot.username
+                            app.mention, userbot.id, userbot.name, userbot.username
                         )
                     )
             except UserNotParticipant:
@@ -143,38 +142,36 @@ def PlayWrapper(command):
                             pass
                     else:
                         try:
-                            # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
-                            invitelink = await client.export_chat_invite_link(chat_id)
+                            invitelink = await app.export_chat_invite_link(chat_id)
                         except ChatAdminRequired:
                             return await message.reply_text(_["call_1"])
                         except Exception as e:
                             return await message.reply_text(
-                                _["call_3"].format(client.mention, type(e).__name__)
+                                _["call_3"].format(app.mention, type(e).__name__)
                             )
 
                 if invitelink.startswith("https://t.me/+"):
                     invitelink = invitelink.replace(
                         "https://t.me/+", "https://t.me/joinchat/"
                     )
-                myu = await message.reply_text(_["call_4"].format(client.mention))
+                myu = await message.reply_text(_["call_4"].format(app.mention))
                 try:
                     await asyncio.sleep(1)
                     await userbot.join_chat(invitelink)
                 except InviteRequestSent:
                     try:
-                        # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
-                        await client.approve_chat_join_request(chat_id, userbot.id)
+                        await app.approve_chat_join_request(chat_id, userbot.id)
                     except Exception as e:
                         return await message.reply_text(
-                            _["call_3"].format(client.mention, type(e).__name__)
+                            _["call_3"].format(app.mention, type(e).__name__)
                         )
                     await asyncio.sleep(1)
-                    await myu.edit(_["call_5"].format(client.mention))
+                    await myu.edit(_["call_5"].format(app.mention))
                 except UserAlreadyParticipant:
                     pass
                 except Exception as e:
                     return await message.reply_text(
-                        _["call_3"].format(client.mention, type(e).__name__)
+                        _["call_3"].format(app.mention, type(e).__name__)
                     )
 
                 links[chat_id] = invitelink
@@ -201,6 +198,7 @@ def PlayWrapper(command):
 
 def CPlayWrapper(command):
     async def wrapper(client, message):
+        i = await client.get_me()
         language = await get_lang(message.chat.id)
         _ = get_string(language)
         if message.sender_chat:
@@ -219,7 +217,7 @@ def CPlayWrapper(command):
         if await is_maintenance() is False:
             if message.from_user.id not in SUDOERS:
                 return await message.reply_text(
-                    text=f"{client.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
+                    text=f"{i.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
                     disable_web_page_preview=True,
                 )
 
@@ -289,7 +287,6 @@ def CPlayWrapper(command):
             userbot = await get_assistant(chat_id)
             try:
                 try:
-                    # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
                     get = await client.get_chat_member(chat_id, userbot.id)
                 except ChatAdminRequired:
                     await message.reply_text(_["call_1"])
@@ -300,7 +297,7 @@ def CPlayWrapper(command):
                 ):
                     await message.reply_text(
                         _["call_2"].format(
-                            client.mention, userbot.id, userbot.name, userbot.username
+                            i.mention, userbot.id, userbot.name, userbot.username
                         )
                     )
                     return
@@ -316,14 +313,13 @@ def CPlayWrapper(command):
                             pass
                     else:
                         try:
-                            # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
                             invitelink = await client.export_chat_invite_link(chat_id)
                         except ChatAdminRequired:
                             await message.reply_text(_["call_1"])
                             return
                         except Exception as e:
                             await message.reply_text(
-                                _["call_3"].format(client.mention, type(e).__name__)
+                                _["call_3"].format(i.mention, type(e).__name__)
                             )
                             return
 
@@ -331,26 +327,25 @@ def CPlayWrapper(command):
                     invitelink = invitelink.replace(
                         "https://t.me/+", "https://t.me/joinchat/"
                     )
-                myu = await message.reply_text(_["call_4"].format(client.mention))
+                myu = await message.reply_text(_["call_4"].format(i.mention))
                 try:
                     await asyncio.sleep(1)
                     await userbot.join_chat(invitelink)
                 except InviteRequestSent:
                     try:
-                        # ပြင်ဆင်ချက်: app အစား client ကိုသုံးခြင်း
                         await client.approve_chat_join_request(chat_id, userbot.id)
                     except Exception as e:
                         await message.reply_text(
-                            _["call_3"].format(client.mention, type(e).__name__)
+                            _["call_3"].format(i.mention, type(e).__name__)
                         )
                         return
                     await asyncio.sleep(1)
-                    await myu.edit(_["call_5"].format(client.mention))
+                    await myu.edit(_["call_5"].format(i.mention))
                 except UserAlreadyParticipant:
                     pass
                 except Exception as e:
                     await message.reply_text(
-                        _["call_3"].format(client.mention, type(e).__name__)
+                        _["call_3"].format(i.mention, type(e).__name__)
                     )
                     return
 
