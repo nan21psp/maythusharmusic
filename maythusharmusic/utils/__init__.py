@@ -1,7 +1,7 @@
 from .channelplay import *
 from .database import *
 from .decorators import *
-from . approve import *
+from .approve import *
 from .extraction import *
 from .formatters import *
 from .inline import *
