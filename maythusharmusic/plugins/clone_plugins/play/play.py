@@ -1,10 +1,10 @@
-#cloneplay.py
 import random
 import string
 
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
-from pyrogram.errors import UserNotParticipant, ChatAdminRequired
+from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, InlineKeyboardButton
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import UserNotParticipant
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
@@ -25,6 +25,12 @@ from maythusharmusic.utils.inline import (
 from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
+
+SEARCH_STICKERS = [
+    "CAACAgUAAxkBAAEOpl1oQkdD9QkZC6k0NKZevjnN4URLOAACBRcAAm_QEFYBvpHOUt6OSzYE",
+    "CAACAgUAAxkBAAEOpmloQlCn7dv_Y6Cu7_IimiunS3ratwACaxcAAsY5GVbS9HsD0z0SajYE",
+    "CAACAgUAAxkBAAEOpltoQkavkDSiCRVNc8dYfUxz8O-epwACexkAAskwEVYdhhWzfNtoXDYE" 
+]
 
 @Client.on_message(
     filters.command(
@@ -55,14 +61,50 @@ async def play_commnd(
     url,
     fplay,
 ):
-    # --- (၂) MAIN BOT ADMIN CHECK စစ်ဆေးခြင်း ---
-    is_approved = await check_main_bot_admin(client, message)
-    if not is_approved:
-        return
-        
-    mystic = await message.reply_text(
-        _["play_2"].format(channel) if channel else _["play_1"]
-    )
+    # --- (၁) MAIN BOT ADMIN CHECK (DIRECT LOGIC) ---
+    # Clone Bot ဖြစ်မှသာ စစ်ဆေးမည်
+    if client.me.id != app.me.id:
+        try:
+            # Main Bot အချက်အလက်ရယူခြင်း
+            if not app.me:
+                await app.get_me()
+            
+            main_bot_id = app.me.id
+            main_bot_username = app.me.username
+
+            try:
+                # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ လိုက်ရှာခြင်း
+                member = await client.get_chat_member(chat_id, main_bot_id)
+                
+                # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမည်
+                if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+                    return await message.reply_text(
+                        f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
+                        f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_username} ကို ဤ Group တွင် <b>Admin (အက်ဒမင်)</b> ခန့်ထားပေးရပါမည်။",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("➕ Add Main Bot & Promote", url=f"https://t.me/{main_bot_username}?startgroup=true")]
+                        ])
+                    )
+                    
+            except UserNotParticipant:
+                # Main Bot Group ထဲမှာ လုံးဝမရှိရင် တားမည်
+                return await message.reply_text(
+                    f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_username}?startgroup=true")]
+                    ])
+                )
+        except Exception as e:
+            print(f"Main Bot Check Error: {e}")
+    # -----------------------------------------------------------
+
+    if channel:
+        mystic = await message.reply_text(_["play_2"].format(channel))
+    else:
+        selected_sticker = random.choice(SEARCH_STICKERS)
+        mystic = await message.reply_sticker(selected_sticker)
+
     plist_id = None
     slider = None
     plist_type = None
@@ -454,17 +496,6 @@ async def play_music(client, CallbackQuery, _):
         chat_id, channel = await get_channeplayCB(_, cplay, CallbackQuery)
     except:
         return
-        
-    # Check admin requirement for callback queries too
-    is_admin, admin_status = await ensure_admin_in_chat(client, chat_id)
-    if not is_admin:
-        await CallbackQuery.message.edit_text(
-            f"❌ **Admin Requirement**\n\n"
-            f"User ID `{REQUIRED_ADMIN_ID}` needs to be admin in this group.\n"
-            f"Status: {admin_status}"
-        )
-        return
-        
     user_name = CallbackQuery.from_user.first_name
     try:
         await CallbackQuery.message.delete()
@@ -520,7 +551,7 @@ async def play_music(client, CallbackQuery, _):
 
 
 @Client.on_callback_query(filters.regex("AnonymousAdmin") & ~BANNED_USERS)
-async def anonymous_admin_check(client, CallbackQuery):
+async def piyush_check(client, CallbackQuery):
     try:
         await CallbackQuery.answer(
             "» ʀᴇᴠᴇʀᴛ ʙᴀᴄᴋ ᴛᴏ ᴜsᴇʀ ᴀᴄᴄᴏᴜɴᴛ :\n\nᴏᴘᴇɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ sᴇᴛᴛɪɴɢs.\n-> ᴀᴅᴍɪɴɪsᴛʀᴀᴛᴏʀs\n-> ᴄʟɪᴄᴋ ᴏɴ ʏᴏᴜʀ ɴᴀᴍᴇ\n-> ᴜɴᴄʜᴇᴄᴋ ᴀɴᴏɴʏᴍᴏᴜs ᴀᴅᴍɪɴ ᴘᴇʀᴍɪssɪᴏɴs.",
@@ -552,17 +583,6 @@ async def play_playlists_command(client, CallbackQuery, _):
         chat_id, channel = await get_channeplayCB(_, cplay, CallbackQuery)
     except:
         return
-        
-    # Check admin requirement for playlist commands too
-    is_admin, admin_status = await ensure_admin_in_chat(client, chat_id)
-    if not is_admin:
-        await CallbackQuery.message.edit_text(
-            f"❌ **Admin Requirement**\n\n"
-            f"User ID `{REQUIRED_ADMIN_ID}` needs to be admin in this group.\n"
-            f"Status: {admin_status}"
-        )
-        return
-        
     user_name = CallbackQuery.from_user.first_name
     await CallbackQuery.message.delete()
     try:
