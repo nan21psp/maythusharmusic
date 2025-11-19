@@ -11,7 +11,7 @@ from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
 from maythusharmusic.utils.channelplay import get_channeplayCB
 from maythusharmusic.utils.decorators.language import languageCB
-from maythusharmusic.utils.decorators.cloneplay import PlayWrapper
+from maythusharmusic.utils.decorators.play import PlayWrapper
 from maythusharmusic.utils.formatters import formats
 from maythusharmusic.utils.inline import (
     botplaylist_markup,
