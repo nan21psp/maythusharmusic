@@ -9,35 +9,24 @@ from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from youtubesearchpython.__future__ import VideosSearch
 import config
-from maythusharmusic.misc import _boot_
 from maythusharmusic.utils import bot_up_time
-from maythusharmusic.plugins.sudo.sudoers import sudoers_list
 from maythusharmusic.utils.database import (
     add_served_chat_clone,
     add_served_user_clone,
     blacklisted_chats,
     get_lang,
     is_banned_user,
-    is_on_off,
+    get_assistant,
 )
 from maythusharmusic.utils.decorators.language import LanguageStart
-from maythusharmusic.utils.formatters import get_readable_time
-from maythusharmusic.utils.inline import first_page, private_panel, start_panel
-from config import BANNED_USERS
 from strings import get_string
-from maythusharmusic.utils.database import get_assistant
-from time import time
-import asyncio
-from maythusharmusic.utils.extraction import extract_user
+from maythusharmusic import app
 
-
-# Define a dictionary to track the last message timestamp for each user
+# Spam Protection Variables
 user_last_message_time = {}
 user_command_count = {}
-# Define the threshold for command spamming (e.g., 20 commands within 60 seconds)
 SPAM_THRESHOLD = 2
 SPAM_WINDOW_SECONDS = 5
-
 
 YUMI_PICS = [
     "https://files.catbox.moe/2uahrk.jpg",
@@ -45,23 +34,40 @@ YUMI_PICS = [
     "https://files.catbox.moe/2uahrk.jpg",
 ]
 
+# --- (၁) CLONE BOT အတွက် သီးသန့် BUTTON FUNCTION ---
+def clone_start_pm(_, bot_username):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["S_B_3"], # "အုပ်စုသို့ထည့်ရန်"
+                url=f"https://t.me/{bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
+            )
+        ],
+        [
+            InlineKeyboardButton(text=_["S_B_5"], user_id=config.OWNER_ID), # "ပိုင်ရှင်"
+            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_CHAT), # "အကူအညီ"
+        ],
+        [
+            InlineKeyboardButton(text=_["S_B_6"], url=config.SUPPORT_CHANNEL), # "ချန်နယ်"
+        ],
+    ]
+    return buttons
+# -------------------------------------------------
 
 @Client.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
 async def start_pm(client: Client, message: Message, _):
-
     a = await client.get_me()
     user_id = message.from_user.id
     current_time = time()
+
     # Update the last message timestamp for the user
     last_message_time = user_last_message_time.get(user_id, 0)
 
     if current_time - last_message_time < SPAM_WINDOW_SECONDS:
-        # If less than the spam window time has passed since the last message
         user_last_message_time[user_id] = current_time
         user_command_count[user_id] = user_command_count.get(user_id, 0) + 1
         if user_command_count[user_id] > SPAM_THRESHOLD:
-            # Block the user if they exceed the threshold
             hu = await message.reply_text(
                 f"**{message.from_user.mention} ᴘʟᴇᴀsᴇ ᴅᴏɴᴛ ᴅᴏ sᴘᴀᴍ, ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ ᴀғᴛᴇʀ 5 sᴇᴄ**"
             )
@@ -69,71 +75,20 @@ async def start_pm(client: Client, message: Message, _):
             await hu.delete()
             return
     else:
-        # If more than the spam window time has passed, reset the command count and update the message timestamp
         user_command_count[user_id] = 1
         user_last_message_time[user_id] = current_time
 
     await add_served_user_clone(message.from_user.id)
-    if len(message.text.split()) > 1:
-        name = message.text.split(None, 1)[1]
-        if name[0:4] == "help":
-            keyboard = first_page(_)
-            return await message.reply_photo(
-                photo=config.START_IMG_URL,
-                caption=_["help_1"].format(config.SUPPORT_CHAT),
-                reply_markup=keyboard,
-            )
-        if name[0:3] == "sud":
-            await sudoers_list(client=client, message=message, _=_)
+    
+    # --- (၂) CLONE START BUTTONS ကို ခေါ်သုံးခြင်း ---
+    keyboard = clone_start_pm(_, a.username)
+    # --------------------------------------------
 
-            return
-        if name[0:3] == "inf":
-            m = await message.reply_text("🔎")
-            query = (str(name)).replace("info_", "", 1)
-            query = f"https://www.youtube.com/watch?v={query}"
-            results = VideosSearch(query, limit=1)
-            for result in (await results.next())["result"]:
-                title = result["title"]
-                duration = result["duration"]
-                views = result["viewCount"]["short"]
-                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-                channellink = result["channel"]["link"]
-                channel = result["channel"]["name"]
-                link = result["link"]
-                published = result["publishedTime"]
-            searched_text = _["start_6"].format(
-                title, duration, views, published, channellink, channel, a.mention
-            )
-            key = InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            text="📥 ᴠɪᴅᴇᴏ", callback_data=f"downloadvideo {query}"
-                        ),
-                        InlineKeyboardButton(
-                            text="📥 ᴀᴜᴅɪᴏ", callback_data=f"downloadaudio {query}"
-                        ),
-                    ],
-                    [
-                        InlineKeyboardButton(text="🎧 sᴇᴇ ᴏɴ ʏᴏᴜᴛᴜʙᴇ 🎧", url=link),
-                    ],
-                ]
-            )
-            await m.delete()
-            await client.send_photo(
-                chat_id=message.chat.id,
-                photo=thumbnail,
-                caption=searched_text,
-                reply_markup=key,
-            )
-
-    else:
-        out = private_panel(_)
-        await message.reply_photo(
-            photo=config.START_IMG_URL,
-            caption=_["start_2"].format(message.from_user.mention, a.mention),
-            reply_markup=InlineKeyboardMarkup(out),
-        )
+    await message.reply_photo(
+        photo=config.START_IMG_URL,
+        caption=_["start_2"].format(message.from_user.mention, a.mention),
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 
 @Client.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
@@ -143,15 +98,12 @@ async def start_gp(client, message: Message, _):
     user_id = message.from_user.id
     current_time = time()
 
-    # Update the last message timestamp for the user
     last_message_time = user_last_message_time.get(user_id, 0)
 
     if current_time - last_message_time < SPAM_WINDOW_SECONDS:
-        # If less than the spam window time has passed since the last message
         user_last_message_time[user_id] = current_time
         user_command_count[user_id] = user_command_count.get(user_id, 0) + 1
         if user_command_count[user_id] > SPAM_THRESHOLD:
-            # Block the user if they exceed the threshold
             hu = await message.reply_text(
                 f"**{message.from_user.mention} ᴘʟᴇᴀsᴇ ᴅᴏɴᴛ ᴅᴏ sᴘᴀᴍ, ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ ᴀғᴛᴇʀ 5 sᴇᴄ**"
             )
@@ -159,11 +111,12 @@ async def start_gp(client, message: Message, _):
             await hu.delete()
             return
     else:
-        # If more than the spam window time has passed, reset the command count and update the message timestamp
         user_command_count[user_id] = 1
         user_last_message_time[user_id] = current_time
 
-    out = start_panel(_)
+    # Group တွင်လည်း Clone Buttons သုံးရန်
+    out = clone_start_pm(_, a.username)
+    
     BOT_UP = await bot_up_time()
     await message.reply_photo(
         photo=config.START_IMG_URL,
@@ -230,12 +183,13 @@ async def welcome(client, message: Message):
                     await client.leave_chat(message.chat.id)
                     return
 
-                out = start_panel(_)
+                # Group Welcome Message အတွက် Button
+                out = clone_start_pm(_, a.username)
+                
                 chid = message.chat.id
 
                 try:
                     userbot = await get_assistant(message.chat.id)
-
                     chid = message.chat.id
 
                     if message.chat.username:
