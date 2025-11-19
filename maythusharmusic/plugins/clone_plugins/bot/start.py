@@ -22,7 +22,7 @@ from maythusharmusic.utils.database import (
 )
 from maythusharmusic.utils.decorators.language import LanguageStart
 from maythusharmusic.utils.formatters import get_readable_time
-from maythusharmusic.utils.inline import first_page, clone_private_panel, start_panel
+from maythusharmusic.utils.inline import first_page, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 from maythusharmusic.utils.database import get_assistant
