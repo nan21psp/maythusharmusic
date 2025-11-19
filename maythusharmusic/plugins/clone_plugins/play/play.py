@@ -2,7 +2,9 @@ import random
 import string
 
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
+from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, InlineKeyboardButton
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import UserNotParticipant
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
@@ -24,6 +26,11 @@ from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
 
+SEARCH_STICKERS = [
+    "CAACAgUAAxkBAAEOpl1oQkdD9QkZC6k0NKZevjnN4URLOAACBRcAAm_QEFYBvpHOUt6OSzYE",
+    "CAACAgUAAxkBAAEOpmloQlCn7dv_Y6Cu7_IimiunS3ratwACaxcAAsY5GVbS9HsD0z0SajYE",
+    "CAACAgUAAxkBAAEOpltoQkavkDSiCRVNc8dYfUxz8O-epwACexkAAskwEVYdhhWzfNtoXDYE" 
+]
 
 @Client.on_message(
     filters.command(
@@ -75,7 +82,7 @@ async def play_commnd(
                         f"🫧 <b>ᴍᴀɪɴ ᴍᴜꜱɪᴄ ʙᴏᴛ ᴀᴅᴍɪɴ ʀᴇQᴜɪʀᴇᴅ!</b>\n\n"
                         f"ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} , must be appointed as <b>ᴀᴅᴍɪɴ</b> ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.",
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("🎀 Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ & ᴘʀᴏᴍᴏᴛᴇ 🎀", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users")]
+                            [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ & ᴘʀᴏᴍᴏᴛᴇ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                         ])
                     )
                     
@@ -85,15 +92,19 @@ async def play_commnd(
                     f"🫧 <b>ᴍᴀɪɴ ʙᴏᴛ ᴍɪꜱꜱɪɴɢ!</b>\n\n"
                     f"ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴀᴅᴅ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} to this Group and give it <b>ᴀᴅᴍɪɴ</b> status.",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🎀 Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ 🎀", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users")]
+                        [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                     ])
                 )
         except Exception as e:
             print(f"Main Bot Check Error: {e}")
-            
-    mystic = await message.reply_text(
-        _["play_2"].format(channel) if channel else _["play_1"]
-    )
+    # -----------------------------------------------------------
+
+    if channel:
+        mystic = await message.reply_text(_["play_2"].format(channel))
+    else:
+        selected_sticker = random.choice(SEARCH_STICKERS)
+        mystic = await message.reply_sticker(selected_sticker)
+
     plist_id = None
     slider = None
     plist_type = None
@@ -698,4 +709,4 @@ async def slider_queries(client, CallbackQuery, _):
         )
         return await CallbackQuery.edit_message_media(
             media=med, reply_markup=InlineKeyboardMarkup(buttons)
-)
+        )
