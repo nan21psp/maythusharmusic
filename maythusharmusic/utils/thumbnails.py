@@ -1,12 +1,14 @@
-# maythusharmusic/utils/thumbnails.py
-
+import random
+import logging
 import os
 import re
 import aiofiles
 import aiohttp
+import traceback  # <-- FIX 1: NameError အတွက် import ထည့်ပါ
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 from youtubesearchpython.__future__ import VideosSearch
-import config  # Config မှ ပုံယူရန်
+
+logging.basicConfig(level=logging.INFO)
 
 def changeImageSize(maxWidth, maxHeight, image):
     widthRatio = maxWidth / image.size[0]
@@ -25,102 +27,243 @@ def truncate(text):
             text1 += " " + i
         elif len(text2) + len(i) < 30:      
             text2 += " " + i
+
     text1 = text1.strip()
     text2 = text2.strip()     
-    return [text1, text2]
+    return [text1,text2]
+
+def random_color():
+    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+def generate_gradient(width, height, start_color, end_color):
+    base = Image.new('RGBA', (width, height), start_color)
+    top = Image.new('RGBA', (width, height), end_color)
+    mask = Image.new('L', (width, height))
+    mask_data = []
+    for y in range(height):
+        mask_data.extend([int(60 * (y / height))] * width)
+    mask.putdata(mask_data)
+    base.paste(top, (0, 0), mask)
+    return base
+
+def add_border(image, border_width, border_color):
+    width, height = image.size
+    new_width = width + 2 * border_width
+    new_height = height + 2 * border_width
+    new_image = Image.new("RGBA", (new_width, new_height), border_color)
+    new_image.paste(image, (border_width, border_width))
+    return new_image
+
+def crop_center_circle(img, output_size, border, border_color, crop_scale=1.5):
+    half_the_width = img.size[0] / 2
+    half_the_height = img.size[1] / 2
+    larger_size = int(output_size * crop_scale)
+    img = img.crop(
+        (
+            half_the_width - larger_size/2,
+            half_the_height - larger_size/2,
+            half_the_width + larger_size/2,
+            half_the_height + larger_size/2
+        )
+    )
+    
+    img = img.resize((output_size - 2*border, output_size - 2*border))
+    
+    
+    final_img = Image.new("RGBA", (output_size, output_size), border_color)
+    
+    
+    mask_main = Image.new("L", (output_size - 2*border, output_size - 2*border), 0)
+    draw_main = ImageDraw.Draw(mask_main)
+    draw_main.ellipse((0, 0, output_size - 2*border, output_size - 2*border), fill=255)
+    
+    final_img.paste(img, (border, border), mask_main)
+    
+    
+    mask_border = Image.new("L", (output_size, output_size), 0)
+    draw_border = ImageDraw.Draw(mask_border)
+    draw_border.ellipse((0, 0, output_size, output_size), fill=255)
+    
+    result = Image.composite(final_img, Image.new("RGBA", final_img.size, (0, 0, 0, 0)), mask_border)
+    
+    return result
+
+def draw_text_with_shadow(background, draw, position, text, font, fill, shadow_offset=(3, 3), shadow_blur=5):
+    
+    shadow = Image.new('RGBA', background.size, (0, 0, 0, 0))
+    shadow_draw = ImageDraw.Draw(shadow)
+    
+    
+    shadow_draw.text(position, text, font=font, fill="black")
+    
+    
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=shadow_blur))
+    
+    
+    background.paste(shadow, shadow_offset, shadow)
+    
+    
+    draw.text(position, text, font=font, fill=fill)
 
 async def get_thumb(videoid: str):
-    if os.path.isfile(f"cache/{videoid}_v4.png"):
-        return f"cache/{videoid}_v4.png"
-
-    url = f"https://www.youtube.com/watch?v={videoid}"
-    
-    # Default Values
-    title = "Music Play"
-    duration = "Unknown"
-    thumbnail = config.PING_IMG_URL # Default ပုံ (Error တက်ရင် သုံးရန်)
-    views = "Views"
-    channel = "Channel"
-
     try:
-        results = VideosSearch(url, limit=1)
-        search_result = (await results.next()).get("result")
+        if os.path.isfile(f"cache/{videoid}_v4.png"):
+            return f"cache/{videoid}_v4.png"
+
+        url = f"https://www.youtube.com/watch?v={videoid}"
         
-        if search_result:
-            result = search_result[0]
-            title = result.get("title", "Music Play")
-            title = re.sub("\W+", " ", title).title()
-            duration = result.get("duration", "Live")
-            # Thumbnail ရှာမရရင် Default ပုံကိုပဲ ဆက်သုံးမယ်
-            if result.get("thumbnails"):
-                thumbnail = result["thumbnails"][0]["url"].split("?")[0]
-            views = result.get("viewCount", {}).get("short", "Views")
-            channel = result.get("channel", {}).get("name", "Channel")
-    except Exception as e:
-        print(f"Thumbnail Search Error for {videoid}: {e}")
-        # Error တက်ရင် Default ပုံနဲ့ ဆက်လုပ်မယ် (Return မပြန်တော့ဘူး)
+        # --- START FIX 2: UnboundLocalError အတွက် ---
+        # Variable တွေကို loop မစခင် ကြိုသတ်မှတ်ပါ
+        title = "Unsupported Title"
+        duration = "Live"
+        thumbnail = None # <--- အရေးကြီး
+        views = "Unknown Views"
+        channel = "Unknown Channel"
+        # --- END FIX 2 ---
 
-    try:
+        results = VideosSearch(url, limit=1)
+        search_results = (await results.next()).get("result", []) # .get() သုံးပါ
+
+        if search_results: # list ထဲမှာ data ရှိမှ loop ပတ်ပါ
+            result = search_results[0]
+            title = result.get("title")
+            if title:
+                title = re.sub("\W+", " ", title).title()
+            else:
+                title = "Unsupported Title"
+            duration = result.get("duration")
+            if not duration:
+                duration = "Live"
+            thumbnail_data = result.get("thumbnails")
+            if thumbnail_data:
+                thumbnail = thumbnail_data[0]["url"].split("?")[0]
+            # thumbnail_data မရှိရင် thumbnail က None ဖြစ်ကျန်နေပါမည်
+            
+            views_data = result.get("viewCount")
+            if views_data:
+                views = views_data.get("short")
+                if not views:
+                    views = "Unknown Views"
+            else:
+                views = "Unknown Views"
+            channel_data = result.get("channel")
+            if channel_data:
+                channel = channel_data.get("name")
+                if not channel:
+                    channel = "Unknown Channel"
+            else:
+                channel = "Unknown Channel"
+
+        # --- START FIX 3: thumbnail ကို စစ်ဆေးပါ ---
+        if thumbnail is None:
+            logging.error(f"Could not find thumbnail URL for videoid {videoid}")
+            return None # thumbnail မရှိရင် None (သို့) default ပုံ ပြန်ပါ
+        # --- END FIX 3 ---
+        
         async with aiohttp.ClientSession() as session:
             async with session.get(thumbnail) as resp:
+                
+                content = await resp.read() # content ကို တစ်ခါတည်း ဖတ်ပါ
                 if resp.status == 200:
-                    f = await aiofiles.open(f"cache/thumb{videoid}.png", mode="wb")
-                    await f.write(await resp.read())
-                    await f.close()
-                else:
-                    # Download မရရင် Default ပုံ ပြန်ပေးမယ်
-                    return config.PING_IMG_URL
-    except Exception:
-        return config.PING_IMG_URL
+                    content_type = resp.headers.get('Content-Type')
+                    if 'jpeg' in content_type or 'jpg' in content_type:
+                        extension = 'jpg'
+                    elif 'png' in content_type:
+                        extension = 'png'
+                    else:
+                        logging.error(f"Unexpected content type: {content_type}")
+                        return None
 
-    try:
-        image = Image.open(f"cache/thumb{videoid}.png")
-        image1 = changeImageSize(1280, 720, image)
+                    filepath = f"cache/thumb{videoid}.png"
+                    
+                    # 'await resp.read()' ကို ထပ်မခေါ်ဘဲ 'content' ကို သုံးပါ
+                    async with aiofiles.open(filepath, mode="wb") as f:
+                        await f.write(content)
+                    # await f.close() # 'with' သုံးထားရင် မလိုပါ
+                else:
+                    logging.error(f"Failed to download thumbnail {videoid}, status: {resp.status}")
+                    return None # Download မရရင် None ပြန်ပါ
+        
+        image_path = f"cache/thumb{videoid}.png"
+        youtube = Image.open(image_path)
+        image1 = changeImageSize(1280, 720, youtube)
+        
         image2 = image1.convert("RGBA")
         background = image2.filter(filter=ImageFilter.BoxBlur(20))
         enhancer = ImageEnhance.Brightness(background)
         background = enhancer.enhance(0.6)
+
+        
+        start_gradient_color = random_color()
+        end_gradient_color = random_color()
+        gradient_image = generate_gradient(1280, 720, start_gradient_color, end_gradient_color)
+        background = Image.blend(background, gradient_image, alpha=0.2)
         
         draw = ImageDraw.Draw(background)
-        arial = ImageFont.truetype("maythusharmusic/assets/font2.ttf", 30)
-        font = ImageFont.truetype("maythusharmusic/assets/font.ttf", 30)
-        title_font = ImageFont.truetype("maythusharmusic/assets/font3.ttf", 45)
+        arial = ImageFont.truetype("maythusharmusic/assets/assets/font2.ttf", 30)
+        font = ImageFont.truetype("maythusharmusic/assets/assets/font.ttf", 30)
+        title_font = ImageFont.truetype("maythusharmusic/assets/assets/font3.ttf", 45)
 
-        circle_thumbnail = image.resize((400, 400))
-        # Circle crop logic ကို ရိုးရှင်းအောင်လုပ်ထားခြင်း (Optional)
-        
-        background.paste(circle_thumbnail, (120, 160))
+
+        circle_thumbnail = crop_center_circle(youtube, 400, 20, start_gradient_color)
+        circle_thumbnail = circle_thumbnail.resize((400, 400))
+        circle_position = (120, 160)
+        background.paste(circle_thumbnail, circle_position, circle_thumbnail)
 
         text_x_position = 565
         title1 = truncate(title)
-        draw.text((text_x_position, 180), title1[0], fill=(255, 255, 255), font=title_font)
-        draw.text((text_x_position, 230), title1[1], fill=(255, 255, 255), font=title_font)
-        draw.text((text_x_position, 320), f"{channel}  |  {views}", fill=(255, 255, 255), font=arial)
+        draw_text_with_shadow(background, draw, (text_x_position, 180), title1[0], title_font, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (text_x_position, 230), title1[1], title_font, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (text_x_position, 320), f"{channel}  |  {views[:23]}", arial, (255, 255, 255))
+
+
+        line_length = 580  
+        line_color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+        if duration != "Live":
+            color_line_percentage = random.uniform(0.15, 0.85)
+            color_line_length = int(line_length * color_line_percentage)
+            white_line_length = line_length - color_line_length
+
+            start_point_color = (text_x_position, 380)
+            end_point_color = (text_x_position + color_line_length, 380)
+            draw.line([start_point_color, end_point_color], fill=line_color, width=9)
         
-        # Progress Bar
-        draw.line([(text_x_position, 380), (1145, 380)], fill="white", width=9)
-        draw.line([(text_x_position, 380), (text_x_position + 100, 380)], fill="red", width=9)
-        draw.ellipse([(text_x_position + 90, 370), (text_x_position + 110, 390)], fill="red")
+            start_point_white = (text_x_position + color_line_length, 380)
+            end_point_white = (text_x_position + line_length, 380)
+            draw.line([start_point_white, end_point_white], fill="white", width=8)
+        
+            circle_radius = 10 
+            circle_position = (end_point_color[0], end_point_color[1])
+            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
+                          circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
+    
+        else:
+            line_color = (255, 0, 0)
+            start_point_color = (text_x_position, 380)
+            end_point_color = (text_x_position + line_length, 380)
+            draw.line([start_point_color, end_point_color], fill=line_color, width=9)
+        
+            circle_radius = 10 
+            circle_position = (end_point_color[0], end_point_color[1])
+            draw.ellipse([circle_position[0] - circle_radius, circle_position[1] - circle_radius,
+                                  circle_position[0] + circle_radius, circle_position[1] + circle_radius], fill=line_color)
 
-        draw.text((text_x_position, 400), "00:00", (255, 255, 255), font=arial)
-        draw.text((1080, 400), duration, (255, 255, 255), font=arial)
+        draw_text_with_shadow(background, draw, (text_x_position, 400), "00:00", arial, (255, 255, 255))
+        draw_text_with_shadow(background, draw, (1080, 400), duration, arial, (255, 255, 255))
+        
+        play_icons = Image.open("maythusharmusic/assets/assets/play_icons.png")
+        play_icons = play_icons.resize((580, 62))
+        background.paste(play_icons, (text_x_position, 450), play_icons)
 
-        # Play Icons (File မရှိရင် Error မတက်အောင် try ခံထားပါ)
-        try:
-            play_icons = Image.open("maythusharmusic/assets/play_icons.png")
-            play_icons = play_icons.resize((580, 62))
-            background.paste(play_icons, (text_x_position, 450), play_icons)
-        except:
-            pass
+        os.remove(f"cache/thumb{videoid}.png")
 
         background_path = f"cache/{videoid}_v4.png"
         background.save(background_path)
         
-        if os.path.exists(f"cache/thumb{videoid}.png"):
-            os.remove(f"cache/thumb{videoid}.png")
-
         return background_path
-        
+
     except Exception as e:
-        print(f"Image Processing Error: {e}")
-        return config.YOUTUBE_IMG_URL
+        logging.error(f"Error generating thumbnail for video {videoid}: {e}")
+        traceback.print_exc()
+        return None # <-- FIX 4: Exception ဖြစ်ရင် None ပြန်ပါ
