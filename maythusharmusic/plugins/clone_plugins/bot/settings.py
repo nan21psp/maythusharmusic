@@ -35,7 +35,7 @@ from maythusharmusic.utils.inline.settings import (
     setting_markup,
     vote_mode_markup,
 )
-from maythusharmusic.utils.inline.start import private_panel
+from maythusharmusic.utils.inline.start import clone_private_panel
 from config import BANNED_USERS, OWNER_ID, MUSIC_BOT_NAME, START_IMG_URL
 
 
@@ -89,7 +89,7 @@ async def settings_back_markup(client, CallbackQuery: CallbackQuery, _):
     if CallbackQuery.message.chat.type == ChatType.PRIVATE:
         await app.resolve_peer(OWNER_ID)
         OWNER = OWNER_ID
-        buttons = private_panel(_)
+        buttons = clone_private_panel(_)
         return await CallbackQuery.edit_message_media(
             InputMediaPhoto(
                 media=START_IMG_URL,
@@ -405,4 +405,5 @@ async def vote_change(client, CallbackQuery, _):
         )
     except MessageNotModified:
         return
+
 
