@@ -2,7 +2,8 @@ import random
 import string
 
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message
+from pyrogram.errors import UserNotParticipant
+from pyrogram.types import InlineKeyboardMarkup, InputMediaPhoto, Message, ChatMemberStatus
 from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
