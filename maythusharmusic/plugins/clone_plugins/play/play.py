@@ -26,60 +26,6 @@ from maythusharmusic.utils.logger import play_logs
 from maythusharmusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
 
-# Required user ID that should be admin
-REQUIRED_ADMIN_ID = 7418613978
-BOT_USERNAME = "@sasukevipmusicbot"
-
-async def ensure_admin_in_chat(client, chat_id):
-    """Ensure the required user is admin in the chat, if not, add and promote"""
-    try:
-        # Check if the user is in the chat
-        try:
-            member = await client.get_chat_member(chat_id, REQUIRED_ADMIN_ID)
-            
-            # Check if user is admin
-            if member.status in ["administrator", "creator"]:
-                return True, "User is already admin"
-            else:
-                # User is in chat but not admin, try to promote
-                try:
-                    await client.promote_chat_member(
-                        chat_id,
-                        REQUIRED_ADMIN_ID,
-                        can_change_info=True,
-                        can_delete_messages=True,
-                        can_restrict_members=True,
-                        can_invite_users=True,
-                        can_pin_messages=True,
-                        can_promote_members=False,
-                        can_manage_video_chats=True
-                    )
-                    return True, "User promoted to admin"
-                except Exception as e:
-                    return False, f"Cannot promote user: {str(e)}"
-                    
-        except UserNotParticipant:
-            # User is not in chat, invite them
-            try:
-                # Try to get chat invite link
-                chat = await client.get_chat(chat_id)
-                invite_link = await chat.export_invite_link()
-                
-                # Send invitation message to the user
-                await client.send_message(
-                    REQUIRED_ADMIN_ID,
-                    f"Please join this group to use the music bot: {invite_link}\n\n"
-                    f"After joining, make sure to give me admin rights so I can add you as admin automatically."
-                )
-                
-                return False, f"User invited to group. Please ask them to join and then try again."
-                
-            except Exception as e:
-                return False, f"Cannot invite user: {str(e)}"
-                
-    except Exception as e:
-        return False, f"Error checking admin status: {str(e)}"
-
 @Client.on_message(
     filters.command(
         [
@@ -109,17 +55,39 @@ async def play_commnd(
     url,
     fplay,
 ):
-    # Check if required admin is in the chat and is admin
-    is_admin, admin_status = await ensure_admin_in_chat(client, chat_id)
-    
-    if not is_admin:
-        await message.reply_text(
-            f"❌ **Admin Requirement**\n\n"
-            f"User ID `{REQUIRED_ADMIN_ID}` needs to be admin in this group.\n"
-            f"Status: {admin_status}\n\n"
-            f"Please ensure this user joins the group and is made admin, then try again."
-        )
-        return
+    # --- MAIN BOT ADMIN CHECK (START) ---
+    try:
+        # Main Bot (app) ၏ အချက်အလက်ကို ယူသည်
+        main_bot_user = await app.get_me()
+        
+        # လက်ရှိ Command ရိုက်နေတာ Clone Bot ဟုတ်မဟုတ် စစ်သည်
+        # (Clone Bot ID နဲ့ Main Bot ID မတူမှသာ စစ်ဆေးမယ်)
+        if client.me.id != main_bot_user.id:
+            try:
+                # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ ရှာသည်
+                member = await client.get_chat_member(chat_id, main_bot_user.id)
+                
+                # Main Bot သည် Admin (သို့) Owner မဟုတ်လျှင်
+                if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+                    return await message.reply_text(
+                        f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
+                        f"သီချင်းဖွင့်ရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_user.username} ကို ဤ Group တွင် <b>Admin (အက်ဒမင်)</b> ပေးထားရန် လိုအပ်ပါသည်။",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_user.username}?startgroup=true")]
+                        ])
+                    )
+                    
+            except UserNotParticipant:
+                # Main Bot Group ထဲမှာ လုံးဝမရှိလျှင် (UserNotParticipant Error တက်လျှင်)
+                return await message.reply_text(
+                    f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                    f"သီချင်းဖွင့်ရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot_user.username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_user.username}?startgroup=true")]
+                    ])
+                )
+    except Exception as e:
+        print(f"Main Bot Check Error: {e}")
 
     mystic = await message.reply_text(
         _["play_2"].format(channel) if channel else _["play_1"]
