@@ -22,7 +22,7 @@ from maythusharmusic.utils.database import (
 )
 from maythusharmusic.utils.decorators.language import LanguageStart
 from maythusharmusic.utils.formatters import get_readable_time
-from maythusharmusic.utils.inline import first_page, clone_clone_private_panel, start_panel
+from maythusharmusic.utils.inline import first_page, clone_private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 from maythusharmusic.utils.database import get_assistant
@@ -128,7 +128,7 @@ async def start_pm(client: Client, message: Message, _):
             )
 
     else:
-        out = clone_private_panel(_)
+        out = private_panel(_)
         await message.reply_photo(
             photo=config.START_IMG_URL,
             caption=_["start_2"].format(message.from_user.mention, a.mention),
