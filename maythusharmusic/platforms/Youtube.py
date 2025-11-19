@@ -208,6 +208,26 @@ class YouTubeAPI:
         self.status = "https://www.youtube.com/oembed?url="
         self.listbase = "https://youtube.com/playlist?list="
         self.reg = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        self._search_cache = {}
+
+    # --- (FUNCTION အသစ် - Bot Startup တွင် ခေါ်ရန်) ---
+    async def load_cache(self):
+        """
+        Bot startup တွင် MongoDB မှ cache များကို ယာယီမှတ်ဉာဏ်ထဲသို့ ကြိုတင်ဖြည့်သည်
+        (Hydrates the in-memory cache from permanent DB on startup)
+        """
+        logger.info("MongoDB မှ YouTube search cache များကို ကြိုတင်ဖြည့်နေပါသည်...")
+        try:
+            # youtubedatabase.py ထဲက function အသစ်ကို ခေါ်ပါ
+            all_cache = await get_all_yt_cache() 
+            if all_cache:
+                # DB ကရလာတဲ့ data တွေအားလုံးကို ယာယီမှတ်ဉာဏ်ထဲ ထည့်ပါ
+                self._search_cache = all_cache
+                logger.info(f"Cache {len(all_cache)} ခုကို ယာယီမှတ်ဉာဏ်ထဲသို့ အောင်မြင်စွာ ကြိုဖြည့်ပြီးပါပြီ။")
+            else:
+                logger.info("MongoDB တွင် ကြိုတင်ဖြည့်ရန် cache တစုံတရာ မရှိပါ။")
+        except Exception as e:
+            logger.error(f"YouTube cache ကြိုတင်ဖြည့်ရာတွင် အမှားဖြစ်ပွား: {e}")
 
     async def exists(self, link: str, videoid: Union[bool, str] = None):
         if videoid:
