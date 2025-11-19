@@ -1067,3 +1067,22 @@ async def remove_cached_song_path(video_id: str):
         await songfiles_db.delete_one({"video_id": video_id})
     except Exception as e:
         print(f"Error removing song path cache: {e}")
+
+async def get_all_yt_cache() -> dict:
+    """MongoDB မှ cache လုပ်ထားသော YouTube search results အားလုံးကို ယူသည်"""
+    all_cache = {}
+    try:
+        # filter မထည့်ဘဲ find() လုပ်ခြင်းဖြင့် document အားလုံးကို ယူပါ
+        async for document in ytcache_db.find({}):
+            key = document.get("key")
+            details = document.get("details")
+            if key and details:
+                all_cache[key] = details
+        
+        count = len(all_cache)
+        if count > 0:
+            print(f"✅ MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
+        return all_cache
+    except Exception as e:
+        print(f"❌ Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
+        return {}
