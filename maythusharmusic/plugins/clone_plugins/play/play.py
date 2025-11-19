@@ -55,33 +55,10 @@ async def play_commnd(
     url,
     fplay,
 ):
-    # --- (၁) MAIN BOT EXISTENCE CHECK (မဖြစ်မနေ Main Bot ရှိရမည်) ---
-    try:
-        # Main Bot (app) ၏ အချက်အလက်ကို ယူသည်
-        main_bot = await app.get_me()
-        
-        # လက်ရှိ Command ရိုက်နေတာ Clone Bot ဖြစ်မှသာ စစ်ဆေးမည်
-        if client.me.id != main_bot.id:
-            try:
-                # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ ရှာသည်
-                await client.get_chat_member(chat_id, main_bot.id)
-                
-                # (Optional) အကယ်၍ Main Bot ကို Admin ပါ ပေးထားစေချင်ရင် အောက်က 2 ကြောင်းကို ဖွင့်သုံးနိုင်ပါတယ်
-                # member = await client.get_chat_member(chat_id, main_bot.id)
-                # if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]: raise UserNotParticipant
-
-            except UserNotParticipant:
-                # Main Bot Group ထဲမှာ မရှိလျှင် တားမည်
-                return await message.reply_text(
-                    f"⚠️ <b>Main Bot လိုအပ်ပါသည်!</b>\n\n"
-                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} သည် ဤ Group ထဲတွင် ရှိနေရပါမည်။\n\n"
-                    f"ကျေးဇူးပြု၍ Main Bot ကို Group ထဲသို့ အရင်ထည့်ပါ။",
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot.username}?startgroup=true")]
-                    ])
-                )
-    except Exception as e:
-        print(f"Main Bot Check Error: {e}")
+    # --- (၂) MAIN BOT ADMIN CHECK စစ်ဆေးခြင်း ---
+    is_approved = await check_main_bot_admin(client, message)
+    if not is_approved:
+        return
         
     mystic = await message.reply_text(
         _["play_2"].format(channel) if channel else _["play_1"]
