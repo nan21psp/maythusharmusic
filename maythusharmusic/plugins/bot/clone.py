@@ -3,18 +3,20 @@
 import re
 import logging
 from pyrogram import Client, filters
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.errors import AccessTokenInvalid
 
-from config import API_ID, API_HASH
+from config import API_ID, API_HASH, OWNER_ID
 from maythusharmusic import app
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
+# ခွင့်ပြုချက်တောင်းခံမှုများကို ယာယီမှတ်ထားရန် (Memory ထဲတွင်သာ)
+PENDING_REQUESTS = {}
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
-    # Database function များကို ဤနေရာမှ ခေါ်သုံးမှ Import Error မတက်မည်
+    # Database function များ import
     try:
         from maythusharmusic.utils.database import save_clone
     except ImportError:
@@ -22,35 +24,99 @@ async def clone_txt(client, message: Message):
 
     if len(message.command) < 2:
         return await message.reply_text(
-            "Dᴇᴠᴇʟᴏᴘᴇʀ : @iwillgoforwardsalone </b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
+            "Dᴇᴠᴇʟᴏᴘᴇʀ :@iwillgoforwardsalone</b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
         )
     
     bot_token = message.text.split(None, 1)[1]
     
-    # Token Format စစ်ဆေးခြင်း (နံပါတ်များ:စာသားများ)
+    # Token Format စစ်ဆေးခြင်း
     if not re.match(r'^\d+:[a-zA-Z0-9_-]+$', bot_token):
         return await message.reply_text("❌ မှားယွင်းသော Bot Token ဖြစ်ပါသည်။")
 
-    msg = await message.reply_text("♻️ Clone Bot ဖန်တီးနေပါသည်... ခေတ္တစောင့်ပါ...")
+    # User ကို စောင့်ခိုင်းခြင်း
+    msg = await message.reply_text("⏳ <b>Owner ထံ ခွင့်ပြုချက် တောင်းခံနေပါသည်...</b>\n\nကျေးဇူးပြု၍ စောင့်ဆိုင်းပါ။")
+
+    # Owner ထံ ခွင့်ပြုချက်တောင်းခြင်း
+    user_id = message.from_user.id
+    user_name = message.from_user.first_name
+    mention = message.from_user.mention
+
+    # Request ကို ယာယီမှတ်ထားမည်
+    PENDING_REQUESTS[user_id] = {
+        "token": bot_token,
+        "msg_id": msg.id
+    }
 
     try:
-        ai = Client(
-            name=bot_token,
-            api_id=API_ID,
-            api_hash=API_HASH,
-            bot_token=bot_token,
-            plugins=dict(root="maythusharmusic.plugins.clone_plugins"), # <--- ဒီနေရာ ပြင်လိုက်ပါ
+        await app.send_message(
+            OWNER_ID,
+            f"👤 <b>Clone Bot Request</b>\n\n"
+            f"<b>User:</b> {mention} (`{user_id}`)\n"
+            f"<b>Token:</b> `{bot_token}`\n\n"
+            f"ဒီ User ကို Clone Bot ဖန်တီးခွင့် ပေးမလား?",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ ခွင့်ပြုမည်", callback_data=f"CLONE_DECISION|APPROVE|{user_id}"),
+                    InlineKeyboardButton("❌ ငြင်းပယ်မည်", callback_data=f"CLONE_DECISION|DECLINE|{user_id}")
+                ]
+            ])
         )
+    except Exception as e:
+        await msg.edit_text(f"❌ Owner ထံ စာပို့မရပါ (Owner ID မှားနေခြင်း (သို့) Bot ကို Block ထားခြင်း)။\nError: {e}")
+
+
+# Owner ၏ ဆုံးဖြတ်ချက်ကို ကိုင်တွယ်ခြင်း
+@app.on_callback_query(filters.regex("CLONE_DECISION"))
+async def clone_decision_handler(client, query: CallbackQuery):
+    # ခလုတ်နှိပ်သူသည် Owner ဟုတ်မဟုတ် စစ်ဆေးခြင်း
+    if query.from_user.id != OWNER_ID:
+        return await query.answer("သင်သည် Owner မဟုတ်ပါ။", show_alert=True)
+
+    data = query.data.split("|")
+    decision = data[1]
+    user_id = int(data[2])
+
+    if user_id not in PENDING_REQUESTS:
+        return await query.answer("⚠️ ဤ Request သက်တမ်းကုန်သွားပါပြီ (သို့) Bot Restart ကျသွားလို့ ပျောက်သွားပါပြီ။", show_alert=True)
+
+    request_data = PENDING_REQUESTS[user_id]
+    bot_token = request_data["token"]
+    
+    # Database Import
+    try:
+        from maythusharmusic.utils.database import save_clone
+    except ImportError:
+        return await query.answer("Database Error", show_alert=True)
+
+    if decision == "DECLINE":
+        # ငြင်းပယ်လိုက်လျှင်
+        await query.message.edit_text(f"❌ User {user_id} ၏ Clone Request ကို ငြင်းပယ်လိုက်ပါသည်။")
+        await app.send_message(user_id, "❌ <b>စိတ်မကောင်းပါ၊ သင်၏ Clone Bot ဖန်တီးခွင့်ကို Owner မှ ငြင်းပယ်လိုက်ပါသည်။</b>")
+        del PENDING_REQUESTS[user_id]
         
-        await ai.start()
-        bot_info = await ai.get_me()
-        username = bot_info.username
-        
-        # Database တွင် သိမ်းဆည်းခြင်း
-        await save_clone(bot_token, message.from_user.id, username)
-        CLONES.add(bot_token)
-        
-        details = f"""
+    elif decision == "APPROVE":
+        # ခွင့်ပြုလိုက်လျှင် Clone စတင်ဖန်တီးမည်
+        await query.message.edit_text(f"✅ User {user_id} ၏ Clone Request ကို လက်ခံလိုက်ပါသည်။\nBot ဖန်တီးနေသည်...")
+        status_msg = await app.send_message(user_id, "✅ <b>Owner မှ ခွင့်ပြုလိုက်ပါသည်။</b>\n♻️ Clone Bot ဖန်တီးနေပါသည်...")
+
+        try:
+            ai = Client(
+                name=bot_token,
+                api_id=API_ID,
+                api_hash=API_HASH,
+                bot_token=bot_token,
+                plugins=dict(root="maythusharmusic.plugins.clone_plugins"), # Folder အသစ်လမ်းကြောင်း
+            )
+            
+            await ai.start()
+            bot_info = await ai.get_me()
+            username = bot_info.username
+            
+            # Database တွင် သိမ်းဆည်းခြင်း
+            await save_clone(bot_token, user_id, username)
+            CLONES.add(bot_token)
+            
+            details = f"""
 <b>✅ Clone Bot အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ!</b>
 
 <b>🤖 Bot Name:</b> {bot_info.first_name}
@@ -58,12 +124,18 @@ async def clone_txt(client, message: Message):
 
 <i>⚠️မှတ်ချက်: သီချင်းနားထောင်ရန် သင့် Clone Bot ကို Group ထဲထည့်ပြီး Admin ပေးထားပါ။</i>
 """
-        await msg.edit_text(details)
+            await status_msg.edit_text(details)
+            await query.message.reply_text(f"✅ @{username} အောင်မြင်စွာ Run ပါပြီ။")
+            
+        except AccessTokenInvalid:
+            await status_msg.edit_text("❌ Bot Token မှားယွင်းနေပါသည်။")
+            await query.message.reply_text("❌ User ပေးသော Token မှားနေသဖြင့် မအောင်မြင်ပါ။")
+        except Exception as e:
+            await status_msg.edit_text(f"❌ အမှားဖြစ်ပွားခဲ့သည်: {e}")
+            await query.message.reply_text(f"❌ Error: {e}")
         
-    except AccessTokenInvalid:
-        await msg.edit_text("❌ Bot Token မှားယွင်းနေပါသည်။ ကျေးဇူးပြု၍ ပြန်စစ်ဆေးပါ။")
-    except Exception as e:
-        await msg.edit_text(f"❌ အမှားဖြစ်ပွားခဲ့သည်: {e}")
+        # ပြီးရင် List ထဲက ဖျက်မည်
+        del PENDING_REQUESTS[user_id]
 
 
 @app.on_message(filters.command("delclone") & filters.private)
@@ -100,7 +172,7 @@ async def restart_clones():
                     api_id=API_ID,
                     api_hash=API_HASH,
                     bot_token=token,
-                    plugins=dict(root="maythusharmusic.plugins.clone_plugins"), # <--- ဒီနေရာ ပြင်လိုက်ပါ
+                    plugins=dict(root="maythusharmusic.plugins.clone_plugins"),
                 )
                 await ai.start()
                 print(f"Started Clone: @{clone['bot_username']}")
