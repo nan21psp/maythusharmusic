@@ -22,7 +22,7 @@ async def clone_txt(client, message: Message):
         try:
             from maythusharmusic.utils.database import save_clone, get_clone_by_user
         except ImportError:
-            return await message.reply_text("❌ Database Error: database.py တွင် save_clone, get_clone_by_user မရှိပါ။")
+            return await message.reply_text("❌ ᴅᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ: ᴅᴀᴛᴀʙᴀꜱᴇ.ᴘʏ ᴅᴏᴇꜱ ɴᴏᴛ ᴄᴏɴᴛᴀɪɴ ꜱᴀᴠᴇ_ᴄʟᴏɴᴇ, ɢᴇᴛ_ᴄʟᴏɴᴇ_ʙʏ_ᴜꜱᴇʀ.")
 
         # --- (၁) ONE USER ONE BOT LIMIT CHECK ---
         user_id = message.from_user.id
@@ -32,27 +32,27 @@ async def clone_txt(client, message: Message):
             bot_username = existing_clone.get("bot_username", "Unknown")
             bot_token = existing_clone.get("bot_token", "")
             return await message.reply_text(
-                f"⚠️ <b>ကန့်သတ်ချက်!</b>\n\n"
-                f"သင့်တွင် Clone Bot တစ်ခု ရှိပြီးသား ဖြစ်နေပါသည်။\n"
+                f"⚠️ <b>𝗡𝗼𝘁𝗶𝗰 𝗙𝗼𝗿 𝗨𝘀𝗲𝗿𝘀!</b>\n\n"
+                f"𝙔𝙤𝙪 𝙖𝙡𝙧𝙚𝙖𝙙𝙮 𝙝𝙖𝙫𝙚 𝙖 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩.\n"
                 f"🤖 <b>Bot:</b> @{bot_username}\n\n"
-                f"နောက်တစ်ခု အသစ်ထပ်လုပ်လိုပါက ရှိပြီးသား Bot ကို အရင်ဖျက်ပေးပါ:\n"
+                f"𝙄𝙛 𝙮𝙤𝙪 𝙬𝙖𝙣𝙩 𝙩𝙤 𝙘𝙧𝙚𝙖𝙩𝙚 𝙖 𝙣𝙚𝙬 𝙤𝙣𝙚, 𝙙𝙚𝙡𝙚𝙩𝙚 𝙩𝙝𝙚 𝙚𝙭𝙞𝙨𝙩𝙞𝙣𝙜 𝘽𝙤𝙩 𝙛𝙞𝙧𝙨𝙩.\n"
                 f"<code>/delclone {bot_token}</code>"
             )
         # ----------------------------------------
 
         if len(message.command) < 2:
             return await message.reply_text(
-                "<b>D͟e͟v͟e͟l͟o͟p͟e͟r͟ : @iwillgoforwardsalone</b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
+                "<b>D͟e͟v͟e͟l͟o͟p͟e͟r͟ : @iwillgoforwardsalone</b>\n\n/clone [Bot Token]\n\nGᴇᴛ ʙᴏᴛ ᴛᴏᴋᴇɴ ꜰʀᴏᴍ @BotFather"
             )
         
         bot_token = message.text.split(None, 1)[1]
         
         # Token Format စစ်ဆေးခြင်း
         if not re.match(r'^\d+:[a-zA-Z0-9_-]+$', bot_token):
-            return await message.reply_text("❌ မှားယွင်းသော Bot Token ဖြစ်ပါသည်။")
+            return await message.reply_text("❌ 𝗜𝗻𝘃𝗮𝗹𝗶𝗱 𝗕𝗼𝘁 𝗧𝗼𝗸𝗲𝗻.")
 
         # User ကို စောင့်ခိုင်းခြင်း
-        msg = await message.reply_text("⏳ <b>Owner ထံ ခွင့်ပြုချက် တောင်းခံနေပါသည်...</b>\n\nကျေးဇူးပြု၍ စောင့်ဆိုင်းပါ။")
+        msg = await message.reply_text("🫧 <b>ʀᴇQᴜᴇꜱᴛɪɴɢ ᴘᴇʀᴍɪꜱꜱɪᴏɴ ꜰʀᴏᴍ ᴛʜᴇ ᴏᴡɴᴇʀ...</b>\n\nᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ.")
 
         # Owner ထံ ခွင့်ပြုချက်တောင်းခြင်း
         mention = message.from_user.mention
@@ -66,10 +66,10 @@ async def clone_txt(client, message: Message):
         try:
             await app.send_message(
                 OWNER_ID,
-                f"👤 <b>Clone Bot Request</b>\n\n"
-                f"<b>User:</b> {mention} (`{user_id}`)\n"
-                f"<b>Token:</b> `{bot_token}`\n\n"
-                f"ဒီ User ကို Clone Bot ဖန်တီးခွင့် ပေးမလား?",
+                f"👤 <b>ᴄʟᴏɴᴇ ʙᴏᴛ ʀᴇQᴜᴇꜱᴛ</b>\n\n"
+                f"<b>ᴜꜱᴇʀ:</b> {mention} (`{user_id}`)\n"
+                f"<b>ᴛᴏᴋᴇɴ:</b> `{bot_token}`\n\n"
+                f"ᴀʟʟᴏᴡ ᴛʜɪꜱ ᴜꜱᴇʀ ᴛᴏ ᴄʀᴇᴀᴛᴇ ᴀ ᴄʟᴏɴᴇ ʙᴏᴛ?",
                 reply_markup=InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("✅ ခွင့်ပြုမည်", callback_data=f"CLONE_DECISION|APPROVE|{user_id}"),
@@ -78,7 +78,7 @@ async def clone_txt(client, message: Message):
                 ])
             )
         except Exception as e:
-            await msg.edit_text(f"❌ Owner ထံ စာပို့မရပါ (Owner ID မှားနေခြင်း (သို့) Bot ကို Block ထားခြင်း)။\nError: {e}")
+            await msg.edit_text(f"❌ ᴜɴᴀʙʟᴇ ᴛᴏ ꜱᴇɴᴅ ᴍᴇꜱꜱᴀɢᴇ ᴛᴏ ᴏᴡɴᴇʀ (ᴏᴡɴᴇʀ ɪᴅ ɪꜱ ɪɴᴄᴏʀʀᴇᴄᴛ ᴏʀ ʙᴏᴛ ɪꜱ ʙʟᴏᴄᴋᴇᴅ).\nError: {e}")
 
     except Exception as e:
         err_text = traceback.format_exc()
@@ -89,14 +89,14 @@ async def clone_txt(client, message: Message):
 @app.on_callback_query(filters.regex("CLONE_DECISION"))
 async def clone_decision_handler(client, query: CallbackQuery):
     if query.from_user.id != OWNER_ID:
-        return await query.answer("သင်သည် Owner မဟုတ်ပါ။", show_alert=True)
+        return await query.answer("ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴛʜᴇ ᴏᴡɴᴇʀ.", show_alert=True)
 
     data = query.data.split("|")
     decision = data[1]
     user_id = int(data[2])
 
     if user_id not in PENDING_REQUESTS:
-        return await query.answer("⚠️ ဤ Request သက်တမ်းကုန်သွားပါပြီ။", show_alert=True)
+        return await query.answer("⚠️ 𝗧𝗵𝗶𝘀 𝗿𝗲𝗾𝘂𝗲𝘀𝘁 𝗵𝗮𝘀 𝗲𝘅𝗽𝗶𝗿𝗲𝗱.", show_alert=True)
 
     request_data = PENDING_REQUESTS[user_id]
     bot_token = request_data["token"]
@@ -107,13 +107,13 @@ async def clone_decision_handler(client, query: CallbackQuery):
         return await query.answer("Database Error", show_alert=True)
 
     if decision == "DECLINE":
-        await query.message.edit_text(f"❌ User {user_id} ၏ Clone Request ကို ငြင်းပယ်လိုက်ပါသည်။")
-        await app.send_message(user_id, "❌ <b>စိတ်မကောင်းပါ၊ သင်၏ Clone Bot ဖန်တီးခွင့်ကို Owner မှ ငြင်းပယ်လိုက်ပါသည်။</b>")
+        await query.message.edit_text(f"❌ 𝗨𝘀𝗲𝗿'𝘀 {user_id} 𝗰𝗹𝗼𝗻𝗲 𝗿𝗲𝗾𝘂𝗲𝘀𝘁 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗿𝗲𝗷𝗲𝗰𝘁𝗲𝗱.")
+        await app.send_message(user_id, "❌ <b>𝙎𝙤𝙧𝙧𝙮, 𝙮𝙤𝙪𝙧 𝙥𝙚𝙧𝙢𝙞𝙨𝙨𝙞𝙤𝙣 𝙩𝙤 𝙘𝙧𝙚𝙖𝙩𝙚 𝙖 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩 𝙝𝙖𝙨 𝙗𝙚𝙚𝙣 𝙙𝙚𝙣𝙞𝙚𝙙 𝙗𝙮 𝙩𝙝𝙚 𝙊𝙬𝙣𝙚𝙧.</b>")
         del PENDING_REQUESTS[user_id]
         
     elif decision == "APPROVE":
-        await query.message.edit_text(f"✅ User {user_id} ၏ Clone Request ကို လက်ခံလိုက်ပါသည်။\nBot ဖန်တီးနေသည်...")
-        status_msg = await app.send_message(user_id, "✅ <b>Owner မှ ခွင့်ပြုလိုက်ပါသည်။</b>\n♻️ Clone Bot ဖန်တီးနေပါသည်...")
+        await query.message.edit_text(f"✅ 𝗨𝘀𝗲𝗿'𝘀 {user_id} 𝗖𝗹𝗼𝗻𝗲 𝗥𝗲𝗾𝘂𝗲𝘀𝘁 𝗵𝗮𝘀 𝗯𝗲𝗲𝗻 𝗮𝗰𝗰𝗲𝗽𝘁𝗲𝗱.\n𝘾𝙧𝙚𝙖𝙩𝙞𝙣𝙜 𝙗𝙤𝙩...")
+        status_msg = await app.send_message(user_id, "✅ <b>𝗣𝗲𝗿𝗺𝗶𝘀𝘀𝗶𝗼𝗻 𝗴𝗿𝗮𝗻𝘁𝗲𝗱 𝗯𝘆 𝘁𝗵𝗲 𝗼𝘄𝗻𝗲𝗿.</b>\n♻️ 𝘾𝙧𝙚𝙖𝙩𝙞𝙣𝙜 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩...")
 
         try:
             ai = Client(
@@ -133,21 +133,21 @@ async def clone_decision_handler(client, query: CallbackQuery):
             CLONES.add(bot_token)
             
             details = f"""
-<b>✅ Clone Bot အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ!</b>
+<b>✅ 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.</b>
 
 <b>🤖 Bot Name:</b> {bot_info.first_name}
 <b>🔗 Username:</b> @{username}
 
-<i>⚠️မှတ်ချက်: သီချင်းနားထောင်ရန် သင့် Clone Bot ကို Group ထဲထည့်ပြီး Admin ပေးထားပါ။</i>
+<i>ᴛᴏ ʟɪꜱᴛᴇɴ ᴛᴏ ᴍᴜꜱɪᴄ, ᴀᴅᴅ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ɢʀᴏᴜᴘ ᴀɴᴅ ɢɪᴠᴇ ɪᴛ ᴀᴅᴍɪɴ ꜱᴛᴀᴛᴜꜱ.</i>
 """
             await status_msg.edit_text(details)
-            await query.message.reply_text(f"✅ @{username} အောင်မြင်စွာ Run ပါပြီ။")
+            await query.message.reply_text(f"✅ @{username} ʀᴜɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ...")
             
         except AccessTokenInvalid:
-            await status_msg.edit_text("❌ Bot Token မှားယွင်းနေပါသည်။")
-            await query.message.reply_text("❌ User ပေးသော Token မှားနေသဖြင့် မအောင်မြင်ပါ။")
+            await status_msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
+            await query.message.reply_text("❌ ᴛʜᴇ ᴛᴏᴋᴇɴ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ᴛʜᴇ ᴜꜱᴇʀ ɪꜱ ɪɴᴠᴀʟɪᴅ ᴀɴᴅ ꜰᴀɪʟᴇᴅ.")
         except Exception as e:
-            await status_msg.edit_text(f"❌ အမှားဖြစ်ပွားခဲ့သည်: {e}")
+            await status_msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ: {e}")
             await query.message.reply_text(f"❌ Error: {e}")
         
         del PENDING_REQUESTS[user_id]
@@ -169,10 +169,10 @@ async def delete_clone_bot(client, message: Message):
             if user_clone:
                 token = user_clone.get("bot_token")
             else:
-                return await message.reply_text("⚠️ မိတ်ဆွေတွင် ဖျက်စရာ Clone Bot မရှိပါ။")
+                return await message.reply_text("ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ.")
 
         await delete_clone(token)
-        await message.reply_text("✅ Clone Bot ကို အောင်မြင်စွာ ဖျက်သိမ်းလိုက်ပါပြီ။\nယခု အသစ်တစ်ခု ထပ်လုပ်နိုင်ပါပြီ။")
+        await message.reply_text("✅ ᴄʟᴏɴᴇ ʙᴏᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴄᴀɴᴄᴇʟᴇᴅ.\nɴᴏᴡ ʏᴏᴜ ᴄᴀɴ ᴍᴀᴋᴇ ᴀ ɴᴇᴡ ᴏɴᴇ.")
         
     except Exception as e:
         await message.reply_text(f"Error: {e}")
