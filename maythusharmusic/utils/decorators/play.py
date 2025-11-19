@@ -29,21 +29,18 @@ clinks = {}
 
 def PlayWrapper(command):
     async def wrapper(client, message):
-        # --- (၁) TOTAL SILENT MODE (Clone Bot Only) ---
-        # လက်ရှိ Run နေတာ Clone Bot ဖြစ်မှသာ စစ်ဆေးမည်
+        # --- (၁) CLONE SILENT CHECK (ထိပ်ဆုံးမှာ ထားပါ) ---
+        # လက်ရှိ Run နေတာ Clone Bot ဖြစ်ပါက (Main Bot ID နဲ့ မတူရင်)
         if client.me.id != app.me.id:
             try:
-                # Main Bot (app) ကို Group ထဲမှာ လိုက်ရှာခြင်း
+                # Group ထဲမှာ Main Bot (app) ရှိ/မရှိ စစ်ဆေးခြင်း
                 await client.get_chat_member(message.chat.id, app.me.id)
                 
-                # Error မတက်ဘူးဆိုရင် Main Bot ရှိနေလို့ ဖြစ်သည်။
-                # ဒါကြောင့် Clone Bot က ဘာမှမလုပ်ဘဲ၊ ဘာမှမပြောဘဲ ရပ်လိုက်မည်။
+                # အပေါ်က line မှာ Error မတက်ဘူးဆိုရင် Main Bot ရှိနေလို့ပါ
+                # ဒါကြောင့် Clone Bot က Command ကို ဆက်မလုပ်ဘဲ ဒီမှာတင် ရပ်လိုက်ပါမယ်
                 return 
-            except UserNotParticipant:
-                # Main Bot မရှိမှသာ အောက်က လုပ်ဆောင်ချက်တွေကို ဆက်လုပ်မည်
-                pass
-            except Exception:
-                # တခြား Error တက်ရင်လည်း (ဥပမာ Admin မဟုတ်လို့ ရှာမရတာမျိုး) ဘာမှမလုပ်ဘဲ ကျော်သွားမည်
+            except:
+                # Main Bot မရှိမှသာ (Error တက်မှသာ) အောက်က ကုဒ်တွေကို ဆက်လုပ်ပါမယ်
                 pass
         # --------------------------------------------------
 
@@ -215,7 +212,7 @@ def PlayWrapper(command):
 
 def CPlayWrapper(command):
     async def wrapper(client, message):
-        # --- SILENT MODE (Channel Play အတွက်) ---
+        # --- SILENT CHECK FOR CHANNEL PLAY ---
         if client.me.id != app.me.id:
             try:
                 await client.get_chat_member(message.chat.id, app.me.id)
