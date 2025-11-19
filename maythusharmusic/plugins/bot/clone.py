@@ -22,7 +22,7 @@ async def clone_txt(client, message: Message):
 
     if len(message.command) < 2:
         return await message.reply_text(
-            "<b>အသုံးပြုပုံ :</b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
+            "Dᴇᴠᴇʟᴏᴘᴇʀ : @iwillgoforwardsalone </b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
         )
     
     bot_token = message.text.split(None, 1)[1]
