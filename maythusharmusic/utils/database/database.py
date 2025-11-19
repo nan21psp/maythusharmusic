@@ -85,8 +85,12 @@ async def is_cloned(bot_token: str):
     clone = await clonedb.find_one({"bot_token": bot_token})
     return True if clone else False
 
+async def get_clone_by_user(user_id: int):
+    """User ID ဖြင့် Clone Bot ရှိမရှိ ရှာဖွေခြင်း"""
+    clone = await clonedb.find_one({"user_id": user_id})
+    return clone
 
-
+#_____________________________________________________________________#
 # Total Queries on bot
 
 
