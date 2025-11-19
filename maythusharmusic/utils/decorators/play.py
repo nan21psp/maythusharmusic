@@ -1,5 +1,5 @@
 import asyncio
-from pyrogram.enums import ChatMemberStatus, ChatMembersFilter
+from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import (
     ChatAdminRequired,
     InviteRequestSent,
@@ -19,7 +19,6 @@ from maythusharmusic.utils.database import (
     get_playtype,
     is_active_chat,
     is_maintenance,
-    get_clones, # Clone စာရင်းရယူရန်
 )
 from maythusharmusic.utils.inline import botplaylist_markup
 from config import PLAYLIST_IMG_URL, SUPPORT_CHAT, adminlist
@@ -28,30 +27,21 @@ from strings import get_string
 links = {}
 clinks = {}
 
-
 def PlayWrapper(command):
     async def wrapper(client, message):
-        # --- (၁) SILENT MODE CHECK (Main Bot အတွက်) ---
-        # လက်ရှိ Run နေတာ Main Bot ဖြစ်ပါက
-        if client.me.id == app.me.id:
+        # --- (၁) CLONE SILENT CHECK (ထိပ်ဆုံးမှာ ထားပါ) ---
+        # လက်ရှိ Run နေတာ Clone Bot ဖြစ်ပါက (Main Bot ID နဲ့ မတူရင်)
+        if client.me.id != app.me.id:
             try:
-                # Database မှ Clone Bot စာရင်းကို ရယူခြင်း
-                clones_data = await get_clones()
-                # Clone Username များကို List အဖြစ် ပြောင်းခြင်း
-                clone_usernames = [c.get("bot_username", "").lower() for c in clones_data if c.get("bot_username")]
+                # Group ထဲမှာ Main Bot (app) ရှိ/မရှိ စစ်ဆေးခြင်း
+                await client.get_chat_member(message.chat.id, app.me.id)
                 
-                # လက်ရှိ Group ထဲရှိ Bot များကို စစ်ဆေးခြင်း
-                is_clone_here = False
-                async for bot_member in app.get_chat_members(message.chat.id, filter=ChatMembersFilter.BOTS):
-                    if bot_member.user.username and bot_member.user.username.lower() in clone_usernames:
-                        is_clone_here = True
-                        break
-                
-                # Clone Bot ရှိနေရင် Main Bot က ဘာမှမလုပ်ဘဲ ရပ်မည် (Silent)
-                if is_clone_here:
-                    return 
-            except Exception as e:
-                print(f"Silent Check Error: {e}")
+                # အပေါ်က line မှာ Error မတက်ဘူးဆိုရင် Main Bot ရှိနေလို့ပါ
+                # ဒါကြောင့် Clone Bot က Command ကို ဆက်မလုပ်ဘဲ ဒီမှာတင် ရပ်လိုက်ပါမယ်
+                return 
+            except:
+                # Main Bot မရှိမှသာ (Error တက်မှသာ) အောက်က ကုဒ်တွေကို ဆက်လုပ်ပါမယ်
+                pass
         # --------------------------------------------------
 
         language = await get_lang(message.chat.id)
@@ -220,10 +210,17 @@ def PlayWrapper(command):
 
     return wrapper
 
-# CPlayWrapper (Channel Play) အတွက်လည်း Silent Mode လိုအပ်ရင် အပေါ်က Logic အတိုင်း ထပ်ထည့်နိုင်ပါတယ်
 def CPlayWrapper(command):
     async def wrapper(client, message):
-        # ... (CPlayWrapper code မူလအတိုင်းထားပါ၊ လိုအပ်ရင် အပေါ်က Silent Logic ထည့်ပါ) ...
+        # --- SILENT CHECK FOR CHANNEL PLAY ---
+        if client.me.id != app.me.id:
+            try:
+                await client.get_chat_member(message.chat.id, app.me.id)
+                return 
+            except:
+                pass
+        # -------------------------------------
+
         language = await get_lang(message.chat.id)
         _ = get_string(language)
         if message.sender_chat:
@@ -245,7 +242,7 @@ def CPlayWrapper(command):
                     text=f"{client.me.mention} ɪs ᴜɴᴅᴇʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ, ᴠɪsɪᴛ <a href={SUPPORT_CHAT}>sᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ</a> ғᴏʀ ᴋɴᴏᴡɪɴɢ ᴛʜᴇ ʀᴇᴀsᴏɴ.",
                     disable_web_page_preview=True,
                 )
-        
+
         return await command(
             client,
             message,
