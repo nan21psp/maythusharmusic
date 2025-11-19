@@ -54,6 +54,37 @@ async def play_commnd(
     url,
     fplay,
 ):
+    # --- (၁) Main Bot Admin Check (အသစ်ထည့်သွင်းထားသောအပိုင်း) ---
+    try:
+        # Main Bot အချက်အလက်ရယူခြင်း
+        main_bot = await app.get_me()
+        
+        try:
+            # Clone Bot (client) ကနေ Main Bot ကို Group ထဲမှာ လိုက်ရှာခြင်း
+            member = await client.get_chat_member(chat_id, main_bot.id)
+            
+            # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမယ်
+            if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+                return await message.reply_text(
+                    f"⚠️ <b>Main Bot Admin Required!</b>\n\n"
+                    f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group တွင် <b>Admin</b> ခန့်ထားပေးရပါမည်။",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("➕ Add Main Bot & Promote", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                    ])
+                )
+                
+        except UserNotParticipant:
+            # Group ထဲမှာ လုံးဝမရှိရင်
+            return await message.reply_text(
+                f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                f"Clone Bot ကို အသုံးပြုရန်အတွက် မူရင်း Bot ဖြစ်သော @{main_bot.username} ကို ဤ Group ထဲသို့ ထည့်သွင်းပြီး <b>Admin</b> ပေးထားပါ။",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot.username}?startgroup=true")]
+                ])
+            )
+    except Exception as e:
+        print(f"Main Bot Check Error: {e}")
+        
     mystic = await message.reply_text(
         _["play_2"].format(channel) if channel else _["play_1"]
     )
