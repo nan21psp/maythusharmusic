@@ -61,6 +61,14 @@ async def play_commnd(
     url,
     fplay,
 ):
+    # --- (၀) CLONE BOT ACTIVE STATUS CHECK ---
+    if not await is_clones_active():
+        return await message.reply_text(
+            "⚠️ <b>System Maintenance!</b>\n\n"
+            "Clone Bot စနစ်ကို Owner မှ ယာယီပိတ်ထားပါသည်။\n"
+            "ခေတ္တစောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။"
+        )
+    
     # --- (၁) MAIN BOT ADMIN CHECK (DIRECT LOGIC) ---
     # Clone Bot ဖြစ်မှသာ စစ်ဆေးမည်
     if client.me.id != app.me.id:
