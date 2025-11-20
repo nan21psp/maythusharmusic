@@ -93,7 +93,7 @@ async def settings_back_markup(client, CallbackQuery: CallbackQuery, _):
         return await CallbackQuery.edit_message_media(
             InputMediaPhoto(
                 media=START_IMG_URL,
-                caption=_["start_10"].format(
+                caption=_["start_7"].format(
                     CallbackQuery.from_user.first_name, app.mention),
             ),
             reply_markup=InlineKeyboardMarkup(buttons),
@@ -405,4 +405,5 @@ async def vote_change(client, CallbackQuery, _):
         )
     except MessageNotModified:
         return
+
 
