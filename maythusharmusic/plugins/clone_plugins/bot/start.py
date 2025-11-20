@@ -3,18 +3,17 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from maythusharmusic import app
 
 START_TEXT = """
-**✨ ဟယ်လို {}!**
+**🫧 ʜᴇʟʟᴏ {}!**
 
-ကျွန်တော်က **{}**၊ အဆင်ပြေချောမွေ့တဲ့ music streaming experience ပေးဖို့ ဒီမှာရှိနေပါတယ်။
+ɪ ᴀᴍ **{}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴀᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ.
+• ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+• ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴀᴍɪɴɢ
+• sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
+• 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
+• ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : play, vplay, mp4 support 
+• ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
 
-**🎵 ကျွန်တော့်မှာရှိတဲ့ အဓိကလုပ်ဆောင်ချက်တွေ:**
-• High quality audio streaming
-• Unlimited playback
-• Queue management
-• Channel & Group support
-• 24/7 active
-
-အောက်ကခလုတ်တွေကိုနှိပ်ပြီး ကျွန်တော့်ကိုသုံးလို့ရပါတယ်! 🎶
+ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ. 🫧
 """
 
 @Client.on_message(filters.command("start") & filters.private)
@@ -26,16 +25,16 @@ async def start_private(client: Client, message: Message):
         [
             [
                 InlineKeyboardButton(
-                    text="🎵 Add me to your group",
+                    text="ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ",
                     url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users"
                 )
             ],
             [
-                InlineKeyboardButton("👑 Owner", url="https://t.me/iwillgoforwardsalone"),
-                InlineKeyboardButton("💬 Support Group", url="https://t.me/sasukemusicsupportchat"),
+                InlineKeyboardButton("ᴏᴡɴᴇʀ", url="https://t.me/iwillgoforwardsalone"),
+                InlineKeyboardButton("ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ", url="https://t.me/sasukemusicsupportchat"),
             ],
             [
-                InlineKeyboardButton("📢 Support Channel", url="https://t.me/everythingreset"),
+                InlineKeyboardButton("ꜱᴜᴘᴘᴏʀᴛ ᴄʜᴀɴɴᴇʟ", url="https://t.me/everythingreset"),
             ],
         ]
     )
