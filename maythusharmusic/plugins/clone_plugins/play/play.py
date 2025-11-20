@@ -65,10 +65,10 @@ async def play_commnd(
     # --- (၀) CLONE BOT ACTIVE STATUS CHECK ---
     if not await is_clones_active():
         return await message.reply_text(
-            "> •**ꜱʏꜱᴛᴇᴍ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.**\n"
+            "> •**ꜱʏꜱᴛᴇᴍ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.**"
             
-            "> • ᴄʟᴏɴᴇ ʙᴏᴛ စနစ်ကို ᴏᴡɴᴇʀ မှ ယာယီပိတ်ထားပါသည်။\n"
-            "> • ခေတ္တစောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။"
+            "> •ᴄʟᴏɴᴇ ʙᴏᴛ စနစ်ကို ᴏᴡɴᴇʀ မှ ယာယီပိတ်ထားပါသည်။"
+            "> •ခေတ္တစောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။"
         )
     
     # --- (၁) MAIN BOT ADMIN CHECK (DIRECT LOGIC) ---
