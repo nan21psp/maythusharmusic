@@ -12,18 +12,31 @@ from maythusharmusic import app
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
-#bot_info = await client.get_me()
-#bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
+bot_info = await client.get_me()
+bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
+    # Variable Initialization (Error ကာကွယ်ရန်)
+    bot_token = None
+    
     try:
         try:
-            from maythusharmusic.utils.database import save_clone, get_clone_by_user
+            from maythusharmusic.utils.database import save_clone, get_clone_by_user, is_clones_active
         except ImportError:
-            return await message.reply_text("❌ ᴅᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ")
+            return await message.reply_text("❌ Database Error: Module Import Failed")
 
-        # ONE USER ONE BOT LIMIT CHECK
+        # --- (၁) SYSTEM ON/OFF CHECK ---
+        if not await is_clones_active():
+            return await message.reply_text(
+                "> •**𝙎𝙮𝙨𝙩𝙚𝙢 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚**\n"
+                ">\n"
+                "> •𝘾𝙡𝙤𝙣𝙚 𝙗𝙤𝙩 စနစ်ကို 𝙊𝙬𝙣𝙚𝙧 မှ ယာယီပိတ်ထားပါသည်။\n"
+                "> •ခေတ္တစောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။"
+            )
+        # -----------------------------
+
+        # --- (၂) ONE USER ONE BOT LIMIT CHECK ---
         user_id = message.from_user.id
         existing_clone = await get_clone_by_user(user_id)
         
@@ -68,7 +81,7 @@ async def clone_txt(client, message: Message):
             details = f"""
 <b>✅ 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.</b>
 
-<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_info.first_name}
+<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_mention}
 <b>🔗 𝙐𝙨𝙚𝙣𝙖𝙢𝙚 : </b> @{username}
 
 <i>ᴛᴏ ʟɪꜱᴛᴇɴ ᴛᴏ ᴍᴜꜱɪᴄ, ᴀᴅᴅ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ɢʀᴏᴜᴘ ᴀɴᴅ ɢɪᴠᴇ ɪᴛ ᴀᴅᴍɪɴ ꜱᴛᴀᴛᴜꜱ.</i>
@@ -76,13 +89,12 @@ async def clone_txt(client, message: Message):
             await msg.edit_text(details)
             
         except AccessTokenInvalid:
-            await msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
+            await status_msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
+            await query.message.reply_text("❌ ᴛʜᴇ ᴛᴏᴋᴇɴ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ᴛʜᴇ ᴜꜱᴇʀ ɪꜱ ɪɴᴠᴀʟɪᴅ ᴀɴᴅ ꜰᴀɪʟᴇᴅ.")
         except Exception as e:
-            await msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ : {e}")
-
-    except Exception as e:
-        await message.reply_text(f"❌ <b>ᴇʀʀᴏʀ : </b> {e}")
-
+            await status_msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ: {e}")
+            await query.message.reply_text(f"❌ Error: {e}")
+        
 
 @app.on_message(filters.command("delclone") & filters.private)
 async def delete_clone_bot(client, message: Message):
