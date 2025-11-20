@@ -33,7 +33,7 @@ def clone_start_pm(bot_username):
         [
             InlineKeyboardButton(
                 text="အုပ်စုသို့ထည့်ရန်", # S_B_3 အစား တိုက်ရိုက်ရေးလိုက်ပါ
-                url=f"https://t.me/{bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
+                url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
             )
         ],
         [
