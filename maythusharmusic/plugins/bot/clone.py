@@ -12,8 +12,6 @@ from maythusharmusic import app
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
-bot_info = await client.get_me()
-bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
@@ -42,12 +40,13 @@ async def clone_txt(client, message: Message):
         
         if existing_clone:
             bot_username = existing_clone.get("bot_username", "Unknown")
+            bot_token_existing = existing_clone.get("bot_token", "")
             return await message.reply_text(
                 f"⚠️ <b>𝗡𝗼𝘁𝗶𝗰 𝗙𝗼𝗿 𝗨𝘀𝗲𝗿𝘀!</b>\n\n"
                 f"𝙔𝙤𝙪 𝙖𝙡𝙧𝙚𝙖𝙙𝙮 𝙝𝙖𝙫𝙚 𝙖 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩.\n"
                 f"🤖 <b>𝗕𝗼𝘁 : </b> @{bot_username}\n\n"
                 f"𝙄𝙛 𝙮𝙤𝙪 𝙬𝙖𝙣𝙩 𝙩𝙤 𝙘𝙧𝙚𝙖𝙩𝙚 𝙖 𝙣𝙚𝙬 𝙤𝙣𝙚, 𝙙𝙚𝙡𝙚𝙩𝙚 𝙩𝙝𝙚 𝙚𝙭𝙞𝙨𝙩𝙞𝙣𝙜 𝘽𝙤𝙩 𝙛𝙞𝙧𝙨𝙩.\n"
-                f"<code>/delclone {bot_token}</code>"
+                f"<code>/delclone {bot_token_existing}</code>"
             )
 
         if len(message.command) < 2:
@@ -74,6 +73,7 @@ async def clone_txt(client, message: Message):
             await ai.start()
             bot_info = await ai.get_me()
             username = bot_info.username
+            bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
             
             await save_clone(bot_token, user_id, username)
             CLONES.add(bot_token)
@@ -89,12 +89,12 @@ async def clone_txt(client, message: Message):
             await msg.edit_text(details)
             
         except AccessTokenInvalid:
-            await status_msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
-            await query.message.reply_text("❌ ᴛʜᴇ ᴛᴏᴋᴇɴ ᴘʀᴏᴠɪᴅᴇᴅ ʙʏ ᴛʜᴇ ᴜꜱᴇʀ ɪꜱ ɪɴᴠᴀʟɪᴅ ᴀɴᴅ ꜰᴀɪʟᴇᴅ.")
+            await msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
         except Exception as e:
-            await status_msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ: {e}")
-            await query.message.reply_text(f"❌ Error: {e}")
+            await msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ: {e}")
         
+    except Exception as e:
+        await message.reply_text(f"❌ Unexpected error: {e}")
 
 @app.on_message(filters.command("delclone") & filters.private)
 async def delete_clone_bot(client, message: Message):
@@ -111,12 +111,16 @@ async def delete_clone_bot(client, message: Message):
             else:
                 return await message.reply_text("ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ.")
 
-        await delete_clone(token)
-        await message.reply_text("✅ ᴄʟᴏɴᴇ ʙᴏᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴜɴɪɴꜱᴛᴀʟʟᴇᴅ.")
+        if token:
+            await delete_clone(token)
+            if token in CLONES:
+                CLONES.remove(token)
+            await message.reply_text("✅ ᴄʟᴏɴᴇ ʙᴏᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴜɴɪɴꜱᴛᴀʟʟᴇᴅ.")
+        else:
+            await message.reply_text("❌ ɪɴᴠᴀʟɪᴅ ᴛᴏᴋᴇɴ ᴏʀ ɴᴏ ᴄʟᴏɴᴇ ʙᴏᴛ ꜰᴏᴜɴᴅ.")
         
     except Exception as e:
         await message.reply_text(f"ᴇʀʀᴏʀ : {e}")
-
 
 # --- (၁) OWNER ONLY: Clone Bot အရေအတွက် ကြည့်ခြင်း ---
 @app.on_message(filters.command("checkbot") & filters.user(OWNER_ID))
@@ -139,7 +143,6 @@ async def total_clones_stats(client, message: Message):
     except Exception as e:
         await message.reply_text(f"Error: {e}")
 
-
 # --- (၂) OWNER ONLY: Clone Bot အားလုံးကို ဖျက်ခြင်း ---
 @app.on_message(filters.command("delallclones") & filters.user(OWNER_ID))
 async def delete_all_clones_func(client, message: Message):
@@ -159,16 +162,12 @@ async def delete_all_clones_func(client, message: Message):
         
         # Database ရှင်းလင်းခြင်း
         await remove_all_clones()
-        
-        # Session Files များကို ရှင်းလင်းခြင်း (Optional)
-        # (Client session files တွေကျန်ခဲ့ရင် နေရာယူလို့ ရှင်းတာပါ)
-        # session file တွေက root folder မှာ ရှိနေတတ်ပါတယ်
+        CLONES.clear()
         
         await msg.edit_text("✅ <b>𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙝𝙖𝙫𝙚 𝙗𝙚𝙚𝙣 𝙨𝙪𝙘𝙘𝙚𝙨𝙨𝙛𝙪𝙡𝙡𝙮 𝙙𝙚𝙡𝙚𝙩𝙚𝙙 𝙛𝙧𝙤𝙢 𝙩𝙝𝙚 𝘿𝙖𝙩𝙖𝙗𝙖𝙨𝙚.</b>\n\n𝙍𝙚𝙨𝙩𝙖𝙧𝙩 𝙩𝙝𝙚 𝙗𝙤𝙩 𝙛𝙤𝙧 𝙩𝙝𝙚 𝙚𝙛𝙛𝙚𝙘𝙩 𝙩𝙤 𝙩𝙖𝙠𝙚 𝙚𝙛𝙛𝙚𝙘𝙩. (/reboot)")
         
     except Exception as e:
         await message.reply_text(f"Error: {e}")
-
 
 async def restart_clones():
     try:
@@ -200,7 +199,6 @@ async def restart_clones():
     except Exception as e:
         print(f"Error in restart_clones: {e}")
 
-
 @app.on_message(filters.command("clonebot") & filters.user(OWNER_ID))
 async def clone_mode_switch(client, message: Message):
     try:
@@ -215,7 +213,7 @@ async def clone_mode_switch(client, message: Message):
         
         if state == "on" or state == "enable":
             await set_clones_active(True)
-            await message.reply_text("✅ <b>𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩 𝙎𝙮𝙨𝙩𝙚𝙢 𝙝𝙖𝙨 𝙗𝙚𝙚𝙣 𝙖𝙘𝙩𝙞𝙫𝙖𝙩𝙚𝙙.</b>\n𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙬𝙞𝙡𝙡 𝙧𝙚𝙨𝙪𝙢𝙚 𝙣𝙤𝙧𝙢𝙖𝙡 𝙤𝙥𝙚𝙧𝙖𝙩𝙞𝙤𝙣.")
+            await message.reply_text("✅ <b>𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩 𝙎𝙮𝙨𝙩𝙚𝙢 𝙝𝙖𝙨 𝙗𝙚𝙚𝙗 𝙖𝙘𝙩𝙞𝙫𝙖𝙩𝙚𝙙.</b>\n𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙬𝙞𝙡𝙡 𝙧𝙚𝙨𝙪𝙢𝙚 𝙣𝙤𝙧𝙢𝙖𝙡 𝙤𝙥𝙚𝙧𝙖𝙩𝙞𝙤𝙣.")
             
         elif state == "off" or state == "disable":
             await set_clones_active(False)
