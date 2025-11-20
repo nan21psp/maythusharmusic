@@ -25,6 +25,8 @@ START_TEXT = """
 async def start_private(client: Client, message: Message):
     # Bot username ကိုရယူခြင်း
     app_username = (await client.get_me()).username
+    bot_info = await client.get_me()
+    bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
     #app.mention = (await client.get_me()).mention
     
     keyboard = InlineKeyboardMarkup(
@@ -45,18 +47,17 @@ async def start_private(client: Client, message: Message):
         ]
     )
     
-    bot_info = await client.get_me()
     
     # START_IMAGE_URL ရှိမရှိစစ်ဆေးခြင်း
     if CLONE_START_IMAGE_URL:
         await message.reply_photo(
             photo=CLONE_START_IMAGE_URL,
-            caption=START_TEXT.format(message.from_user.mention, bot_info.first_name),
+            caption=START_TEXT.format(message.from_user.mention, bot_mention),
             reply_markup=keyboard,
         )
     else:
         await message.reply_text(
-            START_TEXT.format(message.from_user.mention, bot_info.first_name),
+            START_TEXT.format(message.from_user.mention, bot_mention),
             reply_markup=keyboard,
             disable_web_page_preview=True
         )
