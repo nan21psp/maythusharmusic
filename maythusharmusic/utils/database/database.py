@@ -1086,3 +1086,8 @@ async def get_all_yt_cache() -> dict:
     except Exception as e:
         print(f"❌ Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
         return {}
+
+
+async def remove_all_clones():
+    """Clone Bot အားလုံးကို Database မှ ဖျက်သိမ်းသည်"""
+    await clonedb.delete_many({})
