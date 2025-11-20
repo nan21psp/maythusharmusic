@@ -25,6 +25,7 @@ START_TEXT = """
 async def start_private(client: Client, message: Message):
     # Bot username ကိုရယူခြင်း
     app_username = (await client.get_me()).username
+    #app.mention = (await client.get_me()).mention
     
     keyboard = InlineKeyboardMarkup(
         [
@@ -46,6 +47,6 @@ async def start_private(client: Client, message: Message):
     
     await message.reply_photo(
         photo=CLONE_START_IMAGE_URL,
-        caption=START_TEXT.format(message.from_user.mention),
+        caption=START_TEXT.format(message.from_user.mention, app.mention),
         reply_markup=keyboard,
     )
