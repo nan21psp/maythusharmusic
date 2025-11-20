@@ -12,8 +12,8 @@ from maythusharmusic import app
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
-bot_info = await client.get_me()
-bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
+#bot_info = await client.get_me()
+#bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
@@ -68,7 +68,7 @@ async def clone_txt(client, message: Message):
             details = f"""
 <b>✅ 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.</b>
 
-<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_mention}
+<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_info.first_name}
 <b>🔗 𝙐𝙨𝙚𝙣𝙖𝙢𝙚 : </b> @{username}
 
 <i>ᴛᴏ ʟɪꜱᴛᴇɴ ᴛᴏ ᴍᴜꜱɪᴄ, ᴀᴅᴅ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ɢʀᴏᴜᴘ ᴀɴᴅ ɢɪᴠᴇ ɪᴛ ᴀᴅᴍɪɴ ꜱᴛᴀᴛᴜꜱ.</i>
