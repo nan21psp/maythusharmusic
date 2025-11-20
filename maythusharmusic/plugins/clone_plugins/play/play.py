@@ -89,8 +89,8 @@ async def play_commnd(
                 # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမည်
                 if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
                     return await message.reply_text(
-                        f"> •**ᴍᴀɪɴ ᴍᴜꜱɪᴄ ʙᴏᴛ ᴀᴅᴍɪɴ ʀᴇǫᴜɪʀᴇᴅ.**\n"
-                        f"> •ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} , must be appointed as <b>ᴀᴅᴍɪɴ</b> ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.",
+                        f">•**ᴍᴀɪɴ ᴍᴜꜱɪᴄ ʙᴏᴛ ᴀᴅᴍɪɴ ʀᴇǫᴜɪʀᴇᴅ.**\n"
+                        f"•ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} , must be appointed as <b>ᴀᴅᴍɪɴ</b> ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.",
                         reply_markup=InlineKeyboardMarkup([
                             [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ & ᴘʀᴏᴍᴏᴛᴇ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                         ])
@@ -99,8 +99,8 @@ async def play_commnd(
             except UserNotParticipant:
                 # Main Bot Group ထဲမှာ လုံးဝမရှိရင် တားမည်
                 return await message.reply_text(
-                    f"> •**ᴍᴀɪɴ ʙᴏᴛ ᴍɪꜱꜱɪɴɢ**\n"
-                    f"> •ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴀᴅᴅ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} to this Group and give it <b>ᴀᴅᴍɪɴ</b> status.",
+                    f">•**ᴍᴀɪɴ ʙᴏᴛ ᴍɪꜱꜱɪɴɢ**\n"
+                    f"•ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴀᴅᴅ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} to this Group and give it <b>ᴀᴅᴍɪɴ</b> status.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                     ])
