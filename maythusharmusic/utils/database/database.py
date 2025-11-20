@@ -1,6 +1,7 @@
 #database.py
 import random
 import string
+import time
 from typing import Dict, List, Union
 
 from maythusharmusic import userbot
@@ -32,6 +33,7 @@ videodb = mongodb.vipvideocalls
 clonedb = mongodb.clonedb
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
+cleandb = mongodb.cleanmode
 
 # --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
@@ -62,6 +64,29 @@ audio = {}
 video = {}
 
 
+async def add_clean_message(chat_id: int, message_id: int):
+    """ဖျက်ရမည့် စာကို Database တွင် မှတ်သားသည်"""
+    if not await is_cleanmode_on(chat_id): # Cleanmode ပိတ်ထားရင် မမှတ်ဘူး
+        return
+        
+    # လက်ရှိအချိန် + သတ်မှတ်ထားသော မိနစ် (Seconds သို့ပြောင်း)
+    expire_time = int(time.time()) + (config.CLEANMODE_DELETE_MINS * 60)
+    
+    await cleandb.insert_one({
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "expire_time": expire_time
+    })
+
+async def get_expired_messages():
+    """အချိန်ပြည့်သွားသော စာများကို ရှာသည်"""
+    current_time = int(time.time())
+    cursor = cleandb.find({"expire_time": {"$lt": current_time}})
+    return await cursor.to_list(length=None)
+
+async def remove_clean_message(chat_id: int, message_id: int):
+    """Database မှ စာရင်းကို ပြန်ဖျက်သည်"""
+    await cleandb.delete_one({"chat_id": chat_id, "message_id": message_id})
 
 # Clone Bot Database Collection
 
