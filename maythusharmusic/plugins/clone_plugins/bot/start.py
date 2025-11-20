@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from maythusharmusic import app
 
 START_TEXT = """
@@ -18,7 +18,10 @@ START_TEXT = """
 """
 
 @Client.on_message(filters.command("start") & filters.private)
-async def start_private(client, Client, message):
+async def start_private(client: Client, message: Message):
+    # Bot username ကိုရယူခြင်း
+    app_username = (await client.get_me()).username
+    
     keyboard = InlineKeyboardMarkup(
         [
             [
