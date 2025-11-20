@@ -45,7 +45,7 @@ async def start_pm(client, message: Message, _):
 
     except UserNotParticipant:
         return await message.reply_photo(
-            photo=config.JOIN_IMG_URL, # ပုံလိပ်စာကို config ကနေယူထား
+            photo=config.JOIN_IMG_URL,
             caption="ʏᴏᴜ ɴᴇᴇᴅ ᴛᴏ ᴊᴏɪɴ ᴛʜᴇ [๏ sᴜᴘᴘᴏʀᴛ ๏](https://t.me/sasukemusicsupportchat) ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ʙᴏᴛ !\nᴀғᴛᴇʀ ᴊᴏɪɴ ᴛʜᴇ [๏ ᴄʜᴀɴɴᴇʟ ๏](https://t.me/everythingreset) ᴄᴏᴍᴇ ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ʙᴏᴛ ᴀɴᴅ ᴛʏᴘᴇ /start ᴀɢᴀɪɴ !",
             reply_markup=InlineKeyboardMarkup([
                 [
@@ -172,9 +172,25 @@ async def start_pm(client, message: Message, _):
             chat_photo = "assets/nodp.png"
         await lols.delete()
         await m.delete()
+        
+        # Custom start message with your format
+        start_text = f"""
+**ʜᴇʟʟᴏ {message.from_user.mention}!**
+
+ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴀᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ.
+• ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+• ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴀᴍɪɴɢ
+• sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
+• 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
+• ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : play, vplay, mp4 support 
+• ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
+
+ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ. 🫧
+"""
+        
         await message.reply_photo(
             photo=chat_photo,
-            caption=_["start_2"].format(message.from_user.mention, app.mention),
+            caption=start_text,
             reply_markup=InlineKeyboardMarkup(out),
         )
         if await is_on_off(config.LOG):
@@ -191,9 +207,25 @@ async def start_pm(client, message: Message, _):
 async def start_gp(client, message: Message, _):
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
+    
+    # Custom group start message
+    start_text = f"""
+**Hᴇʟʟᴏ {message.from_user.mention}!**
+
+ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴀᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ.
+• ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+• ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴀᴍɪɴɢ
+• sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
+• 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
+• ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : play, vplay, mp4 support 
+• ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
+
+ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ. 🫧
+"""
+    
     await message.reply_photo(
         photo=config.START_IMG_URL,
-        caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
+        caption=start_text,
         reply_markup=InlineKeyboardMarkup(out),
     )
     return await add_served_chat(message.chat.id)
@@ -226,14 +258,25 @@ async def welcome(client, message: Message):
                     return await app.leave_chat(message.chat.id)
 
                 out = start_panel(_)
+                
+                # Custom welcome message for bot
+                welcome_text = f"""
+**ʜᴇʟʟᴏ {message.from_user.first_name}!**
+
+ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴀᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ ɪɴ **{message.chat.title}**.
+• ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+• ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴀᴍɪɴɢ
+• sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
+• 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
+• ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : play, vplay, mp4 support 
+• ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
+
+ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ. 🫧
+"""
+                
                 await message.reply_photo(
                     photo=config.START_IMG_URL,
-                    caption=_["start_3"].format(
-                        message.from_user.first_name,
-                        app.mention,
-                        message.chat.title,
-                        app.mention,
-                    ),
+                    caption=welcome_text,
                     reply_markup=InlineKeyboardMarkup(out),
                 )
                 await add_served_chat(message.chat.id)
