@@ -172,27 +172,9 @@ async def start_pm(client, message: Message, _):
             chat_photo = "assets/nodp.png"
         await lols.delete()
         await m.delete()
-        
-        # Custom start message with your format
-        start_text = f"""
-> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
-> • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
-
-> • ғᴇᴀᴛᴜʀᴇs
-> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
-> • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
-> • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
-> • ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : ᴘʟᴀʏ, ᴠᴘʟᴀʏ, ᴍᴘ4 ꜱᴜᴘᴘᴏʀᴛ 
-> • ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
-
-> • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
-> • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-> •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
-"""
-        
         await message.reply_photo(
             photo=chat_photo,
-            caption=start_text,
+            caption=_["start_7"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
         )
         if await is_on_off(config.LOG):
@@ -209,27 +191,9 @@ async def start_pm(client, message: Message, _):
 async def start_gp(client, message: Message, _):
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
-    
-    # Custom group start message
-    start_text = f"""
-> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
-> • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
-
-> • ғᴇᴀᴛᴜʀᴇs
-> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
-> • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
-> • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
-> • ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : ᴘʟᴀʏ, ᴠᴘʟᴀʏ, ᴍᴘ4 ꜱᴜᴘᴘᴏʀᴛ 
-> • ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
-
-> • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
-> • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-> •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
-"""
-    
     await message.reply_photo(
         photo=config.START_IMG_URL,
-        caption=start_text,
+        caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
         reply_markup=InlineKeyboardMarkup(out),
     )
     return await add_served_chat(message.chat.id)
@@ -262,27 +226,14 @@ async def welcome(client, message: Message):
                     return await app.leave_chat(message.chat.id)
 
                 out = start_panel(_)
-                
-                # Custom welcome message for bot
-                welcome_text = f"""
-> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
-> • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
-
-> • ғᴇᴀᴛᴜʀᴇs
-> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
-> • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
-> • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
-> • ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : ᴘʟᴀʏ, ᴠᴘʟᴀʏ, ᴍᴘ4 ꜱᴜᴘᴘᴏʀᴛ 
-> • ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
-
-> • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
-> • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-> •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
-"""
-                
                 await message.reply_photo(
                     photo=config.START_IMG_URL,
-                    caption=welcome_text,
+                    caption=_["start_3"].format(
+                        message.from_user.first_name,
+                        app.mention,
+                        message.chat.title,
+                        app.mention,
+                    ),
                     reply_markup=InlineKeyboardMarkup(out),
                 )
                 await add_served_chat(message.chat.id)
