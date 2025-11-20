@@ -1,16 +1,17 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from maythusharmusic import app
+from maythusharmusic.utils.database import is_clones_active
 
 CLONE_START_IMAGE_URL = "https://files.catbox.moe/2uahrk.jpg"
 
 # Quote ပုံစံပေါ်ဖို့အတွက် စာကြောင်းရှေ့မှာ > ကိုထည့်ပေးထားပါတယ်
 START_TEXT = """
 > • ʜᴇʏ ʙᴀʙʏ : {} 👋
-> • ɪ ᴀᴍ {}, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
+> • ɪ ᴀᴍ {}, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴀᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
 
 > • ғᴇᴀᴛᴜʀᴇs
-> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
+> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴀᴍɪɴɢ
 > • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
 > • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
 > • ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : ᴘʟᴀʏ, ᴠᴘʟᴀʏ, ᴍᴘ4 ꜱᴜᴘᴘᴏʀᴛ 
@@ -23,11 +24,14 @@ START_TEXT = """
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_private(client: Client, message: Message):
+    # Clone system status check
+    if not await is_clones_active():
+        return await message.reply_text("⚠️ <b>Sorry, Clone Bot System is currently OFF for maintenance.</b>")
+    
     # Bot username ကိုရယူခြင်း
     app_username = (await client.get_me()).username
     bot_info = await client.get_me()
     bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
-    #app.mention = (await client.get_me()).mention
     
     keyboard = InlineKeyboardMarkup(
         [
@@ -47,7 +51,6 @@ async def start_private(client: Client, message: Message):
         ]
     )
     
-    
     # START_IMAGE_URL ရှိမရှိစစ်ဆေးခြင်း
     if CLONE_START_IMAGE_URL:
         await message.reply_photo(
@@ -61,3 +64,22 @@ async def start_private(client: Client, message: Message):
             reply_markup=keyboard,
             disable_web_page_preview=True
         )
+
+
+@Client.on_message(filters.command("start") & filters.group)
+async def start_group(client: Client, message: Message):
+    # Clone system status check for groups
+    if not await is_clones_active():
+        return await message.reply_text("⚠️ <b>Sorry, Clone Bot System is currently OFF for maintenance.</b>")
+    
+    # Group start message
+    await message.reply_text(
+        "🎵 **Hello! I'm ready to play music in this group!**\n\n"
+        "Use /play to start streaming music! 🎶",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🔗 Add Me to your Group", 
+                                   url=f"https://t.me/{(await client.get_me()).username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")
+            ]
+        ])
+    )
