@@ -1091,3 +1091,21 @@ async def get_all_yt_cache() -> dict:
 async def remove_all_clones():
     """Clone Bot အားလုံးကို Database မှ ဖျက်သိမ်းသည်"""
     await clonedb.delete_many({})
+
+# Clone On/Off အတွက် သီးသန့် Collection သုံးမလား၊ onoffdb သုံးမလား
+
+async def is_clones_active() -> bool:
+    """Clone Bot များ Active ဖြစ်မဖြစ် စစ်ဆေးသည် (Default: True)"""
+    # on_off=10 ကို Clone Status အဖြစ် သတ်မှတ်သည်
+    status = await onoffdb.find_one({"on_off": 10})
+    if not status:
+        return True # Default က ဖွင့်ထားမည်
+    return status["status"]
+
+async def set_clones_active(state: bool):
+    """Clone Bot များကို ဖွင့်/ပိတ် လုပ်သည်"""
+    await onoffdb.update_one(
+        {"on_off": 10},
+        {"$set": {"status": state}},
+        upsert=True
+    )
