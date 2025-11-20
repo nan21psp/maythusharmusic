@@ -10,7 +10,7 @@ import config
 from maythusharmusic import Carbon, YouTube, app
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.misc import db
-from maythusharmusic.utils.database import add_active_video_chat, is_active_chat
+from maythusharmusic.utils.database import add_active_video_chat, is_active_chat, add_clean_message
 from maythusharmusic.utils.exceptions import AssistantErr
 from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
 from maythusharmusic.utils.pastebin import HottyBin
@@ -124,6 +124,7 @@ async def stream(
                     ),
                     reply_markup=InlineKeyboardMarkup(button),
                 )
+                await add_clean_message(original_chat_id, run.id)
 
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -229,6 +230,7 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
@@ -282,6 +284,7 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -337,6 +340,7 @@ async def stream(
                 caption=_["stream_1"].format(link, title[:23], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -407,6 +411,7 @@ async def stream(
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
@@ -459,6 +464,7 @@ async def stream(
                 caption=_["stream_2"].format(user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
             
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
