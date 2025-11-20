@@ -1,3 +1,19 @@
+from pyrogram.types import InlineKeyboardButton
+
+from maythusharmusic import app
+
+
+def clone_start_panel(_):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=_["Aᴅᴅ ᴍᴇ ʙᴀʙʏ"], url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users"
+            ),
+            InlineKeyboardButton("ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ", url="https://t.me/sasukemusicsupportchat),
+        ],
+    ]
+    return buttons
+
 def clone_private_panel(_, bot_username):
     buttons = [
         [
