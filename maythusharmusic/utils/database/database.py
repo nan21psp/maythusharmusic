@@ -5,6 +5,7 @@ import time
 from typing import Dict, List, Union
 
 from maythusharmusic import userbot
+from config import CLEANMODE_DELETE_MINS
 from maythusharmusic.core.mongo import mongodb, pymongodb
 
 authdb = mongodb.adminauth
@@ -66,28 +67,38 @@ video = {}
 
 async def add_clean_message(chat_id: int, message_id: int):
     """ဖျက်ရမည့် စာကို Database တွင် မှတ်သားသည်"""
-    if not await is_cleanmode_on(chat_id): # Cleanmode ပိတ်ထားရင် မမှတ်ဘူး
-        return
+    try:
+        # Clean Mode ပိတ်ထားရင် မမှတ်ပါ (Optional check)
+        if not await is_cleanmode_on(chat_id):
+            return
+
+        # လက်ရှိအချိန် + ၅ မိနစ် (Seconds သို့ပြောင်း)
+        expire_time = int(time.time()) + (CLEANMODE_DELETE_MINS * 60)
         
-    # လက်ရှိအချိန် + သတ်မှတ်ထားသော မိနစ် (Seconds သို့ပြောင်း)
-    expire_time = int(time.time()) + (config.CLEANMODE_DELETE_MINS * 60)
-    
-    await cleandb.insert_one({
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "expire_time": expire_time
-    })
+        await cleandb.insert_one({
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "expire_time": expire_time
+        })
+    except Exception as e:
+        print(f"Database Error (Add Clean): {e}")
 
 async def get_expired_messages():
     """အချိန်ပြည့်သွားသော စာများကို ရှာသည်"""
-    current_time = int(time.time())
-    cursor = cleandb.find({"expire_time": {"$lt": current_time}})
-    return await cursor.to_list(length=None)
+    try:
+        current_time = int(time.time())
+        cursor = cleandb.find({"expire_time": {"$lt": current_time}})
+        return await cursor.to_list(length=None)
+    except:
+        return []
 
 async def remove_clean_message(chat_id: int, message_id: int):
     """Database မှ စာရင်းကို ပြန်ဖျက်သည်"""
-    await cleandb.delete_one({"chat_id": chat_id, "message_id": message_id})
-
+    try:
+        await cleandb.delete_one({"chat_id": chat_id, "message_id": message_id})
+    except:
+        pass
+        
 # Clone Bot Database Collection
 
 async def save_clone(bot_token: str, user_id: int, bot_username: str):
