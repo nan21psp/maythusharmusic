@@ -1,4 +1,3 @@
-from .clonestart import *
 from .extras import *
 from .help import *
 from .play import *
