@@ -45,8 +45,18 @@ async def start_private(client: Client, message: Message):
         ]
     )
     
-    await message.reply_photo(
-        photo=CLONE_START_IMAGE_URL,
-        caption=START_TEXT.format(message.from_user.mention, app.mention),
-        reply_markup=keyboard,
-    )
+    bot_info = await client.get_me()
+    
+    # START_IMAGE_URL ရှိမရှိစစ်ဆေးခြင်း
+    if START_IMAGE_URL:
+        await message.reply_photo(
+            photo=CLONE_START_IMAGE_URL,
+            caption=START_TEXT.format(message.from_user.mention, bot_info.first_name),
+            reply_markup=keyboard,
+        )
+    else:
+        await message.reply_text(
+            START_TEXT.format(message.from_user.mention, bot_info.first_name),
+            reply_markup=keyboard,
+            disable_web_page_preview=True
+        )
