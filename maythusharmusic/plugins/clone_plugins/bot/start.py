@@ -2,6 +2,8 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from maythusharmusic import app
 
+CLONE_START_IMAGE_URL = "https://files.catbox.moe/2uahrk.jpg"
+
 # Quote ပုံစံပေါ်ဖို့အတွက် စာကြောင်းရှေ့မှာ > ကိုထည့်ပေးထားပါတယ်
 START_TEXT = """
 > • ʜᴇʏ ʙᴀʙʏ : {} 👋
@@ -42,8 +44,8 @@ async def start_private(client: Client, message: Message):
         ]
     )
     
-    await message.reply_text(
-        START_TEXT.format(message.from_user.mention, (await client.get_me()).first_name),
+    await message.reply_photo(
+        photo=CLONE_START_IMAGE_URL,
+        caption=START_TEXT.format(message.from_user.mention),
         reply_markup=keyboard,
-        disable_web_page_preview=True
     )
