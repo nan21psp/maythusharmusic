@@ -42,11 +42,11 @@ async def clone_txt(client, message: Message):
             bot_username = existing_clone.get("bot_username", "Unknown")
             bot_token_existing = existing_clone.get("bot_token", "")
             return await message.reply_text(
-                f"⚠️ <b>𝗡𝗼𝘁𝗶𝗰 𝗙𝗼𝗿 𝗨𝘀𝗲𝗿𝘀!</b>\n\n"
+                f">𝗡𝗼𝘁𝗶𝗰 𝗙𝗼𝗿 𝗨𝘀𝗲𝗿𝘀\n"
                 f"𝙔𝙤𝙪 𝙖𝙡𝙧𝙚𝙖𝙙𝙮 𝙝𝙖𝙫𝙚 𝙖 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩.\n"
-                f"🤖 <b>𝗕𝗼𝘁 : </b> @{bot_username}\n\n"
+                f"𝗕𝗼𝘁 : @{bot_username}\n\n"
                 f"𝙄𝙛 𝙮𝙤𝙪 𝙬𝙖𝙣𝙩 𝙩𝙤 𝙘𝙧𝙚𝙖𝙩𝙚 𝙖 𝙣𝙚𝙬 𝙤𝙣𝙚, 𝙙𝙚𝙡𝙚𝙩𝙚 𝙩𝙝𝙚 𝙚𝙭𝙞𝙨𝙩𝙞𝙣𝙜 𝘽𝙤𝙩 𝙛𝙞𝙧𝙨𝙩.\n"
-                f"<code>/delclone {bot_token_existing}</code>"
+                f"><code>/delclone {bot_token_existing}</code>"
             )
 
         if len(message.command) < 2:
