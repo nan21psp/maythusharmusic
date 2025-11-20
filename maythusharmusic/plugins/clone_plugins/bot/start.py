@@ -11,9 +11,13 @@ from maythusharmusic.utils.database import (
     add_served_chat_clone,
     add_served_user_clone,
     blacklisted_chats,
+    get_lang,
     is_banned_user,
     get_assistant,
 )
+from maythusharmusic.utils.decorators.language import LanguageStart
+from maythusharmusic.utils.inline import private_panel
+from strings import get_string
 
 # Spam Protection Variables
 user_last_message_time = {}
@@ -27,33 +31,38 @@ YUMI_PICS = [
     "https://files.catbox.moe/2uahrk.jpg",
 ]
 
-# --- (၁) ခလုတ်များကို တိုက်ရိုက်ရေးသားခြင်း ---
-def clone_start_pm(bot_username):
+private_panel = clone_start_pm
+
+# --- CLONE BOT BUTTON FUNCTION ---
+def clone_start_pm(_, bot_username):
     buttons = [
         [
             InlineKeyboardButton(
-                text="အုပ်စုသို့ထည့်ရန်", # S_B_3 အစား တိုက်ရိုက်ရေးလိုက်ပါ
+                text=_["S_B_3"], # အုပ်စုသို့ထည့်ရန်
                 url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users",
             )
         ],
         [
-            InlineKeyboardButton(text="ပိုင်ရှင်", user_id=config.OWNER_ID), # S_B_5
-            InlineKeyboardButton(text="အကူအညီ", url=config.SUPPORT_CHAT), # S_B_2
+            InlineKeyboardButton(text=_["S_B_5"], user_id=config.OWNER_ID), # ပိုင်ရှင်
+            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_CHAT), # အကူအညီ
         ],
         [
-            InlineKeyboardButton(text="ချန်နယ်", url=config.SUPPORT_CHANNEL), # S_B_6
+            InlineKeyboardButton(text=_["S_B_6"], url=config.SUPPORT_CHANNEL), # ချန်နယ်
         ],
     ]
     return buttons
-# ----------------------------------------
+# ---------------------------------
 
 @Client.on_message(filters.command(["start"]) & filters.private & ~filters.banned)
-async def start_pm(client: Client, message: Message):
+@LanguageStart
+async def start_pm(client: Client, message: Message, _):
     try:
+        # 1. Get Bot Info
         a = await client.get_me()
         bot_username = a.username
+        bot_name = a.first_name
         
-        # Spam Protection
+        # 2. Spam Protection
         user_id = message.from_user.id
         current_time = time.time()
         last_message_time = user_last_message_time.get(user_id, 0)
@@ -70,15 +79,22 @@ async def start_pm(client: Client, message: Message):
             user_command_count[user_id] = 1
             user_last_message_time[user_id] = current_time
 
+        # 3. Add User to Database
         await add_served_user_clone(message.from_user.id)
 
+        # 4. Send Start Message
+        if len(message.text.split()) > 1:
+            name = message.text.split(None, 1)[1]
+            if name[0:4] == "help":
+                # Help command အတွက် Logic (လိုအပ်ရင် ထပ်ဖြည့်ပါ)
+                await message.reply_text("Help Menu is coming soon!")
+                return
+
         # Normal Start
-        # --- (၂) Function ခေါ်ရာတွင် _ (language) ထည့်စရာမလိုတော့ပါ ---
-        keyboard = clone_start_pm(bot_username)
-        
+        keyboard = clone_start_pm(_, bot_username)
         await message.reply_photo(
             photo=config.START_IMG_URL,
-            caption=f"မင်္ဂလာပါ {message.from_user.mention} ဗျာ။\n\nကျွန်တော်ကတော့ {a.mention} (Music Bot) ဖြစ်ပါတယ်။\n\nကျွန်တော့်ကို Group ထဲထည့်ပြီး Admin ပေးထားရင် သီချင်းဖွင့်ပေးပါမယ်။",
+            caption=_["start_2"].format(message.from_user.mention, a.mention),
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
     except Exception as e:
@@ -86,12 +102,14 @@ async def start_pm(client: Client, message: Message):
 
 
 @Client.on_message(filters.command(["start"]) & filters.group & ~filters.banned)
-async def start_gp(client: Client, message: Message):
+@LanguageStart
+async def start_gp(client: Client, message: Message, _):
     try:
         a = await client.get_me()
+        user_id = message.from_user.id
         
         # Button for Group
-        out = clone_start_pm(a.username)
+        out = clone_start_pm(_, a.username)
         
         await message.reply_photo(
             photo=config.START_IMG_URL,
@@ -104,7 +122,10 @@ async def start_gp(client: Client, message: Message):
         userbot = await get_assistant(message.chat.id)
         try:
             await client.get_chat_member(message.chat.id, userbot.id)
+            # Assistant is already in group
+            # (Do nothing or send confirm message)
         except:
+            # Assistant not in group, try to invite
             try:
                 invitelink = await client.export_chat_invite_link(message.chat.id)
                 if "+" in invitelink:
@@ -114,48 +135,8 @@ async def start_gp(client: Client, message: Message):
                     await userbot.join_chat(invitelink)
                 await message.reply_text(f"✅ Assistant (@{userbot.username}) joined successfully.")
             except Exception as e:
+                # Invite failed (Need Admin)
                 pass 
 
     except Exception as e:
         print(f"Start Group Error: {traceback.format_exc()}")
-
-@Client.on_message(filters.new_chat_members, group=-1)
-async def welcome(client, message: Message):
-    a = await client.get_me()
-    for member in message.new_chat_members:
-        try:
-            if await is_banned_user(member.id):
-                try:
-                    await message.chat.ban_member(member.id)
-                except:
-                    pass
-            if member.id == a.id:
-                if message.chat.type != ChatType.SUPERGROUP:
-                    await message.reply_text("Please make this group a Supergroup.")
-                    await client.leave_chat(message.chat.id)
-                    return
-                if message.chat.id in await blacklisted_chats():
-                    await client.leave_chat(message.chat.id)
-                    return
-
-                out = clone_start_pm(a.username)
-                
-                # Assistant Auto Join Logic
-                try:
-                    userbot = await get_assistant(message.chat.id)
-                    if message.chat.username:
-                        await userbot.join_chat(f"{message.chat.username}")
-                    else:
-                        invitelink = await client.export_chat_invite_link(message.chat.id)
-                        await userbot.join_chat(invitelink)
-                except:
-                    pass
-
-                await message.reply_photo(
-                    random.choice(YUMI_PICS),
-                    caption=f"Thanks for adding me to {message.chat.title}!\nI am {a.mention}.",
-                    reply_markup=InlineKeyboardMarkup(out),
-                )
-                await add_served_chat_clone(message.chat.id)
-        except Exception as ex:
-            print(ex)
