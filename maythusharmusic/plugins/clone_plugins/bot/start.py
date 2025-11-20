@@ -22,7 +22,7 @@ from maythusharmusic.utils.database import (
 )
 from maythusharmusic.utils.decorators.language import LanguageStart
 from maythusharmusic.utils.formatters import get_readable_time
-from maythusharmusic.utils.inline import first_page, clone_private_panel, clone_start_panel
+from maythusharmusic.utils.inline import first_page, private_panel, start_panel
 from config import BANNED_USERS
 from strings import get_string
 from maythusharmusic.utils.database import get_assistant
@@ -128,7 +128,7 @@ async def start_pm(client: Client, message: Message, _):
             )
 
     else:
-        out = clone_private_panel(_)
+        out = private_panel(_)
         await message.reply_photo(
             photo=config.START_IMG_URL,
             caption=_["start_2"].format(message.from_user.mention, a.mention),
@@ -163,7 +163,7 @@ async def start_gp(client, message: Message, _):
         user_command_count[user_id] = 1
         user_last_message_time[user_id] = current_time
 
-    out = clone_start_panel(_)
+    out = start_panel(_)
     BOT_UP = await bot_up_time()
     await message.reply_photo(
         photo=config.START_IMG_URL,
@@ -230,7 +230,7 @@ async def welcome(client, message: Message):
                     await client.leave_chat(message.chat.id)
                     return
 
-                out = clone_start_panel(_)
+                out = start_panel(_)
                 chid = message.chat.id
 
                 try:
