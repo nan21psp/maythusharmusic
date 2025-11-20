@@ -9,7 +9,7 @@ from maythusharmusic import LOGGER, app, userbot, YouTube
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.misc import sudo
 from maythusharmusic.plugins import ALL_MODULES
-from maythusharmusic.utils.database import get_banned_users, get_gbanned
+from maythusharmusic.utils.database import get_banned_users, get_gbanned, autoend_on, autoend_off
 from config import BANNED_USERS
 
 # --- Clone Bot Function ကို Import လုပ်ခြင်း ---
@@ -63,6 +63,17 @@ async def init():
     except:
         pass
     await Hotty.decorators()
+    LOGGER("maythusharmusic").info("Auto End Stream settings ကို စစ်ဆေးနေပါသည်...")
+    if config.AUTO_END_STREAM:
+        await autoend_on() # Config မှာ True ဆိုရင် ဖွင့်မယ်
+        LOGGER("maythusharmusic").info("Auto End Stream: ENABLED (via Config)")
+    else:
+        await autoend_off() # Config မှာ False ဆိုရင် ပိတ်မယ်
+        LOGGER("maythusharmusic").info("Auto End Stream: DISABLED (via Config)")
+
+    LOGGER("maythusharmusic").info(
+        "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport..."
+    )
     LOGGER("maythusharmusic").info(
         "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport ᴊᴏɪɴ @sasukevipmusicbot , @sasukevipmusicbotsupport ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
     )
