@@ -118,23 +118,23 @@ async def start_pm(client, message: Message, _):
         try:
             out = private_panel(_)
             lol = await message.reply_text("**ω ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωє ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓ ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄ ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍ ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍᴇ ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍᴇ в ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍᴇ вα ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍᴇ вαв ᥫ᭡**")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             await lol.edit_text("**ωєℓᴄᴏᴍᴇ вαву ᥫ᭡**")
           
             await lol.delete()
@@ -175,10 +175,10 @@ async def start_pm(client, message: Message, _):
         
         # Custom start message with your format
         start_text = f"""
-> ❖ ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
+> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
 > • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
 
-> • ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+> • ғᴇᴀᴛᴜʀᴇs
 > • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
 > • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
 > • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
@@ -187,7 +187,6 @@ async def start_pm(client, message: Message, _):
 
 > • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
 > • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-
 > •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
 """
         
@@ -213,10 +212,10 @@ async def start_gp(client, message: Message, _):
     
     # Custom group start message
     start_text = f"""
-> ❖ ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
+> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
 > • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
 
-> • ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+> • ғᴇᴀᴛᴜʀᴇs
 > • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
 > • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
 > • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
@@ -225,7 +224,6 @@ async def start_gp(client, message: Message, _):
 
 > • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
 > • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-
 > •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
 """
     
@@ -267,10 +265,10 @@ async def welcome(client, message: Message):
                 
                 # Custom welcome message for bot
                 welcome_text = f"""
-> ❖ ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
+> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
 > • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
 
-> • ᴍʏ ᴍᴀɪɴ ꜰᴜɴᴄᴛɪᴏɴꜱ
+> • ғᴇᴀᴛᴜʀᴇs
 > • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
 > • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
 > • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
@@ -279,7 +277,6 @@ async def welcome(client, message: Message):
 
 > • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
 > • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-
 > •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
 """
                 
