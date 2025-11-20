@@ -7,6 +7,4 @@ from .speed import *
 from .start import *
 from .sudolist import *
 from .playlist import *
-from .start import (
-    clone_private_panel,
-)
+from .start import clone_private_panel
