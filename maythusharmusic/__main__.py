@@ -65,15 +65,6 @@ async def init():
     LOGGER("maythusharmusic").info(
         "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport ᴊᴏɪɴ @sasukevipmusicbot , @sasukevipmusicbotsupport ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
     )
-    
-    # --- (Cache Pre-load Logic) ---
-    LOGGER(__name__).info("ယာယီမှတ်ဉာဏ် (In-Memory Cache) ကို ကြိုတင်ဖြည့်နေပါသည်...")
-    try:
-        await YouTube.load_cache() 
-    except Exception as e:
-        LOGGER(__name__).error(f"YouTube Cache ကို ကြိုတင်ဖြည့်ရာတွင် မအောင်မြင်ပါ: {e}")
-    # ------------------------------
-    
     await idle()
     await app.stop()
     await userbot.stop()
