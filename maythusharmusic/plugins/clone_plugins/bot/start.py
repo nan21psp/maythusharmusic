@@ -48,7 +48,7 @@ async def start_private(client: Client, message: Message):
     bot_info = await client.get_me()
     
     # START_IMAGE_URL ရှိမရှိစစ်ဆေးခြင်း
-    if START_IMAGE_URL:
+    if CLONE_START_IMAGE_URL:
         await message.reply_photo(
             photo=CLONE_START_IMAGE_URL,
             caption=START_TEXT.format(message.from_user.mention, bot_info.first_name),
