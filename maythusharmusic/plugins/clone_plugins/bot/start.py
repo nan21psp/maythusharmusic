@@ -16,7 +16,6 @@ from maythusharmusic.utils.database import (
     get_assistant,
 )
 from maythusharmusic.utils.decorators.language import LanguageStart
-from maythusharmusic.utils.inline import private_panel
 from strings import get_string
 
 # Spam Protection Variables
@@ -30,8 +29,6 @@ YUMI_PICS = [
     "https://files.catbox.moe/2uahrk.jpg",
     "https://files.catbox.moe/2uahrk.jpg",
 ]
-
-private_panel = clone_start_pm
 
 # --- CLONE BOT BUTTON FUNCTION ---
 def clone_start_pm(_, bot_username):
