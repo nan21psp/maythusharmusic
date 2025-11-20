@@ -90,28 +90,11 @@ async def settings_back_markup(client, CallbackQuery: CallbackQuery, _):
         await app.resolve_peer(OWNER_ID)
         OWNER = OWNER_ID
         buttons = private_panel(_)
-        
-        # Custom start message with your format
-        start_text = f"""
-> • ʜᴇʏ ʙᴀʙʏ : {message.from_user.mention} 👋
-> • ɪ ᴀᴍ **{app.mention}**, ʜᴇʀᴇ ᴛᴏ ᴘʀᴏᴠɪᴅᴇ ʏᴏᴜ ᴡɪᴛʜ ᴀ ꜱᴍᴏᴏᴛʜ ᴍᴜꜱɪᴄ ꜱᴛʀᴇᴧᴍɪɴɢ ᴇxᴘᴇʀɪᴇɴᴄᴇ 🦋.
-
-> • ғᴇᴀᴛᴜʀᴇs
-> • ʜǫ ᴀᴜᴅɪᴏ : 320ᴋʙᴘs sᴛʀᴇᴧᴍɪɴɢ
-> • sᴛʀᴇᴀᴍ sᴜᴘᴘᴏʀᴛ : ᴀᴜᴅɪᴏ-ᴠɪᴅᴇᴏ
-> • 24-7 ᴜᴘᴛɪᴍᴇ : ᴇɴᴛᴇʀᴘʀɪsᴇ ʀᴇʟɪᴀʙɪʟɪᴛʏ
-> • ᴘʟᴀʏ ᴄᴏᴍᴍᴇɴᴛꜱ : ᴘʟᴀʏ, ᴠᴘʟᴀʏ, ᴍᴘ4 ꜱᴜᴘᴘᴏʀᴛ 
-> • ʙᴇsᴇᴅ ᴏɴ : ʏᴏᴜᴛᴜʙᴇ ᴀᴘɪ
-
-> • ᴜsᴇ /clone ᴄᴏᴍᴍᴀɴᴅ
-> • ɢᴇᴛ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs •
-> •ʏᴏᴜ ᴄᴀɴ ᴜꜱᴇ ᴍᴇ ʙʏ ᴄʟɪᴄᴋɪɴɢ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ 🦋.
-"""
-        
         return await CallbackQuery.edit_message_media(
             InputMediaPhoto(
                 media=START_IMG_URL,
-                caption=start_text,
+                caption=_["start_10"].format(
+                    CallbackQuery.from_user.first_name, app.mention),
             ),
             reply_markup=InlineKeyboardMarkup(buttons),
         )
