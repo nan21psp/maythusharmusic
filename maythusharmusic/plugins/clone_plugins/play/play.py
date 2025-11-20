@@ -65,9 +65,9 @@ async def play_commnd(
     # --- (၀) CLONE BOT ACTIVE STATUS CHECK ---
     if not await is_clones_active():
         return await message.reply_text(
-            "> •**ꜱʏꜱᴛᴇᴍ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.**"
-            
-            "> •ᴄʟᴏɴᴇ ʙᴏᴛ စနစ်ကို ᴏᴡɴᴇʀ မှ ယာယီပိတ်ထားပါသည်။"
+            "> •**𝙎𝙮𝙨𝙩𝙚𝙢 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚**\n"
+            ">\n"
+            "> •𝘾𝙡𝙤𝙣𝙚 𝙗𝙤𝙩 စနစ်ကို 𝙊𝙬𝙣𝙚𝙧 မှ ယာယီပိတ်ထားပါသည်။\n"
             "> •ခေတ္တစောင့်ဆိုင်းပြီးမှ ပြန်လည်ကြိုးစားပါ။"
         )
     
@@ -89,8 +89,8 @@ async def play_commnd(
                 # Admin သို့မဟုတ် Owner မဟုတ်ရင် တားမည်
                 if member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
                     return await message.reply_text(
-                        f"🫧 <b>ᴍᴀɪɴ ᴍᴜꜱɪᴄ ʙᴏᴛ ᴀᴅᴍɪɴ ʀᴇQᴜɪʀᴇᴅ!</b>\n\n"
-                        f"ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} , must be appointed as <b>ᴀᴅᴍɪɴ</b> ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.",
+                        f"> •**ᴍᴀɪɴ ᴍᴜꜱɪᴄ ʙᴏᴛ ᴀᴅᴍɪɴ ʀᴇǫᴜɪʀᴇᴅ.**\n"
+                        f"> •ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} , must be appointed as <b>ᴀᴅᴍɪɴ</b> ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.",
                         reply_markup=InlineKeyboardMarkup([
                             [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ & ᴘʀᴏᴍᴏᴛᴇ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                         ])
@@ -99,8 +99,8 @@ async def play_commnd(
             except UserNotParticipant:
                 # Main Bot Group ထဲမှာ လုံးဝမရှိရင် တားမည်
                 return await message.reply_text(
-                    f"🫧 <b>ᴍᴀɪɴ ʙᴏᴛ ᴍɪꜱꜱɪɴɢ!</b>\n\n"
-                    f"ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴀᴅᴅ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} to this Group and give it <b>ᴀᴅᴍɪɴ</b> status.",
+                    f"> •**ᴍᴀɪɴ ʙᴏᴛ ᴍɪꜱꜱɪɴɢ**\n"
+                    f"> •ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ᴄʟᴏɴᴇ ʙᴏᴛ, ᴀᴅᴅ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ʙᴏᴛ, @{main_bot_username} to this Group and give it <b>ᴀᴅᴍɪɴ</b> status.",
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton(" Aᴅᴅ ᴍᴀɪɴ ʙᴏᴛ ", url=f"https://t.me/{main_bot_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")]
                     ])
