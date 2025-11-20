@@ -12,6 +12,8 @@ from maythusharmusic import app
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
+bot_info = await client.get_me()
+bot_mention = f"[{bot_info.first_name}](tg://user?id={bot_info.id})"
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
@@ -19,7 +21,7 @@ async def clone_txt(client, message: Message):
         try:
             from maythusharmusic.utils.database import save_clone, get_clone_by_user
         except ImportError:
-            return await message.reply_text("❌ Database Error")
+            return await message.reply_text("❌ ᴅᴀᴛᴀʙᴀꜱᴇ ᴇʀʀᴏʀ")
 
         # ONE USER ONE BOT LIMIT CHECK
         user_id = message.from_user.id
@@ -27,26 +29,25 @@ async def clone_txt(client, message: Message):
         
         if existing_clone:
             bot_username = existing_clone.get("bot_username", "Unknown")
-            bot_token = existing_clone.get("bot_token", "")
             return await message.reply_text(
-                f"⚠️ <b>ကန့်သတ်ချက်!</b>\n\n"
-                f"မိတ်ဆွေတွင် Clone Bot တစ်ခု ရှိပြီးသား ဖြစ်နေပါသည်။\n"
-                f"🤖 <b>Bot:</b> @{bot_username}\n\n"
-                f"နောက်တစ်ခု အသစ်ထပ်လုပ်လိုပါက ရှိပြီးသား Bot ကို အရင်ဖျက်ပေးပါ:\n"
+                f"⚠️ <b>𝗡𝗼𝘁𝗶𝗰 𝗙𝗼𝗿 𝗨𝘀𝗲𝗿𝘀!</b>\n\n"
+                f"𝙔𝙤𝙪 𝙖𝙡𝙧𝙚𝙖𝙙𝙮 𝙝𝙖𝙫𝙚 𝙖 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩.\n"
+                f"🤖 <b>𝗕𝗼𝘁 : </b> @{bot_username}\n\n"
+                f"𝙄𝙛 𝙮𝙤𝙪 𝙬𝙖𝙣𝙩 𝙩𝙤 𝙘𝙧𝙚𝙖𝙩𝙚 𝙖 𝙣𝙚𝙬 𝙤𝙣𝙚, 𝙙𝙚𝙡𝙚𝙩𝙚 𝙩𝙝𝙚 𝙚𝙭𝙞𝙨𝙩𝙞𝙣𝙜 𝘽𝙤𝙩 𝙛𝙞𝙧𝙨𝙩.\n"
                 f"<code>/delclone {bot_token}</code>"
             )
 
         if len(message.command) < 2:
             return await message.reply_text(
-                "<b>အသုံးပြုပုံ :</b>\n\n/clone [Bot Token]\n\nBot Token ကို @BotFather ထံမှ ရယူပါ။"
+                "<b>D͟e͟v͟e͟l͟o͟p͟e͟r͟ : @iwillgoforwardsalone</b>\n\n/clone [Bot Token]\n\nGᴇᴛ ʙᴏᴛ ᴛᴏᴋᴇɴ ꜰʀᴏᴍ @BotFather"
             )
         
         bot_token = message.text.split(None, 1)[1]
         
         if not re.match(r'^\d+:[a-zA-Z0-9_-]+$', bot_token):
-            return await message.reply_text("❌ မှားယွင်းသော Bot Token ဖြစ်ပါသည်။")
+            return await message.reply_text("❌ 𝗜𝗻𝘃𝗮𝗹𝗶𝗱 𝗕𝗼𝘁 𝗧𝗼𝗸𝗲𝗻.")
 
-        msg = await message.reply_text("♻️ <b>Clone Bot ဖန်တီးနေပါသည်...</b>\n\nခေတ္တစောင့်ဆိုင်းပေးပါ။")
+        msg = await message.reply_text("🫧 <b>ʀᴇǫᴜᴇsᴛɪɴɢ ᴘᴇʀᴍɪꜱꜱɪᴏɴ ꜰʀᴏᴍ ᴛʜᴇ ᴏᴡɴᴇʀ...</b>\n\nᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ.")
 
         try:
             ai = Client(
@@ -65,22 +66,22 @@ async def clone_txt(client, message: Message):
             CLONES.add(bot_token)
             
             details = f"""
-<b>✅ Clone Bot အောင်မြင်စွာ ဖန်တီးပြီးပါပြီ!</b>
+<b>✅ 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.</b>
 
-<b>🤖 Bot Name:</b> {bot_info.first_name}
-<b>🔗 Username:</b> @{username}
+<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_mention}
+<b>🔗 𝙐𝙨𝙚𝙣𝙖𝙢𝙚 : </b> @{username}
 
-<i>⚠️မှတ်ချက်: သီချင်းနားထောင်ရန် သင့် Clone Bot ကို Group ထဲထည့်ပြီး Admin ပေးထားပါ။</i>
+<i>ᴛᴏ ʟɪꜱᴛᴇɴ ᴛᴏ ᴍᴜꜱɪᴄ, ᴀᴅᴅ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ɢʀᴏᴜᴘ ᴀɴᴅ ɢɪᴠᴇ ɪᴛ ᴀᴅᴍɪɴ ꜱᴛᴀᴛᴜꜱ.</i>
 """
             await msg.edit_text(details)
             
         except AccessTokenInvalid:
-            await msg.edit_text("❌ Bot Token မှားယွင်းနေပါသည်။")
+            await msg.edit_text("❌ ɪɴᴠᴀʟɪᴅ ʙᴏᴛ ᴛᴏᴋᴇɴ.")
         except Exception as e:
-            await msg.edit_text(f"❌ အမှားဖြစ်ပွားခဲ့သည်: {e}")
+            await msg.edit_text(f"❌ ᴀɴ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ : {e}")
 
     except Exception as e:
-        await message.reply_text(f"🐞 <b>Error:</b> {e}")
+        await message.reply_text(f"❌ <b>ᴇʀʀᴏʀ : </b> {e}")
 
 
 @app.on_message(filters.command("delclone") & filters.private)
@@ -96,28 +97,28 @@ async def delete_clone_bot(client, message: Message):
             if user_clone:
                 token = user_clone.get("bot_token")
             else:
-                return await message.reply_text("⚠️ မိတ်ဆွေတွင် ဖျက်စရာ Clone Bot မရှိပါ။")
+                return await message.reply_text("ʏᴏᴜ ᴅᴏɴ'ᴛ ʜᴀᴠᴇ ᴀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴅᴇʟᴇᴛᴇ.")
 
         await delete_clone(token)
-        await message.reply_text("✅ Clone Bot ကို အောင်မြင်စွာ ဖျက်သိမ်းလိုက်ပါပြီ။")
+        await message.reply_text("✅ ᴄʟᴏɴᴇ ʙᴏᴛ ʜᴀꜱ ʙᴇᴇɴ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ ᴜɴɪɴꜱᴛᴀʟʟᴇᴅ.")
         
     except Exception as e:
-        await message.reply_text(f"Error: {e}")
+        await message.reply_text(f"ᴇʀʀᴏʀ : {e}")
 
 
 # --- (၁) OWNER ONLY: Clone Bot အရေအတွက် ကြည့်ခြင်း ---
-@app.on_message(filters.command("totalclones") & filters.user(OWNER_ID))
+@app.on_message(filters.command("checkbot") & filters.user(OWNER_ID))
 async def total_clones_stats(client, message: Message):
     try:
         from maythusharmusic.utils.database import get_clones
         clones = await get_clones()
         
         total = len(clones)
-        text = f"📊 <b>Clone Bot စာရင်းအင်းများ</b>\n\n"
-        text += f"🤖 <b>စုစုပေါင်း Clones:</b> {total}\n\n"
+        text = f"📊 <b>𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝗦𝘁𝗮𝘁𝗶𝘀𝘁𝗶𝗰𝘀</b>\n\n"
+        text += f"🤖 <b>𝗧𝗼𝘁𝗮𝗹 𝗖𝗹𝗼𝗻𝗲𝘀 : </b> {total}\n\n"
         
         if total > 0:
-            text += "<b>Bot Usernames:</b>\n"
+            text += "<b>𝗕𝗼𝘁 𝗨𝘀𝗲𝗿𝗻𝗮𝗺𝗲𝘀 : </b>\n"
             for count, clone in enumerate(clones, 1):
                 username = clone.get("bot_username", "Unknown")
                 text += f"{count}. @{username}\n"
@@ -136,13 +137,13 @@ async def delete_all_clones_func(client, message: Message):
         # Confirm လုပ်ခိုင်းခြင်း
         if len(message.command) < 2 or message.text.split()[1] != "confirm":
             return await message.reply_text(
-                "⚠️ <b>သတိပေးချက်!</b>\n\n"
-                "Clone Bot အားလုံးကို ဖျက်ပစ်မှာ သေချာပါသလား?\n"
-                "သေချာရင် အောက်ပါအတိုင်း ရိုက်ပါ:\n"
+                "𝗪𝗮𝗿𝗻𝗶𝗻𝗴\n"
+                "𝗔𝗿𝗲 𝘆𝗼𝘂 𝘀𝘂𝗿𝗲 𝘆𝗼𝘂 𝘄𝗮𝗻𝘁 𝘁𝗼 𝗱𝗲𝗹𝗲𝘁𝗲 𝗮𝗹𝗹 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁𝘀.\n"
+                "𝙄𝙛 𝙮𝙤𝙪 𝙖𝙧𝙚 𝙨𝙪𝙧𝙚, 𝙩𝙮𝙥𝙚 𝙩𝙝𝙚 𝙛𝙤𝙡𝙡𝙤𝙬𝙞𝙣𝙜 :\n"
                 "<code>/delallclones confirm</code>"
             )
             
-        msg = await message.reply_text("♻️ <b>Clone Bot အားလုံးကို ဖျက်သိမ်းနေပါသည်...</b>")
+        msg = await message.reply_text("♻️ <b>𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙖𝙧𝙚 𝙗𝙚𝙞𝙣𝙜 𝙙𝙚𝙡𝙚𝙩𝙚𝙙...</b>")
         
         # Database ရှင်းလင်းခြင်း
         await remove_all_clones()
@@ -151,7 +152,7 @@ async def delete_all_clones_func(client, message: Message):
         # (Client session files တွေကျန်ခဲ့ရင် နေရာယူလို့ ရှင်းတာပါ)
         # session file တွေက root folder မှာ ရှိနေတတ်ပါတယ်
         
-        await msg.edit_text("✅ <b>Clone Bot အားလုံးကို Database မှ အောင်မြင်စွာ ဖျက်သိမ်းလိုက်ပါပြီ။</b>\n\nEffect သက်ရောက်စေရန် Bot ကို Restart ချပေးပါ။ (/reboot)")
+        await msg.edit_text("✅ <b>𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙝𝙖𝙫𝙚 𝙗𝙚𝙚𝙣 𝙨𝙪𝙘𝙘𝙚𝙨𝙨𝙛𝙪𝙡𝙡𝙮 𝙙𝙚𝙡𝙚𝙩𝙚𝙙 𝙛𝙧𝙤𝙢 𝙩𝙝𝙚 𝘿𝙖𝙩𝙖𝙗𝙖𝙨𝙚.</b>\n\n𝙍𝙚𝙨𝙩𝙖𝙧𝙩 𝙩𝙝𝙚 𝙗𝙤𝙩 𝙛𝙤𝙧 𝙩𝙝𝙚 𝙚𝙛𝙛𝙚𝙘𝙩 𝙩𝙤 𝙩𝙖𝙠𝙚 𝙚𝙛𝙛𝙚𝙘𝙩. (/reboot)")
         
     except Exception as e:
         await message.reply_text(f"Error: {e}")
@@ -178,7 +179,7 @@ async def restart_clones():
                     plugins=dict(root="maythusharmusic.plugins.clone_plugins"),
                 )
                 await ai.start()
-                print(f"Started Clone: @{clone['bot_username']}")
+                print(f"𝗦𝘁𝗮𝗿𝘁𝗲𝗱 𝗖𝗹𝗼𝗻𝗲 : @{clone['bot_username']}")
                 CLONES.add(token)
             except Exception as e:
                 print(f"Failed to start clone {token}: {e}")
@@ -202,11 +203,11 @@ async def clone_mode_switch(client, message: Message):
         
         if state == "on" or state == "enable":
             await set_clones_active(True)
-            await message.reply_text("✅ <b>Clone Bot System ကို ဖွင့်လိုက်ပါပြီ။</b>\nClone Bot အားလုံး ပုံမှန်အတိုင်း အလုပ်ပြန်လုပ်ပါမည်။")
+            await message.reply_text("✅ <b>𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩 𝙎𝙮𝙨𝙩𝙚𝙢 𝙝𝙖𝙨 𝙗𝙚𝙚𝙣 𝙖𝙘𝙩𝙞𝙫𝙖𝙩𝙚𝙙.</b>\n𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙬𝙞𝙡𝙡 𝙧𝙚𝙨𝙪𝙢𝙚 𝙣𝙤𝙧𝙢𝙖𝙡 𝙤𝙥𝙚𝙧𝙖𝙩𝙞𝙤𝙣.")
             
         elif state == "off" or state == "disable":
             await set_clones_active(False)
-            await message.reply_text("❌ <b>Clone Bot System ကို ပိတ်လိုက်ပါပြီ။</b>\nClone Bot အားလုံးသည် 'Under Maintenance' ဟု ပြပါမည်။")
+            await message.reply_text("❌ <b>𝙏𝙝𝙚 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩 𝙎𝙮𝙨𝙩𝙚𝙢 𝙝𝙖𝙨 𝙗𝙚𝙚𝙣 𝙙𝙞𝙨𝙖𝙗𝙡𝙚𝙙.</b>\n𝘼𝙡𝙡 𝘾𝙡𝙤𝙣𝙚 𝘽𝙤𝙩𝙨 𝙬𝙞𝙡𝙡 𝙨𝙝𝙤𝙬 '𝙐𝙣𝙙𝙚𝙧 𝙈𝙖𝙞𝙣𝙩𝙚𝙣𝙖𝙣𝙘𝙚'.")
             
         else:
             await message.reply_text("<b>Usage:</b> <code>/clonebot [on|off]</code>")
