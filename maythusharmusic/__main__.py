@@ -14,6 +14,7 @@ from config import BANNED_USERS
 
 # --- Clone Bot Function ကို Import လုပ်ခြင်း ---
 from maythusharmusic.plugins.bot.clone import restart_clones 
+from maythusharmusic.core.cleanmode import clean_mode_task
 # -------------------------------------------
 
 async def init():
@@ -65,6 +66,8 @@ async def init():
     LOGGER("maythusharmusic").info(
         "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport ᴊᴏɪɴ @sasukevipmusicbot , @sasukevipmusicbotsupport ꜰᴏʀ ᴀɴʏ ɪꜱꜱᴜᴇꜱ"
     )
+    LOGGER("maythusharmusic").info("Clean Mode စနစ်ကို စတင်နေပါသည်...")
+    asyncio.create_task(clean_mode_task())
     await idle()
     await app.stop()
     await userbot.stop()
