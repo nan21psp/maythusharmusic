@@ -9,9 +9,45 @@ from pyrogram.errors import AccessTokenInvalid
 
 from config import API_ID, API_HASH, OWNER_ID
 from maythusharmusic import app
+from maythusharmusic.utils.database import get_assistant
 
 # Clone Bot များကို ယာယီမှတ်ထားရန်
 CLONES = set()
+
+# --- (၁) AUTO CHECK MAIN BOT FUNCTION ---
+async def auto_check_main_bot(clone_client):
+    """Clone Bot ရှိသော Group များတွင် Main Bot ရှိမရှိ စစ်ဆေးပြီး မရှိရင် ထည့်သည်"""
+    try:
+        if not app.me:
+            await app.get_me()
+        main_bot_username = app.me.username
+        main_bot_id = app.me.id
+
+        # Clone Bot ရောက်နေသော Chat များကို တန်းစီစစ်ဆေးမည်
+        async for dialog in clone_client.get_dialogs():
+            # Group နှင့် Supergroup များကိုသာ စစ်မည်
+            if dialog.chat.type in [ChatType.GROUP, ChatType.SUPERGROUP]:
+                chat_id = dialog.chat.id
+                try:
+                    # Main Bot ရှိမရှိ စစ်ဆေးခြင်း
+                    await clone_client.get_chat_member(chat_id, main_bot_id)
+                except UserNotParticipant:
+                    # Main Bot မရှိရင် Assistant ဖြင့် ဆွဲထည့်မည်
+                    try:
+                        userbot = await get_assistant(chat_id)
+                        await userbot.add_chat_members(chat_id, main_bot_username)
+                        # ထည့်ပြီးကြောင်း Log ပြမည် (Optional)
+                        # print(f"Added Main Bot to {dialog.chat.title}")
+                    except Exception:
+                        pass # Assistant Admin မဟုတ်လို့ ထည့်မရရင် ကျော်သွားမည်
+                except Exception:
+                    pass
+                
+                # FloodWait ရှောင်ရန် အနည်းငယ် နားမည်
+                await asyncio.sleep(2)
+                
+    except Exception as e:
+        print(f"Auto Sync Error for {clone_client.me.username}: {e}")
 
 @app.on_message(filters.command("clone") & filters.private)
 async def clone_txt(client, message: Message):
@@ -59,7 +95,7 @@ async def clone_txt(client, message: Message):
         if not re.match(r'^\d+:[a-zA-Z0-9_-]+$', bot_token):
             return await message.reply_text("❌ 𝗜𝗻𝘃𝗮𝗹𝗶𝗱 𝗕𝗼𝘁 𝗧𝗼𝗸𝗲𝗻.")
 
-        msg = await message.reply_text("🫧 <b>ʀᴇǫᴜᴇsᴛɪɴɢ ᴘᴇʀᴍɪꜱꜱɪᴏɴ ꜰʀᴏᴍ ᴛʜᴇ ᴏᴡɴᴇʀ...</b>\n\nᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ.")
+        msg = await message.reply_text("𝘾𝙧𝙚𝙖𝙩𝙞𝙣𝙜 𝙢𝙪𝙨𝙞𝙘 𝙗𝙤𝙩.𝙋𝙡𝙚𝙖𝙨𝙚 𝙬𝙖𝙞𝙩...")
 
         try:
             ai = Client(
@@ -79,12 +115,11 @@ async def clone_txt(client, message: Message):
             CLONES.add(bot_token)
             
             details = f"""
-<b>✅ 𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.</b>
+•✅𝗖𝗹𝗼𝗻𝗲 𝗕𝗼𝘁 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆 𝗰𝗿𝗲𝗮𝘁𝗲𝗱.
 
-<b>🤖 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : </b> {bot_mention}
-<b>🔗 𝙐𝙨𝙚𝙣𝙖𝙢𝙚 : </b> @{username}
-
-<i>ᴛᴏ ʟɪꜱᴛᴇɴ ᴛᴏ ᴍᴜꜱɪᴄ, ᴀᴅᴅ ʏᴏᴜʀ ᴄʟᴏɴᴇ ʙᴏᴛ ᴛᴏ ᴛʜᴇ ɢʀᴏᴜᴘ ᴀɴᴅ ɢɪᴠᴇ ɪᴛ ᴀᴅᴍɪɴ ꜱᴛᴀᴛᴜꜱ.</i>
+• 𝘽𝙤𝙩 𝙉𝙖𝙢𝙚 : {bot_mention}
+• 𝙐𝙨𝙚𝙣𝙖𝙢𝙚 : @{username}
+• 𝙇𝙞𝙨𝙩𝙚𝙣 𝙩𝙤 𝙢𝙪𝙨𝙞𝙘,𝙖𝙙𝙙 𝙮𝙤𝙪𝙧 𝙘𝙡𝙤𝙣𝙚 𝙗𝙤𝙩 𝙩𝙤 𝙩𝙝𝙚 𝙜𝙧𝙤𝙪𝙥 𝙖𝙣𝙙 𝙜𝙞𝙫𝙚 𝙞𝙩 𝙖𝙙𝙢𝙞𝙣 𝙨𝙩𝙖𝙩𝙪𝙨.
 """
             await msg.edit_text(details)
             
