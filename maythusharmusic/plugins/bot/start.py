@@ -53,6 +53,7 @@ async def start_pm(client, message: Message, _):
                     InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHANNEL)
                 ]
             ]),
+            has_spoiler=True # ဒီနေရာမှာ Spoiler ထပ်ထည့်ပေးလိုက်ပါပြီ
         )
     except Exception as e:
         print(f"Error checking membership: {e}")
