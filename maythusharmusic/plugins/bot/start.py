@@ -161,23 +161,34 @@ async def start_pm(client, message: Message, _):
             await lols.edit_text("**⚡ѕтαятιиg.**")
             await lols.edit_text("**⚡ѕтαятιиg....**")
             m = await message.reply_sticker("CAACAgUAAxkBAAMJZ7LS9RsSUHIOzOqsRgUFk9hHSv4AArwWAAKfFpBVhnvDvVebyvM2BA")
+            
+            # ဓာတ်ပုံရွေးချယ်မှုအပိုင်း
+            spoiler_needed = False 
             if message.chat.photo:
                 userss_photo = await app.download_media(
                     message.chat.photo.big_file_id,
                 )
             else:
                 userss_photo = "assets/nodp.png"
+                spoiler_needed = True # nodp ဖြစ်လျှင် spoiler တင်ရန်
+                
             chat_photo = userss_photo if userss_photo else config.START_IMG_URL
+            
         except AttributeError:
             chat_photo = "assets/nodp.png"
+            spoiler_needed = True
+            
         await lols.delete()
         await m.delete()
+        
+        # ဒီနေရာမှာ has_spoiler ကို condition နှင့်ထည့်ထားသည်
         await message.reply_photo(
             photo=chat_photo,
             caption=_["start_7"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
-            has_spoiler=True #telegram spoiler function 
+            has_spoiler=spoiler_needed # True or False
         )
+        
         if await is_on_off(config.LOG):
             sender_id = message.from_user.id
             sender_name = message.from_user.first_name
