@@ -53,7 +53,7 @@ async def start_pm(client, message: Message, _):
                     InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHANNEL_LINK)
                 ]
             ]),
-            has_spoiler=True # ဒီနေရာမှာ Spoiler ထပ်ထည့်ပေးလိုက်ပါပြီ
+            has_spoiler=True
         )
     except Exception as e:
         print(f"Error checking membership: {e}")
@@ -163,29 +163,23 @@ async def start_pm(client, message: Message, _):
             await lols.edit_text("**⚡ѕтαятιиg....**")
             m = await message.reply_sticker("CAACAgUAAxkBAAEP0-NpIJZD3PhPH5RITkr21yD7cmlaaQAC4w8AAh7zWVcwgHF1OyOemjYE")
             
-            # ဓာတ်ပုံရွေးချယ်မှုအပိုင်း
-            spoiler_needed = False 
-            if message.chat.photo:
-                userss_photo = config.START_IMG_URL,
-            else:
-                userss_photo = "assets/nodp.png"
-                spoiler_needed = True # nodp ဖြစ်လျှင် spoiler တင်ရန်
+            # START_IMG_URL ကိုပဲသုံးမယ်
+            chat_photo = config.START_IMG_URL
+            spoiler_needed = False  # START_IMG_URL အတွက် spoiler မလို
                 
-            chat_photo = userss_photo if userss_photo else config.START_IMG_URL
-            
-        except AttributeError:
-            chat_photo = "assets/nodp.png"
-            spoiler_needed = True
+        except Exception as e:
+            print(f"Error: {e}")
+            chat_photo = config.START_IMG_URL
+            spoiler_needed = False
             
         await lols.delete()
         await m.delete()
         
-        # ဒီနေရာမှာ has_spoiler ကို condition နှင့်ထည့်ထားသည်
         await message.reply_photo(
             photo=chat_photo,
             caption=_["start_7"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
-            has_spoiler=spoiler_needed # True or False
+            has_spoiler=spoiler_needed
         )
         
         if await is_on_off(config.LOG):
