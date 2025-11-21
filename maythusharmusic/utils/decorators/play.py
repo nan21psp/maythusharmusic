@@ -54,6 +54,25 @@ def PlayWrapper(command):
                 print(f"Silent Check Error: {e}")
         # --------------------------------------------------
 
+        # --- (၂) MAIN BOT REQUIREMENT CHECK (ADMIN COMMANDS) ---
+        # Clone Bot ဖြစ်နေပြီး Main Bot မရှိရင် တားမည်
+        if client.me.id != app.me.id:
+            try:
+                await client.get_chat_member(message.chat.id, app.me.id)
+            except UserNotParticipant:
+                main_bot_username = app.me.username
+                return await message.reply_text(
+                    f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                    f"ဒီ Command ကို အသုံးပြုရန်အတွက် Main Bot (@{main_bot_username}) သည် ဤ Group ထဲတွင် ရှိနေရပါမည်။\n"
+                    f"ကျေးဇူးပြု၍ Main Bot ကို ထည့်သွင်းပါ။",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_username}?startgroup=true")]
+                    ])
+                )
+            except Exception:
+                pass
+        # --------------------------------------------------
+
         language = await get_lang(message.chat.id)
         _ = get_string(language)
         
@@ -220,10 +239,28 @@ def PlayWrapper(command):
 
     return wrapper
 
-# CPlayWrapper (Channel Play) အတွက်လည်း Silent Mode လိုအပ်ရင် အပေါ်က Logic အတိုင်း ထပ်ထည့်နိုင်ပါတယ်
+
 def CPlayWrapper(command):
     async def wrapper(client, message):
-        # ... (CPlayWrapper code မူလအတိုင်းထားပါ၊ လိုအပ်ရင် အပေါ်က Silent Logic ထည့်ပါ) ...
+        # --- MAIN BOT REQUIREMENT CHECK (CPlay အတွက်လည်း) ---
+        # Clone Bot ဖြစ်နေပြီး Main Bot မရှိရင် တားမည်
+        if client.me.id != app.me.id:
+            try:
+                await client.get_chat_member(message.chat.id, app.me.id)
+            except UserNotParticipant:
+                main_bot_username = app.me.username
+                return await message.reply_text(
+                    f"⚠️ <b>Main Bot Missing!</b>\n\n"
+                    f"ဒီ Command ကို အသုံးပြုရန်အတွက် Main Bot (@{main_bot_username}) သည် ဤ Group ထဲတွင် ရှိနေရပါမည်။\n"
+                    f"ကျေးဇူးပြု၍ Main Bot ကို ထည့်သွင်းပါ။",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("➕ Add Main Bot", url=f"https://t.me/{main_bot_username}?startgroup=true")]
+                    ])
+                )
+            except Exception:
+                pass
+        # --------------------------------------------------
+
         language = await get_lang(message.chat.id)
         _ = get_string(language)
         if message.sender_chat:
