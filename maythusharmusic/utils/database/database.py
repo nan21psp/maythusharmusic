@@ -35,6 +35,7 @@ clonedb = mongodb.clonedb
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
 cleandb = mongodb.cleanmode
+stickerdb = mongodb.antisticker
 
 # --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
@@ -63,6 +64,25 @@ suggestion = {}
 mute = {}
 audio = {}
 video = {}
+
+async def is_antisticker_on(chat_id: int) -> bool:
+    """Sticker ပိတ်ထားခြင်း ရှိမရှိ စစ်ဆေးသည်"""
+    chat = await stickerdb.find_one({"chat_id": chat_id})
+    return bool(chat)
+
+async def antisticker_on(chat_id: int):
+    """Sticker ပို့ခွင့် ပိတ်သည်"""
+    is_on = await is_antisticker_on(chat_id)
+    if is_on:
+        return
+    await stickerdb.insert_one({"chat_id": chat_id})
+
+async def antisticker_off(chat_id: int):
+    """Sticker ပို့ခွင့် ပြန်ဖွင့်သည်"""
+    is_on = await is_antisticker_on(chat_id)
+    if not is_on:
+        return
+    await stickerdb.delete_one({"chat_id": chat_id})
 
 
 async def add_clean_message(chat_id: int, message_id: int):
