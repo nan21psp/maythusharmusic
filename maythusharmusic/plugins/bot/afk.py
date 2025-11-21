@@ -3,14 +3,18 @@ from pyrogram.enums import MessageEntityType
 from pyrogram import filters
 from pyrogram.types import Message
 from maythusharmusic import app
-from maythusharmusic.mongo.readable_time import get_readable_time
-from maythusharmusic.mongo.afkdb import add_afk, is_afk, remove_afk
+from maythusharmusic.utils.formatters import get_readable_time
+from maythusharmusic.utils.database import add_afk, is_afk, remove_afk
 
 
 @app.on_message(filters.command(["afk", "brb"], prefixes=["/", "!"]))
 async def active_afk(_, message: Message):
     if message.sender_chat:
         return
+    # User မရှိရင် ဘာမှမလုပ်ဘဲ ပြန်ထွက်မည်
+    if not message.from_user:
+        return
+        
     user_id = message.from_user.id
     verifier, reasondb = await is_afk(user_id)
     if verifier:
@@ -167,6 +171,11 @@ chat_watcher_group = 1
 async def chat_watcher_func(_, message):
     if message.sender_chat:
         return
+    # --- ပြင်ဆင်ချက်: User မရှိရင် ကျော်သွားမည် ---
+    if not message.from_user:
+        return
+    # -----------------------------------------
+    
     userid = message.from_user.id
     user_name = message.from_user.first_name
     if message.entities:
@@ -220,46 +229,48 @@ async def chat_watcher_func(_, message):
 
     if message.reply_to_message:
         try:
-            replied_first_name = message.reply_to_message.from_user.first_name
-            replied_user_id = message.reply_to_message.from_user.id
-            verifier, reasondb = await is_afk(replied_user_id)
-            if verifier:
-                try:
-                    afktype = reasondb["type"]
-                    timeafk = reasondb["time"]
-                    data = reasondb["data"]
-                    reasonafk = reasondb["reason"]
-                    seenago = get_readable_time((int(time.time() - timeafk)))
-                    if afktype == "text":
-                        msg += (
-                            f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n"
-                        )
-                    if afktype == "text_reason":
-                        msg += f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n"
-                    if afktype == "animation":
-                        if str(reasonafk) == "None":
-                            send = await message.reply_animation(
-                                data,
-                                caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n",
+            # Check if reply message has from_user
+            if message.reply_to_message.from_user:
+                replied_first_name = message.reply_to_message.from_user.first_name
+                replied_user_id = message.reply_to_message.from_user.id
+                verifier, reasondb = await is_afk(replied_user_id)
+                if verifier:
+                    try:
+                        afktype = reasondb["type"]
+                        timeafk = reasondb["time"]
+                        data = reasondb["data"]
+                        reasonafk = reasondb["reason"]
+                        seenago = get_readable_time((int(time.time() - timeafk)))
+                        if afktype == "text":
+                            msg += (
+                                f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n"
                             )
-                        else:
-                            send = await message.reply_animation(
-                                data,
-                                caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n",
-                            )
-                    if afktype == "photo":
-                        if str(reasonafk) == "None":
-                            send = await message.reply_photo(
-                                photo=f"downloads/{replied_user_id}.jpg",
-                                caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n",
-                            )
-                        else:
-                            send = await message.reply_photo(
-                                photo=f"downloads/{replied_user_id}.jpg",
-                                caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n",
-                            )
-                except Exception:
-                    msg += f"**{replied_first_name}** ɪs ᴀғᴋ,\nᴩᴀᴛᴀ ɴɪ ʙᴄ ᴋᴀʙ sᴇ\n\n"
+                        if afktype == "text_reason":
+                            msg += f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n"
+                        if afktype == "animation":
+                            if str(reasonafk) == "None":
+                                send = await message.reply_animation(
+                                    data,
+                                    caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n",
+                                )
+                            else:
+                                send = await message.reply_animation(
+                                    data,
+                                    caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n",
+                                )
+                        if afktype == "photo":
+                            if str(reasonafk) == "None":
+                                send = await message.reply_photo(
+                                    photo=f"downloads/{replied_user_id}.jpg",
+                                    caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\n",
+                                )
+                            else:
+                                send = await message.reply_photo(
+                                    photo=f"downloads/{replied_user_id}.jpg",
+                                    caption=f"**{replied_first_name[:25]}** ɪs ᴀғᴋ sɪɴᴄᴇ {seenago}\n\nʀᴇᴀsᴏɴ: `{reasonafk}`\n\n",
+                                )
+                    except Exception:
+                        msg += f"**{replied_first_name}** ɪs ᴀғᴋ,\nᴩᴀᴛᴀ ɴɪ ʙᴄ ᴋᴀʙ sᴇ\n\n"
         except:
             pass
 
