@@ -34,7 +34,7 @@ async def antisticker_control(client: Client, message: Message):
 
 # --- (၂) Sticker များကို စောင့်ကြည့်ပြီး ဖျက်မည့် Function ---
 @app.on_message(filters.sticker & filters.group)
-async def delete_stickers(client: Client, message: Message):
+async def delete_sticker(client: Client, message: Message):
     # Anti-Sticker ဖွင့်ထားခြင်း ရှိမရှိ စစ်ဆေးခြင်း
     if not await is_antisticker_on(message.chat.id):
         return # မဖွင့်ထားရင် ဘာမှမလုပ်ဘဲ ကျော်မယ်
@@ -54,7 +54,7 @@ async def delete_stickers(client: Client, message: Message):
         # Bot က Admin မဟုတ်လို့ ဖျက်မရရင် ကျော်သွားမယ်
         pass
 
-
+#___________________________________________________________________#
 
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -67,7 +67,7 @@ from config import BANNED_USERS, OWNER_ID
 # --- (၁) အဖွင့်/အပိတ် Command ---
 @app.on_message(filters.command("antistickers") & filters.group & ~BANNED_USERS)
 async def antisticker_control(client: Client, message: Message):
-    # Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း
+    # Command သုံးသူက Admin ဟုတ်မဟုတ် စစ်ဆေးခြင်း
     if not await admin_check(message):
         return await message.reply_text("⚠️ ဤ Command ကို <b>Admin</b> များသာ သုံးနိုင်ပါသည်။")
     
@@ -76,11 +76,11 @@ async def antisticker_control(client: Client, message: Message):
     
     state = message.command[1].lower()
     
-    if state == "on" or state == "enable":
+    if state == "ons" or state == "enables":
         await antisticker_on(message.chat.id)
         await message.reply_text("🚫 <b>Anti-Sticker စနစ်ကို ဖွင့်လိုက်ပါပြီ။</b>\n\nယခုမှစ၍ <b>Group Owner (ပိုင်ရှင်)</b> မှလွဲပြီး Admin များအပါအဝင် မည်သူမျှ Sticker ပို့၍မရပါ။")
         
-    elif state == "off" or state == "disable":
+    elif state == "offs" or state == "disables":
         await antisticker_off(message.chat.id)
         await message.reply_text("✅ <b>Anti-Sticker စနစ်ကို ပိတ်လိုက်ပါပြီ။</b>\n\nလူတိုင်း Sticker ပို့နိုင်ပါပြီ။")
         
@@ -89,24 +89,26 @@ async def antisticker_control(client: Client, message: Message):
 
 
 # --- (၂) Sticker များကို စောင့်ကြည့်ပြီး ဖျက်မည့် Function (Strict Mode) ---
+
 @app.on_message(filters.sticker & filters.group)
 async def delete_stickers(client: Client, message: Message):
     # Anti-Sticker ဖွင့်ထားခြင်း ရှိမရှိ စစ်ဆေးခြင်း
     if not await is_antisticker_on(message.chat.id):
         return 
 
-    # (က) Bot Owner ဖြစ်လျှင် ခွင့်ပြုမည်
+    # (က) Bot Owner (Dev) ဖြစ်လျှင် ခွင့်ပြုမည်
     if message.from_user.id == OWNER_ID:
         return
 
     # (ခ) Group Owner (ပိုင်ရှင်) ဖြစ်မှသာ ခွင့်ပြုမည်
     try:
         member = await client.get_chat_member(message.chat.id, message.from_user.id)
+        
+        # ဤနေရာတွင် OWNER တစ်မျိုးတည်းကိုသာ စစ်ဆေးပါသည်
         if member.status == ChatMemberStatus.OWNER:
-            return # Owner ဆိုရင် မဖျက်ဘူး
+            return # Owner ဆိုရင် မဖျက်ဘူး (ကျော်သွားမယ်)
             
-        # မှတ်ချက်: ChatMemberStatus.ADMINISTRATOR ကို ဖြုတ်လိုက်ပါပြီ
-        # ဒါကြောင့် Admin တွေပို့ရင်လည်း အောက်ရောက်ပြီး အဖျက်ခံရပါမယ်
+        # Admin ဆိုရင်လည်း return မပြန်တဲ့အတွက် အောက်ရောက်ပြီး အဖျက်ခံရပါမယ်
         
     except:
         pass
