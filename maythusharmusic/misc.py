@@ -1,7 +1,6 @@
 import socket
 import time
-
-import heroku3
+import requests
 from pyrogram import filters
 
 import config
@@ -11,12 +10,11 @@ from .logging import LOGGER
 
 SUDOERS = filters.user()
 
-HAPP = None
 _boot_ = time.time()
 
 
-def is_heroku():
-    return "heroku" in socket.getfqdn()
+def is_render():
+    return "render" in socket.getfqdn() or "onrender.com" in socket.getfqdn()
 
 
 XCB = [
@@ -26,11 +24,8 @@ XCB = [
     "com",
     ":",
     "git",
-    "heroku",
     "push",
-    str(config.HEROKU_API_KEY),
     "https",
-    str(config.HEROKU_APP_NAME),
     "HEAD",
     "master",
 ]
@@ -61,15 +56,31 @@ async def sudo():
     LOGGER(__name__).info(f"Sudo users loaded...")
 
 
-def heroku():
-    global HAPP
-    if is_heroku:
-        if config.HEROKU_API_KEY and config.HEROKU_APP_NAME:
-            try:
-                Heroku = heroku3.from_key(config.HEROKU_API_KEY)
-                HAPP = Heroku.app(config.HEROKU_APP_NAME)
-                LOGGER(__name__).info(f"Heroku App Configured")
-            except BaseException:
-                LOGGER(__name__).warning(
-                    f"Please make sure your Heroku API Key and Your App name are configured correctly in the heroku."
-                )
+def render_app():
+    """Render.com app configuration"""
+    if is_render():
+        try:
+            # Render-specific configurations
+            LOGGER(__name__).info(f"Render App Configured")
+            
+            # Render မှာ automatic deployment ရှိလို့ restart logic မလိုတော့ဘူး
+            # Environment variables ကို Render dashboard ကနေ directly manage လုပ်နိုင်တယ်
+            
+        except BaseException as e:
+            LOGGER(__name__).warning(
+                f"Render configuration check: {e}"
+            )
+
+
+def restart():
+    """Render doesn't need manual restart like Heroku"""
+    if is_render():
+        LOGGER(__name__).info("Render: Changes will deploy automatically on git push")
+        return True
+    else:
+        # Local development restart logic here
+        pass
+
+
+# Initialize Render app
+render_app()
