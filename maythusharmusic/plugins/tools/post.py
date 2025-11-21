@@ -4,61 +4,85 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from maythusharmusic import app
 from config import OWNER_ID
 
-@app.on_message(filters.command(["post", "sendlink"]) & filters.user(OWNER_ID))
-async def post_with_buttons(client: Client, message: Message):
-    if len(message.command) < 3:
+@app.on_message(filters.command(["post", "sendpost"]) & filters.user(OWNER_ID))
+async def create_post(client: Client, message: Message):
+    # Command မှာ Channel ID ပါမပါ စစ်ဆေးခြင်း
+    if len(message.command) < 2:
         return await message.reply_text(
             "<b>အသုံးပြုပုံ:</b>\n"
-            "<code>/post [Channel ID] [စာသား] ~ [Button Name][URL]</code>\n\n"
+            "1. ပုံ (သို့) စာသားတစ်ခုကို Reply ပြန်ပါ။\n"
+            "2. Command ရိုက်ပါ: <code>/post [Channel ID] [Caption] ~ [Button][Link]</code>\n\n"
             "<b>ဥပမာ:</b>\n"
-            "<code>/post -1001234567890 မင်္ဂလာပါ ခင်ဗျာ ~ [Join Channel][https://t.me/D_E_V_S]</code>"
+            "<code>/post -100xxxxxx မင်္ဂလာပါ ~ [Join Channel][https://t.me/xxxx]</code>"
         )
 
     try:
-        # Channel ID ကို ခွဲယူခြင်း
-        chat_id = message.command[1]
+        chat_id = message.command[1] # Channel ID
         
-        # ကျန်တဲ့ စာသားအားလုံးကို ယူခြင်း
-        raw_text = message.text.split(None, 2)[2]
+        # Caption နဲ့ Button ခွဲထုတ်ခြင်း
+        raw_text = ""
+        if len(message.command) > 2:
+            raw_text = message.text.split(None, 2)[2]
 
-        text_content = ""
-        markup = None
+        caption_text = raw_text
+        reply_markup = None
 
-        # Button ပါ/မပါ စစ်ဆေးခြင်း ("~" သင်္ကေတ ခံထားရမည်)
+        # "~" ပါရင် Button ပါတယ်လို့ ယူဆမယ်
         if "~" in raw_text:
             parts = raw_text.split("~", 1)
-            text_content = parts[0].strip()
-            button_part = parts[1].strip()
+            caption_text = parts[0].strip() # "~" အရှေ့က စာသား
+            button_data = parts[1].strip() # "~" အနောက်က Button Data
 
-            # Button Format ကို ရှာဖွေခြင်း: [Name][Link]
-            # ဥပမာ: [Google][https://google.com] [Channel][https://t.me/...]
+            # Button များကို [Name][Link] ပုံစံဖြင့် ရှာဖွေခြင်း
             pattern = r"\[(.*?)\]\[(.*?)\]"
-            matches = re.findall(pattern, button_part)
+            matches = re.findall(pattern, button_data)
 
-            keyboard = []
-            row = []
-            for name, link in matches:
-                row.append(InlineKeyboardButton(text=name, url=link.strip()))
-                # တစ်တန်းမှာ ၂ ခုပြမယ်
-                if len(row) == 2:
+            if matches:
+                keyboard = []
+                row = []
+                for name, link in matches:
+                    row.append(InlineKeyboardButton(text=name, url=link.strip()))
+                    # တစ်တန်းမှာ ၂ ခုပြမယ် (လိုချင်ရင် ပြောင်းလို့ရပါတယ်)
+                    if len(row) == 2:
+                        keyboard.append(row)
+                        row = []
+                if row:
                     keyboard.append(row)
-                    row = []
-            if row:
-                keyboard.append(row)
+                reply_markup = InlineKeyboardMarkup(keyboard)
 
-            if keyboard:
-                markup = InlineKeyboardMarkup(keyboard)
+        # (က) Reply ပြန်ထားတာ ပုံ (Photo) ဖြစ်လျှင်
+        if message.reply_to_message and message.reply_to_message.photo:
+            await client.send_photo(
+                chat_id=int(chat_id),
+                photo=message.reply_to_message.photo.file_id,
+                caption=caption_text,
+                reply_markup=reply_markup
+            )
+        
+        # (ခ) Reply ပြန်ထားတာ စာ (Text) သက်သက်ဖြစ်လျှင်
+        elif message.reply_to_message and message.reply_to_message.text:
+            # Reply ထားတဲ့စာကို ယူမယ်၊ Command မှာရေးထားတဲ့ Caption ရှိရင် အစားထိုးမယ်
+            final_text = caption_text if caption_text else message.reply_to_message.text
+            await client.send_message(
+                chat_id=int(chat_id),
+                text=final_text,
+                reply_markup=reply_markup,
+                disable_web_page_preview=True
+            )
+
+        # (ဂ) Reply မဟုတ်ဘဲ Command နဲ့တန်းပို့လျှင် (စာသားသီးသန့်)
         else:
-            text_content = raw_text
+            if not caption_text:
+                return await message.reply_text("ပို့မည့် စာသား (သို့) ပုံကို Reply ပြန်ပေးပါ။")
+                
+            await client.send_message(
+                chat_id=int(chat_id),
+                text=caption_text,
+                reply_markup=reply_markup,
+                disable_web_page_preview=True
+            )
 
-        # Channel သို့ ပို့ခြင်း
-        await client.send_message(
-            chat_id=int(chat_id),
-            text=text_content,
-            reply_markup=markup,
-            disable_web_page_preview=True
-        )
-        await message.reply_text("✅ <b>Post တင်ခြင်း အောင်မြင်ပါသည်။</b>")
+        await message.reply_text("✅ <b>Channel သို့ Post တင်ပြီးပါပြီ။</b>")
 
     except Exception as e:
         await message.reply_text(f"❌ <b>Error:</b> {e}")
