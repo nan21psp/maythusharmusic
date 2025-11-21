@@ -36,6 +36,7 @@ chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
 cleandb = mongodb.cleanmode
 stickerdb = mongodb.antisticker
+afkdb = mongodb.afk
 
 # --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
@@ -64,6 +65,27 @@ suggestion = {}
 mute = {}
 audio = {}
 video = {}
+
+afkdb = mongodb.afk
+
+async def is_afk(user_id: int):
+    """User သည် AFK ဖြစ်/မဖြစ် စစ်ဆေးသည်"""
+    user = await afkdb.find_one({"user_id": user_id})
+    if not user:
+        return False, {}
+    return True, user["reason"]
+
+async def add_afk(user_id: int, mode):
+    """User ကို AFK စာရင်းသွင်းသည်"""
+    await afkdb.update_one(
+        {"user_id": user_id}, {"$set": {"reason": mode}}, upsert=True
+    )
+
+async def remove_afk(user_id: int):
+    """User ကို AFK စာရင်းမှ ဖယ်ရှားသည်"""
+    user = await afkdb.find_one({"user_id": user_id})
+    if user:
+        return await afkdb.delete_one({"user_id": user_id})
 
 async def is_antisticker_on(chat_id: int) -> bool:
     """Sticker ပိတ်ထားခြင်း ရှိမရှိ စစ်ဆေးသည်"""
