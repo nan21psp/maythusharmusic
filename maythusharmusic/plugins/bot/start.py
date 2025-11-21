@@ -64,7 +64,7 @@ async def start_pm(client, message: Message, _):
         name = message.text.split(None, 1)[1]
         if name[0:4] == "help":
             keyboard = help_pannel(_)
-            await message.reply_sticker("CAACAgUAAxkBAAMJZ7LS9RsSUHIOzOqsRgUFk9hHSv4AArwWAAKfFpBVhnvDvVebyvM2BA")
+            await message.reply_sticker("CAACAgUAAxkBAAEP0-NpIJZD3PhPH5RITkr21yD7cmlaaQAC4w8AAh7zWVcwgHF1OyOemjYE")
             return await message.reply_photo(
                 photo=config.START_IMG_URL,
                 caption=_["help_1"].format(config.SUPPORT_CHAT),
@@ -161,14 +161,12 @@ async def start_pm(client, message: Message, _):
 
             await lols.edit_text("**⚡ѕтαятιиg.**")
             await lols.edit_text("**⚡ѕтαятιиg....**")
-            m = await message.reply_sticker("CAACAgUAAxkBAAMJZ7LS9RsSUHIOzOqsRgUFk9hHSv4AArwWAAKfFpBVhnvDvVebyvM2BA")
+            m = await message.reply_sticker("CAACAgUAAxkBAAEP0-NpIJZD3PhPH5RITkr21yD7cmlaaQAC4w8AAh7zWVcwgHF1OyOemjYE")
             
             # ဓာတ်ပုံရွေးချယ်မှုအပိုင်း
             spoiler_needed = False 
             if message.chat.photo:
-                userss_photo = await app.download_media(
-                    message.chat.photo.big_file_id,
-                )
+                userss_photo = config.START_IMG_URL,
             else:
                 userss_photo = "assets/nodp.png"
                 spoiler_needed = True # nodp ဖြစ်လျှင် spoiler တင်ရန်
