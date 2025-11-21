@@ -26,7 +26,7 @@ START_TEXT = """
 async def start_private(client: Client, message: Message):
     # Clone system status check
     if not await is_clones_active():
-        return await message.reply_text("⚠️ <b>Sorry, Clone Bot System is currently OFF for maintenance.</b>")
+        return await message.reply_text(">**ꜱᴏʀʀʏ, ᴄʟᴏɴᴇ ʙᴏᴛ ꜱʏꜱᴛᴇᴍ ɪꜱ ᴄᴜʀʀᴇɴᴛʟʏ ᴏꜰꜰ ꜰᴏʀ ᴍᴀɪɴᴛᴇɴᴀɴᴄᴇ.**")
     
     # Bot username ကိုရယူခြင်း
     app_username = (await client.get_me()).username
@@ -37,8 +37,8 @@ async def start_private(client: Client, message: Message):
         [
             [
                 InlineKeyboardButton(
-                    text="ᴀᴅᴅ ᴍᴇ ᴛᴏ ʏᴏᴜʀ ɢʀᴏᴜᴘ",
-                    url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users"
+                    text="ᴀᴅᴅ ᴍᴇ ʙᴀʙʏ",
+                    url=f"https://t.me/{app_username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users+add_admins"
                 )
             ],
             [
@@ -74,12 +74,12 @@ async def start_group(client: Client, message: Message):
     
     # Group start message
     await message.reply_text(
-        "🎵 **Hello! I'm ready to play music in this group!**\n\n"
-        "Use /play to start streaming music! 🎶",
+        "**ʜᴇʟʟᴏ,ɪ ᴀᴍ ʀᴇᴀᴅʏ ᴛᴏ ᴘʟᴀʏ ᴍᴜꜱɪᴄ ɪɴ ᴛʜɪꜱ ɢʀᴏᴜᴘ.**\n"
+        "**ᴜꜱᴇ /ᴘʟᴀʏ ᴛᴏ ꜱᴛᴀʀᴛ ꜱᴛʀᴇᴀᴍɪɴɢ ᴍᴜꜱɪᴄ**",
         reply_markup=InlineKeyboardMarkup([
             [
-                InlineKeyboardButton("🔗 Add Me to your Group", 
-                                   url=f"https://t.me/{(await client.get_me()).username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users")
+                InlineKeyboardButton("ᴀᴅᴅ ᴍᴇ ʙᴀʙʏ", 
+                                   url=f"https://t.me/{(await client.get_me()).username}?startgroup=s&admin=delete_messages+manage_video_chats+pin_messages+invite_users+ban_users+add_admins")
             ]
         ])
     )
