@@ -49,8 +49,8 @@ async def start_pm(client, message: Message, _):
             caption="ʏᴏᴜ ɴᴇᴇᴅ ᴛᴏ ᴊᴏɪɴ ᴛʜᴇ [๏ sᴜᴘᴘᴏʀᴛ ๏](https://t.me/sasukemusicsupportchat) ᴄʜᴀɴɴᴇʟ ᴛᴏ ᴜꜱᴇ ᴛʜᴇ ʙᴏᴛ !\nᴀғᴛᴇʀ ᴊᴏɪɴ ᴛʜᴇ [๏ ᴄʜᴀɴɴᴇʟ ๏](https://t.me/everythingreset) ᴄᴏᴍᴇ ʙᴀᴄᴋ ᴛᴏ ᴛʜᴇ ʙᴏᴛ ᴀɴᴅ ᴛʏᴘᴇ /start ᴀɢᴀɪɴ !",
             reply_markup=InlineKeyboardMarkup([
                 [
-                    InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHAT_LINK),
-                    InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHANNEL_LINK)
+                    InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHAT),
+                    InlineKeyboardButton(" ᴊᴏɪɴ ", url=config.SUPPORT_CHANNEL)
                 ]
             ]),
             has_spoiler=True
