@@ -5,7 +5,7 @@ from maythusharmusic import app
 # ဂဏန်းတွက်ရန် အသုံးပြုမည့် သင်္ကေတများ
 ALLOWED_CHARS = "0123456789+-*/().%^ "
 
-@app.on_message(filters.text & filters.group)
+@app.on_message(filters.text & filters.group & filters.private)
 async def calculator_func(client: Client, message: Message):
     # စာသားမရှိလျှင် (သို့) Command ဖြစ်နေလျှင် ကျော်သွားမည်
     if not message.text or message.text.startswith("/"):
@@ -37,7 +37,7 @@ async def calculator_func(client: Client, message: Message):
             result = int(result)
 
         # အဖြေပြန်ပို့ခြင်း
-        await message.reply_text(f"{expression} = {result}")
+        await text(f"{expression} = {result}")
 
     except Exception:
         # တွက်လို့မရသော စာသားများ (Error တက်လျှင်) ဘာမှပြန်မပြောပါ (Silent)
