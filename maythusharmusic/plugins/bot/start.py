@@ -174,6 +174,7 @@ async def start_pm(client, message: Message, _):
         await m.delete()
         await message.reply_photo(
             photo=chat_photo,
+            has_spoiler=True
             caption=_["start_7"].format(message.from_user.mention, app.mention),
             reply_markup=InlineKeyboardMarkup(out),
         )
