@@ -1,11 +1,11 @@
 import re
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from maythusharmusic import app
 from config import OWNER_ID
 
 @app.on_message(filters.command(["post", "sendpost"]) & filters.user(OWNER_ID))
-async def create_post(client: Client, message: Message):
+async def create_post(_, message: Message):
     # Command အသုံးပြုပုံ မှားရင် ပြမည်
     if len(message.command) < 2:
         return await message.reply_text(
@@ -52,14 +52,14 @@ async def create_post(client: Client, message: Message):
                     keyboard.append(row)
                 reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # --- ပို့ဆောင်ခြင်း အပိုင်း ---
+        # --- ပို့ဆောင်ခြင်း အပိုင်း (app ကိုသုံးမည်) ---
 
         # (၁) Reply ပြန်ထားတာ ပုံ (Photo) ဖြစ်လျှင်
         if message.reply_to_message and message.reply_to_message.photo:
             # Command မှာ စာရေးမထားရင် ပုံရဲ့ မူလ Caption ကိုယူမယ်
             final_caption = caption_text if caption_text else (message.reply_to_message.caption or "")
             
-            await client.send_photo(
+            await app.send_photo(
                 chat_id=chat_id,
                 photo=message.reply_to_message.photo.file_id,
                 caption=final_caption,
@@ -71,7 +71,7 @@ async def create_post(client: Client, message: Message):
             # Command မှာ စာရေးမထားရင် မူလစာကိုယူမယ်
             final_text = caption_text if caption_text else message.reply_to_message.text
             
-            await client.send_message(
+            await app.send_message(
                 chat_id=chat_id,
                 text=final_text,
                 reply_markup=reply_markup,
@@ -83,7 +83,7 @@ async def create_post(client: Client, message: Message):
             if not caption_text:
                 return await message.reply_text("⚠️ ပို့မည့် စာသား (သို့) ပုံကို Reply ပြန်ပေးပါ။")
                 
-            await client.send_message(
+            await app.send_message(
                 chat_id=chat_id,
                 text=caption_text,
                 reply_markup=reply_markup,
