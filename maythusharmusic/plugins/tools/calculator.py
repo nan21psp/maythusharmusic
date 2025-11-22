@@ -6,7 +6,7 @@ from maythusharmusic import app
 ALLOWED_CHARS = "0123456789+-*/().%^ "
 
 # filters.group ကို ဖြုတ်လိုက်ပါသည် (Private မှာပါ ရအောင်)
-@app.on_message(filters.text) 
+@app.on_message(filters.text & filters.group)
 async def calculator_func(client: Client, message: Message):
     # စာသားမရှိလျှင် (သို့) Command ဖြစ်နေလျှင် ကျော်သွားမည်
     if not message.text or message.text.startswith("/"):
