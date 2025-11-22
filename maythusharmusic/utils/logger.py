@@ -1,7 +1,7 @@
 from pyrogram.enums import ParseMode
 
 from maythusharmusic import app
-from maythusharmusic.utils.database import is_on_off
+from maythusharmusic.utils.youtubedatabase import is_on_off
 from config import LOGGER_ID
 
 
