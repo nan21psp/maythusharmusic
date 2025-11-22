@@ -12,7 +12,8 @@ def ids(_, message):
             f"ʏᴏᴜʀ ɪᴅ: {message.from_user.id}\n{reply.from_user.first_name}'s ɪᴅ: {reply.from_user.id}\nᴄʜᴀᴛ ɪᴅ: {message.chat.id}"
         )
     else:
-        message.reply(f"ʏᴏᴜʀ ɪᴅ: {message.from_user.id}\nᴄʜᴀᴛ ɪᴅ: {message.chat.id}")
+        # ဒီမှာ message.reply() ကို message.reply_text() ပြောင်းပြီး parse_mode ထည့်ရန်
+        message.reply_text(f"ʏᴏᴜʀ ɪᴅ: {message.from_user.id}\nᴄʜᴀᴛ ɪᴅ: {message.chat.id}")
 
 
 ####
@@ -27,9 +28,6 @@ async def getid(client, message):
 
     text = f"**[ᴍᴇssᴀɢᴇ ɪᴅ:]({message.link})** `{message_id}`\n"
     text += f"**[ʏᴏᴜʀ ɪᴅ:](tg://user?id={your_id})** `{your_id}`\n"
-
-    if not message.command:
-        message.command = message.text.split()
 
     if not message.command:
         message.command = message.text.split()
