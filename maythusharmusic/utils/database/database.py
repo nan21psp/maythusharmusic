@@ -2,7 +2,7 @@
 import random
 import string
 import time
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any
 
 from maythusharmusic import userbot
 from config import CLEANMODE_DELETE_MINS
