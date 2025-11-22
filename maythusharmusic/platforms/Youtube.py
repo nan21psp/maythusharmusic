@@ -13,20 +13,7 @@ from youtubesearchpython.__future__ import VideosSearch
 
 # --- (youtubedatabase.py ကို သီးသန့် import လုပ်ပါ) ---
 # --- (get_all_yt_cache function အသစ်ကိုပါ import လုပ်ပါ) ---
-from maythusharmusic.utils.database import (
-        is_on_off,
-        get_yt_cache,
-        save_yt_cache,
-        get_cached_song_path,
-        save_cached_song_path,
-        remove_cached_song_path,
-        get_all_yt_cache  # <-- Error 2: ကျန်နေတာကို ထပ်ဖြည့်ထားသည်
-    )
-except ImportError:
-    print("FATAL ERROR: youtubedatabase.py ကို ရှာမတွေ့ပါ")
-    # ဒီနေရာမှာ bot ကို ရပ်သင့်ရင် ရပ်နိုင်ပါတယ်
-    raise
-# --- (ဒီနေရာအထိ) ---
+from maythusharmusic.utils.database import is_on_off, get_yt_cache, save_yt_cache, get_cached_song_path, save_cached_song_path, remove_cached_song_path, get_all_yt_cache
 from maythusharmusic.utils.formatters import time_to_seconds
 
 import os
