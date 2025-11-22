@@ -13,8 +13,7 @@ from youtubesearchpython.__future__ import VideosSearch
 
 # --- (youtubedatabase.py ကို သီးသန့် import လုပ်ပါ) ---
 # --- (get_all_yt_cache function အသစ်ကိုပါ import လုပ်ပါ) ---
-try:
-    from maythusharmusic.utils.database.database import (
+from maythusharmusic.utils.database import (
         is_on_off,
         get_yt_cache,
         save_yt_cache,
