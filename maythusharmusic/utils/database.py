@@ -1,9 +1,11 @@
 #database.py
 import random
 import string
-from typing import Dict, List, Union
+import time
+from typing import Dict, List, Union, Any
 
 from maythusharmusic import userbot
+from config import CLEANMODE_DELETE_MINS
 from maythusharmusic.core.mongo import mongodb, pymongodb
 
 authdb = mongodb.adminauth
@@ -32,6 +34,9 @@ videodb = mongodb.vipvideocalls
 clonedb = mongodb.clonedb
 chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
+cleandb = mongodb.cleanmode
+stickerdb = mongodb.antisticker
+afkdb = mongodb.afk
 
 # --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
@@ -61,8 +66,151 @@ mute = {}
 audio = {}
 video = {}
 
+afkdb = mongodb.afk
+
+async def get_yt_cache(key: str) -> Union[dict, None]:
+    try:
+        cached_result = await ytcache_db.find_one({"key": key})
+        if cached_result:
+            return cached_result.get("details")
+    except Exception as e:
+        logger.error(f"Error getting YT cache for key '{key}': {e}")
+    return None
+
+# --- (Function (၃) - save_yt_cache) ---
+async def save_yt_cache(key: str, details: dict):
+    try:
+        await ytcache_db.update_one(
+            {"key": key},
+            {"$set": {"details": details}},
+            upsert=True
+        )
+    except Exception as e:
+        logger.error(f"Error saving YT cache for key '{key}': {e}")
+
+# --- (Function (၄) - get_cached_song_path) ---
+async def get_cached_song_path(video_id: str) -> Union[str, None]:
+    try:
+        cached_song = await songfiles_db.find_one({"video_id": video_id})
+        if cached_song:
+            return cached_song.get("file_path")
+    except Exception as e:
+        logger.error(f"Error getting song path cache for vid '{video_id}': {e}")
+    return None
+
+# --- (Function (၅) - save_cached_song_path) ---
+async def save_cached_song_path(video_id: str, file_path: str):
+    try:
+        await songfiles_db.update_one(
+            {"video_id": video_id},
+            {"$set": {"file_path": file_path}},
+            upsert=True
+        )
+    except Exception as e:
+        logger.error(f"Error saving song path cache for vid '{video_id}': {e}")
+
+# --- (Function (၆) - remove_cached_song_path) ---
+async def remove_cached_song_path(video_id: str):
+    try:
+        await songfiles_db.delete_one({"video_id": video_id})
+    except Exception as e:
+        logger.error(f"Error removing song path cache for vid '{video_id}': {e}")
+
+# --- (Function (၇) (အသစ်) - Get ALL Cache for Pre-loading) ---
+async def get_all_yt_cache() -> Dict[str, Any]:
+    """MongoDB မှ cache လုပ်ထားသော YouTube search results အားလုံးကို ယူသည်"""
+    all_cache: Dict[str, Any] = {}
+    try:
+        # filter မထည့်ဘဲ find() လုပ်ခြင်းဖြင့် document အားလုံးကို ယူပါ
+        async for document in ytcache_db.find({}):
+            key = document.get("key")
+            details = document.get("details")
+            if key and details:
+                all_cache[key] = details
+        
+        count = len(all_cache)
+        if count > 0:
+            logger.info(f"MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
+        return all_cache
+    except Exception as e:
+        logger.error(f"Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
+        return {} # Error ဖြစ်လျှင် အလွတ် dictionary ပြန်ပေး
 
 
+#__________________________________________________________________#
+async def is_afk(user_id: int):
+    """User သည် AFK ဖြစ်/မဖြစ် စစ်ဆေးသည်"""
+    user = await afkdb.find_one({"user_id": user_id})
+    if not user:
+        return False, {}
+    return True, user["reason"]
+
+async def add_afk(user_id: int, mode):
+    """User ကို AFK စာရင်းသွင်းသည်"""
+    await afkdb.update_one(
+        {"user_id": user_id}, {"$set": {"reason": mode}}, upsert=True
+    )
+
+async def remove_afk(user_id: int):
+    """User ကို AFK စာရင်းမှ ဖယ်ရှားသည်"""
+    user = await afkdb.find_one({"user_id": user_id})
+    if user:
+        return await afkdb.delete_one({"user_id": user_id})
+
+async def is_antisticker_on(chat_id: int) -> bool:
+    """Sticker ပိတ်ထားခြင်း ရှိမရှိ စစ်ဆေးသည်"""
+    chat = await stickerdb.find_one({"chat_id": chat_id})
+    return bool(chat)
+
+async def antisticker_on(chat_id: int):
+    """Sticker ပို့ခွင့် ပိတ်သည်"""
+    is_on = await is_antisticker_on(chat_id)
+    if is_on:
+        return
+    await stickerdb.insert_one({"chat_id": chat_id})
+
+async def antisticker_off(chat_id: int):
+    """Sticker ပို့ခွင့် ပြန်ဖွင့်သည်"""
+    is_on = await is_antisticker_on(chat_id)
+    if not is_on:
+        return
+    await stickerdb.delete_one({"chat_id": chat_id})
+
+
+async def add_clean_message(chat_id: int, message_id: int):
+    """ဖျက်ရမည့် စာကို Database တွင် မှတ်သားသည်"""
+    try:
+        # Clean Mode ပိတ်ထားရင် မမှတ်ပါ (Optional check)
+        if not await is_cleanmode_on(chat_id):
+            return
+
+        # လက်ရှိအချိန် + ၅ မိနစ် (Seconds သို့ပြောင်း)
+        expire_time = int(time.time()) + (CLEANMODE_DELETE_MINS * 60)
+        
+        await cleandb.insert_one({
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "expire_time": expire_time
+        })
+    except Exception as e:
+        print(f"Database Error (Add Clean): {e}")
+
+async def get_expired_messages():
+    """အချိန်ပြည့်သွားသော စာများကို ရှာသည်"""
+    try:
+        current_time = int(time.time())
+        cursor = cleandb.find({"expire_time": {"$lt": current_time}})
+        return await cursor.to_list(length=None)
+    except:
+        return []
+
+async def remove_clean_message(chat_id: int, message_id: int):
+    """Database မှ စာရင်းကို ပြန်ဖျက်သည်"""
+    try:
+        await cleandb.delete_one({"chat_id": chat_id, "message_id": message_id})
+    except:
+        pass
+        
 # Clone Bot Database Collection
 
 async def save_clone(bot_token: str, user_id: int, bot_username: str):
@@ -85,8 +233,12 @@ async def is_cloned(bot_token: str):
     clone = await clonedb.find_one({"bot_token": bot_token})
     return True if clone else False
 
+async def get_clone_by_user(user_id: int):
+    """User ID ဖြင့် Clone Bot ရှိမရှိ ရှာဖွေခြင်း"""
+    clone = await clonedb.find_one({"user_id": user_id})
+    return clone
 
-
+#_____________________________________________________________________#
 # Total Queries on bot
 
 
@@ -445,8 +597,8 @@ async def get_lang(chat_id: int) -> str:
     if not mode:
         lang = await langdb.find_one({"chat_id": chat_id})
         if not lang:
-            langm[chat_id] = "my"
-            return "my"
+            langm[chat_id] = "en"
+            return "en"
         langm[chat_id] = lang["lang"]
         return lang["lang"]
     return mode
@@ -1063,3 +1215,45 @@ async def remove_cached_song_path(video_id: str):
         await songfiles_db.delete_one({"video_id": video_id})
     except Exception as e:
         print(f"Error removing song path cache: {e}")
+
+async def get_all_yt_cache() -> dict:
+    """MongoDB မှ cache လုပ်ထားသော YouTube search results အားလုံးကို ယူသည်"""
+    all_cache = {}
+    try:
+        # filter မထည့်ဘဲ find() လုပ်ခြင်းဖြင့် document အားလုံးကို ယူပါ
+        async for document in ytcache_db.find({}):
+            key = document.get("key")
+            details = document.get("details")
+            if key and details:
+                all_cache[key] = details
+        
+        count = len(all_cache)
+        if count > 0:
+            print(f"✅ MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
+        return all_cache
+    except Exception as e:
+        print(f"❌ Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
+        return {}
+
+
+async def remove_all_clones():
+    """Clone Bot အားလုံးကို Database မှ ဖျက်သိမ်းသည်"""
+    await clonedb.delete_many({})
+
+# Clone On/Off အတွက် သီးသန့် Collection သုံးမလား၊ onoffdb သုံးမလား
+
+async def is_clones_active() -> bool:
+    """Clone Bot များ Active ဖြစ်မဖြစ် စစ်ဆေးသည် (Default: True)"""
+    # on_off=10 ကို Clone Status အဖြစ် သတ်မှတ်သည်
+    status = await onoffdb.find_one({"on_off": 10})
+    if not status:
+        return True # Default က ဖွင့်ထားမည်
+    return status["status"]
+
+async def set_clones_active(state: bool):
+    """Clone Bot များကို ဖွင့်/ပိတ် လုပ်သည်"""
+    await onoffdb.update_one(
+        {"on_off": 10},
+        {"$set": {"status": state}},
+        upsert=True
+    )
