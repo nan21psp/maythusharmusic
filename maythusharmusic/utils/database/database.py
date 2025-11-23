@@ -37,7 +37,7 @@ cleandb = mongodb.cleanmode
 queriesdb = mongodb.queries
 userdb = mongodb.userstats
 usersdbc = mongodb.tgusersdbc  # for clone
-videodb = mongodb.vipvideocalls
+videodb = mongodb.cailinvideocalls
 
 
 
