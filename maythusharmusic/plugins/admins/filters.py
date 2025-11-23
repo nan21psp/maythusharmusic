@@ -16,13 +16,12 @@ load_dotenv()
 
 from dotenv import load_dotenv
 from maythusharmusic import app
-from utils.error import capture_err
-from utils.permissions import adminsOnly, member_permissions
+from maythusharmusic.error import capture_err
+from maythusharmusic.permissions import adminsOnly, member_permissions
 BOT_TOKEN = getenv("BOT_TOKEN", "")
 MONGO_DB_URI = getenv("MONGO_DB_URI", "")
 STRING_SESSION = getenv("STRING_SESSION", "")
 from maythusharmusic.utils.keyboard import ikb
-from .notes import extract_urls
 from maythusharmusic.utils.functions import (
     check_format,
     extract_text_and_keyb,
