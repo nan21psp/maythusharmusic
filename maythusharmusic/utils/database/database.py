@@ -2,41 +2,45 @@
 import random
 import string
 import time
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Union
 
 from maythusharmusic import userbot
 from config import CLEANMODE_DELETE_MINS
 from maythusharmusic.core.mongo import mongodb, pymongodb
 
 authdb = mongodb.adminauth
+afkdb = mongodb.afk
 authuserdb = mongodb.authuser
 autoenddb = mongodb.autoend
 assdb = mongodb.assistants
 blacklist_chatdb = mongodb.blacklistChat
 blockeddb = mongodb.blockedusers
 chatsdb = mongodb.chats
+clonedb = mongodb.clonedb
+chatsdbc = mongodb.chatsc  # for clone
 channeldb = mongodb.cplaymode
+cleandb = mongodb.cleanmode
 countdb = mongodb.upcount
+filtersdb = mongodb.filters
 gbansdb = mongodb.gban
 langdb = mongodb.language
 onoffdb = mongodb.onoffper
+privatedb = mongodb.privatechats
 playmodedb = mongodb.playmode
 playtypedb = mongodb.playtypedb
 skipdb = mongodb.skipmode
 sudoersdb = mongodb.sudoers
+stickerdb = mongodb.antisticker
 usersdb = mongodb.tgusersdb
-privatedb = mongodb.privatechats
 suggdb = mongodb.suggestion
 cleandb = mongodb.cleanmode
 queriesdb = mongodb.queries
 userdb = mongodb.userstats
-videodb = mongodb.vipvideocalls
-clonedb = mongodb.clonedb
-chatsdbc = mongodb.chatsc  # for clone
 usersdbc = mongodb.tgusersdbc  # for clone
-cleandb = mongodb.cleanmode
-stickerdb = mongodb.antisticker
-afkdb = mongodb.afk
+videodb = mongodb.vipvideocalls
+
+
+
 
 # --- (CACHE COLLECTIONS အသစ် ထပ်တိုး) ---
 ytcache_db = mongodb.ytcache      # Search results (သီချင်းအချက်အလက်) cache
@@ -68,76 +72,72 @@ video = {}
 
 afkdb = mongodb.afk
 
-async def get_yt_cache(key: str) -> Union[dict, None]:
-    try:
-        cached_result = await ytcache_db.find_one({"key": key})
-        if cached_result:
-            return cached_result.get("details")
-    except Exception as e:
-        logger.error(f"Error getting YT cache for key '{key}': {e}")
-    return None
 
-# --- (Function (၃) - save_yt_cache) ---
-async def save_yt_cache(key: str, details: dict):
-    try:
-        await ytcache_db.update_one(
-            {"key": key},
-            {"$set": {"details": details}},
-            upsert=True
+async def get_filters_count() -> dict:
+    chats_count = 0
+    filters_count = 0
+    async for chat in filtersdb.find({"chat_id": {"$lt": 0}}):
+        filters_name = await get_filters_names(chat["chat_id"])
+        filters_count += len(filters_name)
+        chats_count += 1
+    return {
+        "chats_count": chats_count,
+        "filters_count": filters_count,
+    }
+
+
+async def _get_filters(chat_id: int) -> Dict[str, int]:
+    _filters = await filtersdb.find_one({"chat_id": chat_id})
+    if not _filters:
+        return {}
+    return _filters["filters"]
+
+
+async def get_filters_names(chat_id: int) -> List[str]:
+    _filters = []
+    for _filter in await _get_filters(chat_id):
+        _filters.append(_filter)
+    return _filters
+
+
+async def get_filter(chat_id: int, name: str) -> Union[bool, dict]:
+    name = name.lower().strip()
+    _filters = await _get_filters(chat_id)
+    if name in _filters:
+        return _filters[name]
+    return False
+
+
+async def save_filter(chat_id: int, name: str, _filter: dict):
+    name = name.lower().strip()
+    _filters = await _get_filters(chat_id)
+    _filters[name] = _filter
+    await filtersdb.update_one(
+        {"chat_id": chat_id},
+        {"$set": {"filters": _filters}},
+        upsert=True,
+    )
+
+
+async def delete_filter(chat_id: int, name: str) -> bool:
+    filtersd = await _get_filters(chat_id)
+    name = name.lower().strip()
+    if name in filtersd:
+        del filtersd[name]
+        await filtersdb.update_one(
+            {"chat_id": chat_id},
+            {"$set": {"filters": filtersd}},
+            upsert=True,
         )
-    except Exception as e:
-        logger.error(f"Error saving YT cache for key '{key}': {e}")
-
-# --- (Function (၄) - get_cached_song_path) ---
-async def get_cached_song_path(video_id: str) -> Union[str, None]:
-    try:
-        cached_song = await songfiles_db.find_one({"video_id": video_id})
-        if cached_song:
-            return cached_song.get("file_path")
-    except Exception as e:
-        logger.error(f"Error getting song path cache for vid '{video_id}': {e}")
-    return None
-
-# --- (Function (၅) - save_cached_song_path) ---
-async def save_cached_song_path(video_id: str, file_path: str):
-    try:
-        await songfiles_db.update_one(
-            {"video_id": video_id},
-            {"$set": {"file_path": file_path}},
-            upsert=True
-        )
-    except Exception as e:
-        logger.error(f"Error saving song path cache for vid '{video_id}': {e}")
-
-# --- (Function (၆) - remove_cached_song_path) ---
-async def remove_cached_song_path(video_id: str):
-    try:
-        await songfiles_db.delete_one({"video_id": video_id})
-    except Exception as e:
-        logger.error(f"Error removing song path cache for vid '{video_id}': {e}")
-
-# --- (Function (၇) (အသစ်) - Get ALL Cache for Pre-loading) ---
-async def get_all_yt_cache() -> Dict[str, Any]:
-    """MongoDB မှ cache လုပ်ထားသော YouTube search results အားလုံးကို ယူသည်"""
-    all_cache: Dict[str, Any] = {}
-    try:
-        # filter မထည့်ဘဲ find() လုပ်ခြင်းဖြင့် document အားလုံးကို ယူပါ
-        async for document in ytcache_db.find({}):
-            key = document.get("key")
-            details = document.get("details")
-            if key and details:
-                all_cache[key] = details
-        
-        count = len(all_cache)
-        if count > 0:
-            logger.info(f"MongoDB မှ cache {count} ခုကို အောင်မြင်စွာ Pre-load လုပ်ပြီး။")
-        return all_cache
-    except Exception as e:
-        logger.error(f"Cache အားလုံးကို DB မှ ဆွဲထုတ်ရာတွင် အမှားဖြစ်ပွား: {e}")
-        return {} # Error ဖြစ်လျှင် အလွတ် dictionary ပြန်ပေး
+        return True
+    return False
 
 
-#__________________________________________________________________#
+async def deleteall_filters(chat_id: int):
+    return await filtersdb.delete_one({"chat_id": chat_id})
+
+
+#_____________________________________________#
 async def is_afk(user_id: int):
     """User သည် AFK ဖြစ်/မဖြစ် စစ်ဆေးသည်"""
     user = await afkdb.find_one({"user_id": user_id})
