@@ -3,7 +3,7 @@ import datetime
 from pyrogram import Client, filters
 from dotenv import load_dotenv
 from pyrogram.types import CallbackQuery, Message
-from maythusharmusic import LOGGERS
+from maythusharmusic import LOGGER
 from pyrogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
