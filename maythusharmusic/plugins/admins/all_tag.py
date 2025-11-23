@@ -30,6 +30,8 @@ async def tag_all_users(_, message):
         async for m in app.get_chat_members(message.chat.id):
             if message.chat.id not in SPAM_CHATS:
                 break
+            if member.user.is_bot or member.user.is_deleted:
+                continue
             usernum += 1
             usertxt += f" {m.user.mention} "
             if usernum == 5:
@@ -50,6 +52,8 @@ async def tag_all_users(_, message):
         async for m in app.get_chat_members(message.chat.id):
             if message.chat.id not in SPAM_CHATS:
                 break
+            if member.user.is_bot or member.user.is_deleted:
+                continue
             usernum += 1
             usertxt += f" {m.user.mention} "
             if usernum == 5:
@@ -77,6 +81,9 @@ async def tag_all_users(_, message):
             "cancel",
             "allstop",
             "stopall",
+            "stop",
+            "stoptag",
+            "off",
             "cancelmention",
             "offmention",
             "mentionoff",
