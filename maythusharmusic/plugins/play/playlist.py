@@ -19,7 +19,7 @@ from maythusharmusic.utils.inline.playlist import (
     get_playlist_markup,
     warning_markup,
 )
-from maythusharmusic.utils.pastebin import piscesBin
+from maythusharmusic.utils.pastebin import HottyBin
 from maythusharmusic.utils.stream.stream import stream
 
 # Define a dictionary to track the last message timestamp for each user
@@ -127,7 +127,7 @@ async def check_playlist(client, message: Message, _):
         count += 1
         msg += f"\n\n{count}- {title[:70]}\n"
         msg += _["playlist_5"].format(duration)
-    link = await piscesBin(msg)
+    link = await HottyBin(msg)
     lines = msg.count("\n")
     if lines >= 17:
         car = os.linesep.join(msg.split(os.linesep)[:17])
