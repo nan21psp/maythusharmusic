@@ -13,7 +13,7 @@ from youtube_search import YoutubeSearch
 
 from config import BANNED_USERS, SERVER_PLAYLIST_LIMIT
 from maythusharmusic import Carbon, app
-from maythusharmusic.utils.database import add_clean_message
+#from maythusharmusic.utils.database import add_clean_message
 from maythusharmusic.utils.decorators.language import language, languageCB
 from maythusharmusic.utils.inline.playlist import (
     botplaylist_markup,
