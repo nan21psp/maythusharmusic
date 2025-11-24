@@ -10,7 +10,7 @@ import config
 from maythusharmusic import Carbon, YouTube, app
 from maythusharmusic.core.call import pisces
 from maythusharmusic.misc import db
-from maythusharmusic.utils.database import add_active_video_chat, is_active_chat, add_clean_message
+#from maythusharmusic.utils.database import add_active_video_chat, is_active_chat, add_clean_message
 from maythusharmusic.utils.exceptions import AssistantErr
 from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
 from maythusharmusic.utils.pastebin import piscesBin
