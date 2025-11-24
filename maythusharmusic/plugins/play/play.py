@@ -10,7 +10,7 @@ from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
 from maythusharmusic.utils.channelplay import get_channeplayCB
-from maythusharmusic.utils.database import add_clean_message
+#from maythusharmusic.utils.database import add_clean_message
 from maythusharmusic.utils.decorators.language import languageCB
 from maythusharmusic.utils.decorators.play import PlayWrapper
 from maythusharmusic.utils.formatters import formats
