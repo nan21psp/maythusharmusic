@@ -13,14 +13,13 @@ from youtube_search import YoutubeSearch
 
 from config import BANNED_USERS, SERVER_PLAYLIST_LIMIT
 from maythusharmusic import Carbon, app
-#from maythusharmusic.utils.database import add_clean_message
 from maythusharmusic.utils.decorators.language import language, languageCB
 from maythusharmusic.utils.inline.playlist import (
     botplaylist_markup,
     get_playlist_markup,
     warning_markup,
 )
-from maythusharmusic.utils.pastebin import HottyBin
+from maythusharmusic.utils.pastebin import piscesBin
 from maythusharmusic.utils.stream.stream import stream
 
 # Define a dictionary to track the last message timestamp for each user
@@ -128,7 +127,7 @@ async def check_playlist(client, message: Message, _):
         count += 1
         msg += f"\n\n{count}- {title[:70]}\n"
         msg += _["playlist_5"].format(duration)
-    link = await HottyBin(msg)
+    link = await piscesBin(msg)
     lines = msg.count("\n")
     if lines >= 17:
         car = os.linesep.join(msg.split(os.linesep)[:17])
@@ -780,7 +779,6 @@ async def get_playlist_playmode_(client, CallbackQuery, _):
     return await CallbackQuery.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup(buttons)
     )
-    await add_clean_message(original_chat_id, run.id)
 
 
 @app.on_callback_query(filters.regex("delete_warning") & ~BANNED_USERS)
@@ -809,7 +807,7 @@ async def home_play_(client, CallbackQuery, _):
     return await CallbackQuery.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup(buttons)
     )
-    await add_clean_message(original_chat_id, run.id)
+
 
 @app.on_callback_query(filters.regex("del_back_playlist") & ~BANNED_USERS)
 @languageCB
