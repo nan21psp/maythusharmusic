@@ -328,8 +328,9 @@ class Call:
                 stream = dynamic_media_stream(path=link, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
+                except Exception as e:
+                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
+                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
@@ -364,8 +365,9 @@ class Call:
                 stream = dynamic_media_stream(path=file_path, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
+                except Exception as e:
+                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
+                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
@@ -388,8 +390,9 @@ class Call:
                 stream = dynamic_media_stream(path=videoid, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
+                except Exception as e:
+                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
+                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
@@ -405,8 +408,9 @@ class Call:
                 stream = dynamic_media_stream(path=queued, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
-                    return await app.send_message(original_chat_id, text=_["call_6"])
+                except Exception as e:
+                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
+                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 if videoid == "telegram":
                     button = stream_markup(_, chat_id)
