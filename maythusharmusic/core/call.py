@@ -1,6 +1,7 @@
 import asyncio
 import os
 import traceback
+import sys
 from datetime import datetime, timedelta
 from typing import Union
 
@@ -402,8 +403,9 @@ class Call:
 
 
     @capture_internal_err
-    async def play(self, client, chat_id: int) -> None:
+    async def play(self, chat_id: int) -> None:
         """Play next item in queue"""
+        assistant = await group_assistant(self, chat_id)
         check = db.get(chat_id)
         popped = None
         loop = await get_loop(chat_id)
@@ -424,7 +426,7 @@ class Call:
                 await _clear_(chat_id)
                 if chat_id in self.active_calls:
                     try:
-                        await client.leave_call(chat_id)
+                        await assistant.leave_call(chat_id)
                         LOGGER(__name__).info(f"Left empty call in chat {chat_id}")
                     except NoActiveGroupCall:
                         pass
@@ -438,7 +440,7 @@ class Call:
             LOGGER(__name__).error(f"Error in play handler: {e}")
             try:
                 await _clear_(chat_id)
-                await client.leave_call(chat_id)
+                await assistant.leave_call(chat_id)
             except Exception as e:
                 LOGGER(__name__).error(f"Error during cleanup: {e}")
             return
@@ -466,19 +468,19 @@ class Call:
 
         # Handle different stream types
         if "live_" in queued:
-            await self._handle_live_stream(chat_id, original_chat_id, videoid, video, _, title, user, check)
+            await self._handle_live_stream(chat_id, original_chat_id, videoid, video, _, title, user, check, assistant)
             
         elif "vid_" in queued:
-            await self._handle_video_stream(chat_id, original_chat_id, videoid, video, _, title, user, check, streamtype)
+            await self._handle_video_stream(chat_id, original_chat_id, videoid, video, _, title, user, check, streamtype, assistant)
             
         elif "index_" in queued:
-            await self._handle_index_stream(chat_id, original_chat_id, videoid, video, _, user)
+            await self._handle_index_stream(chat_id, original_chat_id, videoid, video, _, user, assistant)
             
         else:
-            await self._handle_regular_stream(chat_id, original_chat_id, queued, video, _, title, user, check, streamtype, videoid)
+            await self._handle_regular_stream(chat_id, original_chat_id, queued, video, _, title, user, check, streamtype, videoid, assistant)
 
 
-    async def _handle_live_stream(self, chat_id, original_chat_id, videoid, video, _, title, user, check):
+    async def _handle_live_stream(self, chat_id, original_chat_id, videoid, video, _, title, user, check, assistant):
         """Handle live YouTube streams"""
         n, link = await YouTube.video(videoid, True)
         if n == 0:
@@ -486,7 +488,6 @@ class Call:
 
         stream = dynamic_media_stream(path=link, video=video)
         try:
-            assistant = await group_assistant(self, chat_id)
             await assistant.play(chat_id, stream)
         except Exception as e:
             LOGGER(__name__).error(f"Error playing live stream: {e}")
@@ -509,7 +510,7 @@ class Call:
         db[chat_id][0]["markup"] = "tg"
 
 
-    async def _handle_video_stream(self, chat_id, original_chat_id, videoid, video, _, title, user, check, streamtype):
+    async def _handle_video_stream(self, chat_id, original_chat_id, videoid, video, _, title, user, check, streamtype, assistant):
         """Handle video streams"""
         mystic = await app.send_message(original_chat_id, _["call_7"])
         try:
@@ -525,7 +526,6 @@ class Call:
 
         stream = dynamic_media_stream(path=file_path, video=video)
         try:
-            assistant = await group_assistant(self, chat_id)
             await assistant.play(chat_id, stream)
         except Exception as e:
             LOGGER(__name__).error(f"Error playing video stream: {e}")
@@ -549,11 +549,10 @@ class Call:
         db[chat_id][0]["markup"] = "stream"
 
 
-    async def _handle_index_stream(self, chat_id, original_chat_id, videoid, video, _, user):
+    async def _handle_index_stream(self, chat_id, original_chat_id, videoid, video, _, user, assistant):
         """Handle index streams"""
         stream = dynamic_media_stream(path=videoid, video=video)
         try:
-            assistant = await group_assistant(self, chat_id)
             await assistant.play(chat_id, stream)
         except Exception as e:
             LOGGER(__name__).error(f"Error playing index stream: {e}")
@@ -570,11 +569,10 @@ class Call:
         db[chat_id][0]["markup"] = "tg"
 
 
-    async def _handle_regular_stream(self, chat_id, original_chat_id, queued, video, _, title, user, check, streamtype, videoid):
+    async def _handle_regular_stream(self, chat_id, original_chat_id, queued, video, _, title, user, check, streamtype, videoid, assistant):
         """Handle regular audio/video streams"""
         stream = dynamic_media_stream(path=queued, video=video)
         try:
-            assistant = await group_assistant(self, chat_id)
             await assistant.play(chat_id, stream)
         except Exception as e:
             LOGGER(__name__).error(f"Error playing regular stream: {e}")
@@ -703,8 +701,7 @@ class Call:
 
                 elif isinstance(update, StreamEnded) and update.stream_type == StreamEnded.Type.AUDIO:
                     LOGGER(__name__).info(f"Stream ended in chat {chat_id}, playing next")
-                    assistant = await group_assistant(self, chat_id)
-                    await self.play(assistant, chat_id)
+                    await self.play(chat_id)
 
             except Exception as e:
                 error_msg = f"Error in update handler: {str(e)}"
