@@ -39,14 +39,16 @@ autoend = {}
 counter = {}
 
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    """အရည်အသွေးမြင့် အသံနှင့် ဗီဒီယို stream အတွက် optimized media stream configuration"""
+    """
+    Create a dynamic media stream configuration with optimized audio/video quality
+    """
     return MediaStream(
         audio_path=path,
         media_path=path,
-        audio_parameters=AudioQuality.HIGH if video else AudioQuality.STUDIO,
-        video_parameters=VideoQuality.FULL_HD if video else VideoQuality.HD_720p,
-        video_flags=(MediaStream.Flags.REQUIRE_ENCODE if video else MediaStream.Flags.IGNORE),
-        ffmpeg_parameters=ffmpeg_params or "-ac 2 -ar 48000 -b:a 192k",
+        audio_parameters=AudioQuality.STUDIO,  # Always use studio quality audio
+        video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
+        video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
+        ffmpeg_parameters=ffmpeg_params,
     )
 
 async def _clear_(chat_id: int) -> None:
