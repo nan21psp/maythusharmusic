@@ -8,12 +8,12 @@ from pyrogram.types import InlineKeyboardMarkup
 
 import config
 from maythusharmusic import Carbon, YouTube, app
-from maythusharmusic.core.call import Hotty
+from maythusharmusic.core.call import pisces
 from maythusharmusic.misc import db
-from maythusharmusic.utils.database import add_active_video_chat, is_active_chat
+from maythusharmusic.utils.database import add_active_video_chat, is_active_chat, add_clean_message
 from maythusharmusic.utils.exceptions import AssistantErr
 from maythusharmusic.utils.inline import aq_markup, close_markup, stream_markup
-from maythusharmusic.utils.pastebin import HottyBin
+from maythusharmusic.utils.pastebin import piscesBin
 from maythusharmusic.utils.stream.queue import put_queue, put_queue_index
 from maythusharmusic.utils.thumbnails import get_thumb
 
@@ -37,7 +37,7 @@ async def stream(
     if not result:
         return
     if forceplay:
-        await Hotty.force_stop_stream(chat_id)
+        await pisces.force_stop_stream(chat_id)
     if streamtype == "playlist":
         msg = f"{_['play_19']}\n\n"
         count = 0
@@ -90,7 +90,7 @@ async def stream(
                     )
                 except:
                     raise AssistantErr(_["play_14"])
-                await Hotty.join_call(
+                await pisces.join_call(
                     chat_id,
                     original_chat_id,
                     file_path,
@@ -131,7 +131,7 @@ async def stream(
         if count == 0:
             return
         else:
-            link = await HottyBin(msg)
+            link = await piscesBin(msg)
             lines = msg.count("\n")
             if lines >= 17:
                 car = os.linesep.join(msg.split(os.linesep)[:17])
@@ -192,11 +192,11 @@ async def stream(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            await add_clean_message(original_chat_id, run.id)
+            
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
+            await pisces.join_call(
                 chat_id,
                 original_chat_id,
                 file_path,
@@ -258,11 +258,10 @@ async def stream(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            await add_clean_message(original_chat_id, run.id)
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(chat_id, original_chat_id, file_path, video=None)
+            await pisces.join_call(chat_id, original_chat_id, file_path, video=None)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -315,11 +314,10 @@ async def stream(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            await add_clean_message(original_chat_id, run.id)
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(chat_id, original_chat_id, file_path, video=status)
+            await pisces.join_call(chat_id, original_chat_id, file_path, video=status)
             await put_queue(
                 chat_id,
                 original_chat_id,
@@ -373,14 +371,13 @@ async def stream(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            await add_clean_message(original_chat_id, run.id)
         else:
             if not forceplay:
                 db[chat_id] = []
             n, file_path = await YouTube.video(link)
             if n == 0:
                 raise AssistantErr(_["str_3"])
-            await Hotty.join_call(
+            await pisces.join_call(
                 chat_id,
                 original_chat_id,
                 file_path,
@@ -439,11 +436,10 @@ async def stream(
                 text=_["queue_4"].format(position, title[:27], duration_min, user_name),
                 reply_markup=InlineKeyboardMarkup(button),
             )
-            await add_clean_message(original_chat_id, run.id)
         else:
             if not forceplay:
                 db[chat_id] = []
-            await Hotty.join_call(
+            await pisces.join_call(
                 chat_id,
                 original_chat_id,
                 link,
