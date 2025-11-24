@@ -38,15 +38,14 @@ from maythusharmusic.utils.errors import capture_internal_err, send_large_error
 autoend = {}
 counter = {}
 
-# --- (၁) ULTRA SOUND SETTINGS (အသစ်ပြင်ဆင်ထားသောအပိုင်း) ---
+# --- (၁) ULTRA SOUND & STABLE CONFIG ---
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    # Studio Quality အတွက် FFmpeg ချိန်ညှိချက်များ
-    # -volume=1.5 (အသံကို ၁.၅ ဆ ပိုကျယ်စေသည်)
-    # -loudnorm (Studio Quality ရအောင် အသံကို ညှိပေးသည်)
-    # -ar 48000 (Sample Rate ကို အမြင့်ဆုံး 48kHz ထားသည်)
-    # -ac 2 (Stereo Channel)
+    # အသံကို ၁.၅ ဆ ချဲ့မည် (volume=1.5)
+    # 48000 Hz Sample Rate (High Quality)
+    # Stereo Channel (2 channels)
     
-    custom_filter = "volume=1.5,loudnorm=I=-16:TP=-1.5:LRA=11"
+    # ဒီ Command က FFmpeg version အဟောင်းတွေမှာပါ အလုပ်လုပ်ပါတယ်
+    custom_filter = "volume=1.5"
     
     if ffmpeg_params:
         final_params = f"{ffmpeg_params} -af {custom_filter} -ar 48000 -ac 2"
@@ -56,14 +55,13 @@ def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = No
     return MediaStream(
         audio_path=path,
         media_path=path,
-        # အသံအရည်အသွေးကို အမြင့်ဆုံး (STUDIO) ထားခြင်း
+        # PyTgCalls ၏ Studio Mode ကိုသုံးမည်
         audio_parameters=AudioQuality.STUDIO, 
-        # ဗီဒီယို အရည်အသွေးကို HD ထားခြင်း
         video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
         video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
         ffmpeg_parameters=final_params,
     )
-# -------------------------------------------------------
+# ---------------------------------------
 
 async def _clear_(chat_id: int) -> None:
     popped = db.pop(chat_id, None)
@@ -102,7 +100,6 @@ class Call:
         self.five = PyTgCalls(self.userbot5) if self.userbot5 else None
 
         self.active_calls: set[int] = set()
-
 
     @capture_internal_err
     async def pause_stream(self, chat_id: int) -> None:
