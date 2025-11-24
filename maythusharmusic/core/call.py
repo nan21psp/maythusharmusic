@@ -6,7 +6,7 @@ from typing import Union
 
 from ntgcalls import TelegramServerError
 from pyrogram import Client
-from pyrogram.errors import FloodWait, ChatAdminRequired
+from pyrogram.errors import FloodWait, ChatAdminRequired, UserNotParticipant
 from pyrogram.types import InlineKeyboardMarkup
 from pytgcalls import PyTgCalls
 from pytgcalls.exceptions import NoActiveGroupCall
@@ -38,30 +38,23 @@ from maythusharmusic.utils.errors import capture_internal_err, send_large_error
 autoend = {}
 counter = {}
 
-# --- (၁) ULTRA SOUND & STABLE CONFIG ---
+# --- (၁) CONNECTION STABILITY SETTINGS ---
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    # အသံကို ၁.၅ ဆ ချဲ့မည် (volume=1.5)
-    # 48000 Hz Sample Rate (High Quality)
-    # Stereo Channel (2 channels)
+    # Connection ငြိမ်စေရန် AudioQuality.HIGH ကို ပြန်သုံးထားပါသည်
+    # Volume ကိုတော့ 1.5x (အသံကျယ်) ထားပေးထားပါတယ်
     
-    # ဒီ Command က FFmpeg version အဟောင်းတွေမှာပါ အလုပ်လုပ်ပါတယ်
-    custom_filter = "volume=1.5"
-    
+    final_params = "-af volume=1.5"
     if ffmpeg_params:
-        final_params = f"{ffmpeg_params} -af {custom_filter} -ar 48000 -ac 2"
-    else:
-        final_params = f"-af {custom_filter} -ar 48000 -ac 2"
+        final_params += f" {ffmpeg_params}"
 
     return MediaStream(
-        audio_path=path,
         media_path=path,
-        # PyTgCalls ၏ Studio Mode ကိုသုံးမည်
-        audio_parameters=AudioQuality.STUDIO, 
-        video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
+        audio_parameters=AudioQuality.HIGH, # Connection ပိုငြိမ်အောင် HIGH သုံးပါ
+        video_parameters=VideoQuality.SD_480p if video else VideoQuality.SD_360p,
         video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
         ffmpeg_parameters=final_params,
     )
-# ---------------------------------------
+# -----------------------------------------
 
 async def _clear_(chat_id: int) -> None:
     popped = db.pop(chat_id, None)
@@ -255,13 +248,21 @@ class Call:
         try:
             await assistant.play(chat_id, stream)
         except (NoActiveGroupCall, ChatAdminRequired):
-            raise AssistantErr(_["call_8"])
+            # VC မရှိရင် Assistant က Join ဖို့ ကြိုးစားမယ်
+            try:
+                await assistant.join_group_call(
+                    chat_id, 
+                    stream, 
+                    stream_type=StreamType().pulse_stream
+                )
+            except Exception as e:
+                 raise AssistantErr(_["call_8"])
         except TelegramServerError:
             raise AssistantErr(_["call_10"])
         except Exception as e:
-            raise AssistantErr(
-                f"ᴜɴᴀʙʟᴇ ᴛᴏ ᴊᴏɪɴ ᴛʜᴇ ɢʀᴏᴜᴘ ᴄᴀʟʟ.\nRᴇᴀsᴏɴ: {e}"
-            )
+            # အခြား Error တက်ရင် ပြန်လည်ကြိုးစားခိုင်းမယ်
+            raise AssistantErr(f"Assistant Join Error: {e}")
+
         self.active_calls.add(chat_id)
         await add_active_chat(chat_id)
         await music_on(chat_id)
