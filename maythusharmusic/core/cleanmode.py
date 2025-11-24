@@ -47,4 +47,5 @@ async def clean_mode_task():
                     pass
             # ---------------------------------------------
                 
-        except Exception as e
+        except Exception as e:
+            print(f"Clean Mode Error: {e}")
