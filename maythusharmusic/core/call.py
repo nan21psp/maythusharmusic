@@ -1,6 +1,6 @@
 import asyncio
 import os
-import traceback  # <-- 1. NameError အတွက် ဒီတစ်ကြောင်း ထည့်ပါ
+import traceback
 from datetime import datetime, timedelta
 from typing import Union
 
@@ -38,15 +38,32 @@ from maythusharmusic.utils.errors import capture_internal_err, send_large_error
 autoend = {}
 counter = {}
 
+# --- (၁) ULTRA SOUND SETTINGS (အသစ်ပြင်ဆင်ထားသောအပိုင်း) ---
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
+    # Studio Quality အတွက် FFmpeg ချိန်ညှိချက်များ
+    # -volume=1.5 (အသံကို ၁.၅ ဆ ပိုကျယ်စေသည်)
+    # -loudnorm (Studio Quality ရအောင် အသံကို ညှိပေးသည်)
+    # -ar 48000 (Sample Rate ကို အမြင့်ဆုံး 48kHz ထားသည်)
+    # -ac 2 (Stereo Channel)
+    
+    custom_filter = "volume=1.5,loudnorm=I=-16:TP=-1.5:LRA=11"
+    
+    if ffmpeg_params:
+        final_params = f"{ffmpeg_params} -af {custom_filter} -ar 48000 -ac 2"
+    else:
+        final_params = f"-af {custom_filter} -ar 48000 -ac 2"
+
     return MediaStream(
         audio_path=path,
         media_path=path,
-        audio_parameters=AudioQuality.STUDIO if video else AudioQuality.STUDIO,
+        # အသံအရည်အသွေးကို အမြင့်ဆုံး (STUDIO) ထားခြင်း
+        audio_parameters=AudioQuality.STUDIO, 
+        # ဗီဒီယို အရည်အသွေးကို HD ထားခြင်း
         video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
         video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
-        ffmpeg_parameters=ffmpeg_params,
+        ffmpeg_parameters=final_params,
     )
+# -------------------------------------------------------
 
 async def _clear_(chat_id: int) -> None:
     popped = db.pop(chat_id, None)
