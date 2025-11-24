@@ -5,11 +5,11 @@ from datetime import datetime, timedelta
 from typing import Union
 
 from ntgcalls import TelegramServerError
-from pyrogram import Client, filters
+from pyrogram import Client
 from pyrogram.errors import FloodWait, ChatAdminRequired
 from pyrogram.types import InlineKeyboardMarkup
 from pytgcalls import PyTgCalls
-from pytgcalls.exceptions import NoActiveGroupCall, NotConnectedError
+from pytgcalls.exceptions import NoActiveGroupCall
 from pytgcalls.types import AudioQuality, ChatUpdate, MediaStream, StreamEnded, Update, VideoQuality
 
 import config
@@ -21,6 +21,7 @@ from maythusharmusic.utils.database import (
     add_active_video_chat,
     get_lang,
     get_loop,
+    group_assistant,
     is_autoend,
     music_on,
     remove_active_chat,
@@ -45,7 +46,7 @@ def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = No
         audio_parameters=AudioQuality.HIGH if video else AudioQuality.STUDIO,
         video_parameters=VideoQuality.FULL_HD if video else VideoQuality.HD_720p,
         video_flags=(MediaStream.Flags.REQUIRE_ENCODE if video else MediaStream.Flags.IGNORE),
-        ffmpeg_parameters=ffmpeg_params or "-ac 2 -ar 48000 -b:a 192k" if not video else "-c:v libx264 -preset fast -crf 23 -maxrate 2M -bufsize 4M -ac 2 -ar 48000 -b:a 192k",
+        ffmpeg_parameters=ffmpeg_params or "-ac 2 -ar 48000 -b:a 192k",
     )
 
 async def _clear_(chat_id: int) -> None:
@@ -57,48 +58,6 @@ async def _clear_(chat_id: int) -> None:
     await remove_active_video_chat(chat_id)
     await remove_active_chat(chat_id)
     await set_loop(chat_id, 0)
-
-async def group_assistant(self, chat_id: int):
-    """Group အတွက် assistant ရွေးချယ်ခြင်း"""
-    try:
-        assistants = []
-        
-        # Check which assistants are available
-        if self.one and await self.is_assistant_connected(self.one):
-            assistants.append(self.one)
-        
-        if self.two and await self.is_assistant_connected(self.two):
-            assistants.append(self.two)
-                
-        if self.three and await self.is_assistant_connected(self.three):
-            assistants.append(self.three)
-                
-        if self.four and await self.is_assistant_connected(self.four):
-            assistants.append(self.four)
-                
-        if self.five and await self.is_assistant_connected(self.five):
-            assistants.append(self.five)
-        
-        if assistants:
-            LOGGER(__name__).info(f"Using assistant from {len(assistants)} available assistants")
-            return assistants[0]  # First available assistant
-        else:
-            # No assistant available, use first configured one
-            if self.one:
-                return self.one
-            elif self.two:
-                return self.two
-            elif self.three:
-                return self.three
-            elif self.four:
-                return self.four
-            elif self.five:
-                return self.five
-            else:
-                raise AssistantErr("❌ **No assistant available**\nကျေးဇူးပြု၍ session strings များကို စစ်ဆေးပါ။")
-    except Exception as e:
-        LOGGER(__name__).error(f"Assistant selection error: {str(e)}")
-        raise AssistantErr(f"❌ **Assistant selection failed**\nError: {str(e)}")
 
 class Call:
     def __init__(self):
@@ -150,234 +109,33 @@ class Call:
 
         self.active_calls: set[int] = set()
 
-    async def is_assistant_connected(self, assistant) -> bool:
-        """Assistant connected ဖြစ်မဖြစ် စစ်ဆေးခြင်း"""
-        try:
-            # Try to get ping to check if connected
-            await assistant.ping
-            return True
-        except:
-            return False
-
-    @capture_internal_err
-    async def debug_video_call(self, chat_id: int) -> str:
-        """Voice call issue များကို debug လုပ်ခြင်း"""
-        try:
-            # 1. Check if any assistant is available
-            available_assistants = []
-            if self.one and await self.is_assistant_connected(self.one):
-                available_assistants.append("Session 1")
-            if self.two and await self.is_assistant_connected(self.two):
-                available_assistants.append("Session 2")
-            if self.three and await self.is_assistant_connected(self.three):
-                available_assistants.append("Session 3")
-            if self.four and await self.is_assistant_connected(self.four):
-                available_assistants.append("Session 4")
-            if self.five and await self.is_assistant_connected(self.five):
-                available_assistants.append("Session 5")
-            
-            if not available_assistants:
-                return "❌ **No assistants connected**\nSession strings များကို စစ်ဆေးပါ။"
-            
-            assistant = await group_assistant(self, chat_id)
-            
-            # 2. Check group call status
-            try:
-                participants = await assistant.get_participants(chat_id)
-                participant_count = len(participants)
-                call_status = f"✅ **Active group call**\n👥 Participants: {participant_count}"
-            except NoActiveGroupCall:
-                call_status = "❌ **No active group call**\nVoice chat ကို စတင်ပါ။"
-            except Exception as e:
-                call_status = f"❌ **Group call error**: {str(e)}"
-            
-            # 3. Check if bot has admin permissions
-            try:
-                chat_member = await app.get_chat_member(chat_id, app.me.id)
-                if chat_member.privileges and chat_member.privileges.can_manage_video_chats:
-                    admin_status = "✅ **Admin permissions**"
-                else:
-                    admin_status = "❌ **No admin permissions**\nManage Voice Chats permission လိုအပ်ပါသည်။"
-            except Exception as e:
-                admin_status = f"❌ **Admin check error**: {str(e)}"
-            
-            return f"""
-🔍 **Voice Chat Debug Info**
-
-🤖 **Available Assistants**: {', '.join(available_assistants) if available_assistants else 'None'}
-
-📞 **Call Status**:
-{call_status}
-
-⚡ **Admin Status**:
-{admin_status}
-
-🆔 **Chat ID**: {chat_id}
-            """
-        
-        except Exception as e:
-            return f"❌ **Debug error**: {str(e)}"
-
-    @capture_internal_err
-    async def check_sessions(self):
-        """Session strings များ စစ်ဆေးခြင်း"""
-        sessions = []
-        try:
-            if self.one and await self.is_assistant_connected(self.one):
-                sessions.append("Session 1: ✅ Connected")
-            else:
-                sessions.append("Session 1: ❌ Disconnected")
-        except:
-            sessions.append("Session 1: ❌ Failed")
-        
-        try:
-            if self.two and await self.is_assistant_connected(self.two):
-                sessions.append("Session 2: ✅ Connected") 
-            else:
-                sessions.append("Session 2: ❌ Disconnected")
-        except:
-            sessions.append("Session 2: ❌ Failed")
-            
-        try:
-            if self.three and await self.is_assistant_connected(self.three):
-                sessions.append("Session 3: ✅ Connected")
-            else:
-                sessions.append("Session 3: ❌ Disconnected")
-        except:
-            sessions.append("Session 3: ❌ Failed")
-            
-        try:
-            if self.four and await self.is_assistant_connected(self.four):
-                sessions.append("Session 4: ✅ Connected")
-            else:
-                sessions.append("Session 4: ❌ Disconnected")
-        except:
-            sessions.append("Session 4: ❌ Failed")
-            
-        try:
-            if self.five and await self.is_assistant_connected(self.five):
-                sessions.append("Session 5: ✅ Connected")
-            else:
-                sessions.append("Session 5: ❌ Disconnected")
-        except:
-            sessions.append("Session 5: ❌ Failed")
-        
-        return "\n".join(sessions)
-
-    @capture_internal_err
-    async def force_join_call(self, chat_id: int) -> bool:
-        """Voice chat ထဲသို့ အတင်းဝင်ခြင်း"""
-        try:
-            assistant = await group_assistant(self, chat_id)
-            
-            # Leave if already in call
-            try:
-                await assistant.leave_call(chat_id)
-                await asyncio.sleep(2)
-            except:
-                pass
-            
-            # Join call without stream first
-            try:
-                await assistant.join_call(chat_id)
-                await asyncio.sleep(3)
-                LOGGER(__name__).info(f"Successfully joined call {chat_id} without stream")
-                self.active_calls.add(chat_id)
-                await add_active_chat(chat_id)
-                return True
-            except Exception as e:
-                LOGGER(__name__).error(f"Force join error: {str(e)}")
-                return False
-                
-        except Exception as e:
-            LOGGER(__name__).error(f"Force join call error: {str(e)}")
-            return False
-
-    @capture_internal_err
-    async def join_call(
-        self,
-        chat_id: int,
-        original_chat_id: int,
-        link: str,
-        video: Union[bool, str] = None,
-        image: Union[bool, str] = None,
-    ) -> None:
-        """Voice chat ထဲသို့ join ဝင်ခြင်း"""
-        assistant = await group_assistant(self, chat_id)
-        lang = await get_lang(chat_id)
-        _ = get_string(lang)
-        
-        LOGGER(__name__).info(f"Joining call in chat {chat_id}")
-
-        try:
-            # First, ensure we're in the group call
-            try:
-                participants = await assistant.get_participants(chat_id)
-                LOGGER(__name__).info(f"Found {len(participants)} participants in call")
-            except NoActiveGroupCall:
-                LOGGER(__name__).warning("No active group call")
-                error_msg = "❌ **မ� aktif voice chat ရှိပါဘူး**\n\nကျေးဇူးပြု၍ group ထဲမှာ voice chat စတင်ပါ။"
-                raise AssistantErr(error_msg)
-
-            # Now join the call with stream
-            stream = dynamic_media_stream(path=link, video=bool(video))
-            LOGGER(__name__).info("Starting to play stream...")
-            
-            await assistant.play(chat_id, stream)
-            LOGGER(__name__).info("Successfully joined and started playing")
-
-        except NoActiveGroupCall:
-            error_msg = "❌ **မ� aktif voice chat ရှိပါဘူး**\n\nကျေးဇူးပြု၍ group ထဲမှာ voice chat စတင်ပါ။"
-            raise AssistantErr(error_msg)
-        except ChatAdminRequired:
-            error_msg = "❌ **Admin permission လိုအပ်ပါသည်**\n\nBot က admin ဖြစ်ပြီး 'Manage Voice Chats' permission ရှိရပါမယ်။"
-            raise AssistantErr(error_msg)
-        except TelegramServerError:
-            raise AssistantErr(_["call_10"])
-        except Exception as e:
-            LOGGER(__name__).error(f"Join call error: {str(e)}")
-            error_msg = f"❌ **Voice chat ထဲသို့ ဝင်ရောက်၍မရပါ**\n\nError: {str(e)}"
-            raise AssistantErr(error_msg)
-
-        # Success - update states
-        self.active_calls.add(chat_id)
-        await add_active_chat(chat_id)
-        await music_on(chat_id)
-        if video:
-            await add_active_video_chat(chat_id)
-
-        LOGGER(__name__).info(f"Successfully joined voice chat {chat_id}")
-
-        # Autoend setup
-        if await is_autoend():
-            counter[chat_id] = {}
-            users = len(await assistant.get_participants(chat_id))
-            if users == 1:
-                autoend[chat_id] = datetime.now() + timedelta(minutes=1)
-
-    # Other methods remain the same (pause_stream, resume_stream, stop_stream, etc.)
     @capture_internal_err
     async def pause_stream(self, chat_id: int) -> None:
+        """Stream ကို ခေတ္တရပ်ဆိုင်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.pause(chat_id)
 
     @capture_internal_err
     async def resume_stream(self, chat_id: int) -> None:
+        """Stream ကို ပြန်လည်စတင်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.resume(chat_id)
 
     @capture_internal_err
     async def mute_stream(self, chat_id: int) -> None:
+        """Stream အသံကို ပိတ်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.mute(chat_id)
 
     @capture_internal_err
     async def unmute_stream(self, chat_id: int) -> None:
+        """Stream အသံကို ပြန်ဖွင့်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.unmute(chat_id)
 
     @capture_internal_err
     async def stop_stream(self, chat_id: int) -> None:
+        """Stream ကို ရပ်ဆိုင်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await _clear_(chat_id)
         if chat_id not in self.active_calls:
@@ -392,56 +150,382 @@ class Call:
             self.active_calls.discard(chat_id)
 
     @capture_internal_err
+    async def force_stop_stream(self, chat_id: int) -> None:
+        """Stream ကို အတင်းအဓမ္မ ရပ်ဆိုင်းခြင်း"""
+        assistant = await group_assistant(self, chat_id)
+        try:
+            check = db.get(chat_id)
+            if check:
+                check.pop(0)
+        except (IndexError, KeyError):
+            pass
+        await remove_active_video_chat(chat_id)
+        await remove_active_chat(chat_id)
+        await _clear_(chat_id)
+        if chat_id not in self.active_calls:
+            return
+        try:
+            await assistant.leave_call(chat_id)
+        except NoActiveGroupCall:
+            pass
+        except Exception:
+            pass
+        finally:
+            self.active_calls.discard(chat_id)
+
+    @capture_internal_err
     async def skip_stream(self, chat_id: int, link: str, video: Union[bool, str] = None, image: Union[bool, str] = None) -> None:
+        """နောက် track သို့ ခုန်ကူးခြင်း"""
         assistant = await group_assistant(self, chat_id)
         stream = dynamic_media_stream(path=link, video=bool(video))
         await assistant.play(chat_id, stream)
 
+    @capture_internal_err
+    async def vc_users(self, chat_id: int) -> list:
+        """Voice chat ထဲရှိ user များစာရင်း"""
+        assistant = await group_assistant(self, chat_id)
+        participants = await assistant.get_participants(chat_id)
+        return [p.user_id for p in participants if not p.is_muted]
+
+    @capture_internal_err
+    async def change_volume(self, chat_id: int, volume: int) -> None:
+        """အသံပမာဏ ပြောင်းလည်းခြင်း"""
+        assistant = await group_assistant(self, chat_id)
+        await assistant.change_volume_call(chat_id, volume)
+
+    @capture_internal_err
+    async def seek_stream(self, chat_id: int, file_path: str, to_seek: str, duration: str, mode: str) -> None:
+        """Stream ကို သတ်မှတ်နေရာသို့ ခုန်ကူးခြင်း"""
+        assistant = await group_assistant(self, chat_id)
+        ffmpeg_params = f"-ss {to_seek} -to {duration}"
+        is_video = mode == "video"
+        stream = dynamic_media_stream(path=file_path, video=is_video, ffmpeg_params=ffmpeg_params)
+        await assistant.play(chat_id, stream)
+
+    @capture_internal_err
+    async def speedup_stream(self, chat_id: int, file_path: str, speed: float, playing: list) -> None:
+        """Stream အရှိန်ပြောင်းလည်းခြင်း"""
+        if not isinstance(playing, list) or not playing or not isinstance(playing[0], dict):
+            raise AssistantErr("Invalid stream info for speedup.")
+
+        assistant = await group_assistant(self, chat_id)
+        base = os.path.basename(file_path)
+        chatdir = os.path.join("playback", str(speed))
+        os.makedirs(chatdir, exist_ok=True)
+        out = os.path.join(chatdir, base)
+
+        if not os.path.exists(out):
+            vs = str(2.0 / float(speed))
+            cmd = f"ffmpeg -i {file_path} -filter:v setpts={vs}*PTS -filter:a atempo={speed} -c:a aac -b:a 192k -ar 48000 {out}"
+            proc = await asyncio.create_subprocess_shell(cmd, stdin=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            await proc.communicate()
+
+        dur = int(await asyncio.get_event_loop().run_in_executor(None, check_duration, out))
+        played, con_seconds = speed_converter(playing[0]["played"], speed)
+        duration_min = seconds_to_min(dur)
+        is_video = playing[0]["streamtype"] == "video"
+        ffmpeg_params = f"-ss {played} -to {duration_min}"
+        stream = dynamic_media_stream(path=out, video=is_video, ffmpeg_params=ffmpeg_params)
+
+        if chat_id in db and db[chat_id] and db[chat_id][0].get("file") == file_path:
+            await assistant.play(chat_id, stream)
+        else:
+            raise AssistantErr("Stream mismatch during speedup.")
+
+        db[chat_id][0].update({
+            "played": con_seconds,
+            "dur": duration_min,
+            "seconds": dur,
+            "speed_path": out,
+            "speed": speed,
+            "old_dur": db[chat_id][0].get("dur"),
+            "old_second": db[chat_id][0].get("seconds"),
+        })
+
+    @capture_internal_err
+    async def stream_call(self, link: str) -> None:
+        """Test stream call with high quality audio"""
+        assistant = await group_assistant(self, config.LOGGER_ID)
+        try:
+            await assistant.play(config.LOGGER_ID, MediaStream(link))
+            await asyncio.sleep(8)
+        finally:
+            try:
+                await assistant.leave_call(config.LOGGER_ID)
+            except:
+                pass
+
+    @capture_internal_err
+    async def join_call(
+        self,
+        chat_id: int,
+        original_chat_id: int,
+        link: str,
+        video: Union[bool, str] = None,
+        image: Union[bool, str] = None,
+    ) -> None:
+        """Voice chat ထဲသို့ အရည်အသွေးမြင့် join ဝင်ခြင်း"""
+        assistant = await group_assistant(self, chat_id)
+        lang = await get_lang(chat_id)
+        _ = get_string(lang)
+        stream = dynamic_media_stream(path=link, video=bool(video))
+
+        try:
+            await assistant.play(chat_id, stream)
+        except (NoActiveGroupCall, ChatAdminRequired):
+            raise AssistantErr(_["call_8"])
+        except TelegramServerError:
+            raise AssistantErr(_["call_10"])
+        except Exception as e:
+            raise AssistantErr(
+                f"ᴜɴᴀʙʟᴇ ᴛᴏ ᴊᴏɪɴ ᴛʜᴇ ɢʀᴏᴜᴘ ᴄᴀʟʟ.\nRᴇᴀsᴏɴ: {e}"
+            )
+        self.active_calls.add(chat_id)
+        await add_active_chat(chat_id)
+        await music_on(chat_id)
+        if video:
+            await add_active_video_chat(chat_id)
+
+        if await is_autoend():
+            counter[chat_id] = {}
+            users = len(await assistant.get_participants(chat_id))
+            if users == 1:
+                autoend[chat_id] = datetime.now() + timedelta(minutes=1)
+
+    @capture_internal_err
+    async def play(self, client, chat_id: int) -> None:
+        """High-quality audio playback system"""
+        check = db.get(chat_id)
+        popped = None
+        loop = await get_loop(chat_id)
+        try:
+            if loop == 0:
+                popped = check.pop(0)
+            else:
+                loop = loop - 1
+                await set_loop(chat_id, loop)
+            await auto_clean(popped)
+            if not check:
+                    await _clear_(chat_id)
+                    if chat_id in self.active_calls:
+                        try:
+                            await client.leave_call(chat_id)
+                        except NoActiveGroupCall:
+                            pass
+                        except Exception:
+                            pass
+                        finally:
+                            self.active_calls.discard(chat_id)
+                    return
+        except:
+            try:
+                await _clear_(chat_id)
+                return await client.leave_call(chat_id)
+            except:
+                return
+        else:
+            queued = check[0]["file"]
+            language = await get_lang(chat_id)
+            _ = get_string(language)
+            title = (check[0]["title"]).title()
+            user = check[0]["by"]
+            original_chat_id = check[0]["chat_id"]
+            streamtype = check[0]["streamtype"]
+            videoid = check[0]["vidid"]
+            db[chat_id][0]["played"] = 0
+
+            exis = (check[0]).get("old_dur")
+            if exis:
+                db[chat_id][0]["dur"] = exis
+                db[chat_id][0]["seconds"] = check[0]["old_second"]
+                db[chat_id][0]["speed_path"] = None
+                db[chat_id][0]["speed"] = 1.0
+
+            video = True if str(streamtype) == "video" else False
+
+            if "live_" in queued:
+                n, link = await YouTube.video(videoid, True)
+                if n == 0:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+
+                stream = dynamic_media_stream(path=link, video=video)
+                try:
+                    await client.play(chat_id, stream)
+                except Exception:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+
+                img = await get_thumb(videoid)
+                button = stream_markup(_, chat_id)
+                run = await app.send_photo(
+                    chat_id=original_chat_id,
+                    photo=img,
+                    caption=_["stream_1"].format(
+                        f"https://t.me/{app.username}?start=info_{videoid}",
+                        title[:23],
+                        check[0]["dur"],
+                        user,
+                    ),
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
+
+            elif "vid_" in queued:
+                mystic = await app.send_message(original_chat_id, _["call_7"])
+                try:
+                    file_path, direct = await YouTube.download(
+                        videoid,
+                        mystic,
+                        videoid=True,
+                        video=True if str(streamtype) == "video" else False,
+                    )
+                except:
+                    return await mystic.edit_text(
+                        _["call_6"], disable_web_page_preview=True
+                    )
+
+                stream = dynamic_media_stream(path=file_path, video=video)
+                try:
+                    await client.play(chat_id, stream)
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+
+                img = await get_thumb(videoid)
+                button = stream_markup(_, chat_id)
+                await mystic.delete()
+                run = await app.send_photo(
+                    chat_id=original_chat_id,
+                    photo=img,
+                    caption=_["stream_1"].format(
+                        f"https://t.me/{app.username}?start=info_{videoid}",
+                        title[:23],
+                        check[0]["dur"],
+                        user,
+                    ),
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "stream"
+
+            elif "index_" in queued:
+                stream = dynamic_media_stream(path=videoid, video=video)
+                try:
+                    await client.play(chat_id, stream)
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+
+                button = stream_markup(_, chat_id)
+                run = await app.send_photo(
+                    chat_id=original_chat_id,
+                    photo=config.STREAM_IMG_URL,
+                    caption=_["stream_2"].format(user),
+                    reply_markup=InlineKeyboardMarkup(button),
+                )
+                db[chat_id][0]["mystic"] = run
+                db[chat_id][0]["markup"] = "tg"
+
+            else:
+                stream = dynamic_media_stream(path=queued, video=video)
+                try:
+                    await client.play(chat_id, stream)
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
+
+                if videoid == "telegram":
+                    button = stream_markup(_, chat_id)
+                    run = await app.send_photo(
+                        chat_id=original_chat_id,
+                        photo=(
+                            config.TELEGRAM_AUDIO_URL
+                            if str(streamtype) == "audio"
+                            else config.TELEGRAM_VIDEO_URL
+                        ),
+                        caption=_["stream_1"].format(
+                            config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
+                        ),
+                        reply_markup=InlineKeyboardMarkup(button),
+                    )
+                    db[chat_id][0]["mystic"] = run
+                    db[chat_id][0]["markup"] = "tg"
+
+                elif videoid == "soundcloud":
+                    button = stream_markup(_, chat_id)
+                    run = await app.send_photo(
+                        chat_id=original_chat_id,
+                        photo=config.SOUNCLOUD_IMG_URL,
+                        caption=_["stream_1"].format(
+                            config.SUPPORT_CHAT, title[:23], check[0]["dur"], user
+                        ),
+                        reply_markup=InlineKeyboardMarkup(button),
+                    )
+                    db[chat_id][0]["mystic"] = run
+                    db[chat_id][0]["markup"] = "tg"
+
+                else:
+                    img = await get_thumb(videoid)
+                    button = stream_markup(_, chat_id)
+                    try:
+                        run = await app.send_photo(
+                            chat_id=original_chat_id,
+                            photo=img,
+                            caption=_["stream_1"].format(
+                                f"https://t.me/{app.username}?start=info_{videoid}",
+                                title[:23],
+                                check[0]["dur"],
+                                user,
+                            ),
+                            reply_markup=InlineKeyboardMarkup(button),
+                        )
+                    except FloodWait as e:
+                        LOGGER(__name__).warning(f"FloodWait: Sleeping for {e.value}")
+                        await asyncio.sleep(e.value)
+                        run = await app.send_photo(
+                            chat_id=original_chat_id,
+                            photo=img,
+                            caption=_["stream_1"].format(
+                                f"https://t.me/{app.username}?start=info_{videoid}",
+                                title[:23],
+                                check[0]["dur"],
+                                user,
+                            ),
+                            reply_markup=InlineKeyboardMarkup(button),
+                        )
+                    db[chat_id][0]["mystic"] = run
+                    db[chat_id][0]["markup"] = "stream"
+
     async def start(self) -> None:
-        LOGGER(__name__).info("Starting PyTgCalls Clients...")
-        if config.STRING1 and self.one:
+        """PyTgCalls Clients များကို စတင်ခြင်း"""
+        LOGGER(__name__).info("Starting High Quality PyTgCalls Clients...")
+        if config.STRING1:
             await self.one.start()
-        if config.STRING2 and self.two:
+        if config.STRING2:
             await self.two.start()
-        if config.STRING3 and self.three:
+        if config.STRING3:
             await self.three.start()
-        if config.STRING4 and self.four:
+        if config.STRING4:
             await self.four.start()
-        if config.STRING5 and self.five:
+        if config.STRING5:
             await self.five.start()
 
     @capture_internal_err
     async def ping(self) -> str:
+        """Connection ping စစ်ဆေးခြင်း"""
         pings = []
-        if self.one:
-            try:
-                pings.append(await self.one.ping)
-            except:
-                pass
-        if self.two:
-            try:
-                pings.append(await self.two.ping)
-            except:
-                pass
-        if self.three:
-            try:
-                pings.append(await self.three.ping)
-            except:
-                pass
-        if self.four:
-            try:
-                pings.append(await self.four.ping)
-            except:
-                pass
-        if self.five:
-            try:
-                pings.append(await self.five.ping)
-            except:
-                pass
+        if config.STRING1:
+            pings.append(self.one.ping)
+        if config.STRING2:
+            pings.append(self.two.ping)
+        if config.STRING3:
+            pings.append(self.three.ping)
+        if config.STRING4:
+            pings.append(self.four.ping)
+        if config.STRING5:
+            pings.append(self.five.ping)
         return str(round(sum(pings) / len(pings), 3)) if pings else "0.0"
 
     @capture_internal_err
     async def decorators(self) -> None:
+        """Event handlers များ သတ်မှတ်ခြင်း"""
         assistants = list(filter(None, [self.one, self.two, self.three, self.four, self.five]))
 
         CRITICAL_FLAGS = (
@@ -464,7 +548,7 @@ class Call:
                     await self.play(assistant, update.chat_id)
 
             except Exception as e:
-                import sys
+                import sys, traceback
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 full_trace = "".join(traceback.format_exception(exc_type, exc_obj, exc_tb))
                 caption = (
@@ -476,26 +560,6 @@ class Call:
                 await send_large_error(full_trace, caption, filename)
 
         for assistant in assistants:
-            if assistant:
-                assistant.on_update()(unified_update_handler)
+            assistant.on_update()(unified_update_handler)
 
-# Create instance
 Hotty = Call()
-
-# Debug commands
-@app.on_message(filters.command("joincheck"))
-async def join_check(_, message):
-    chat_id = message.chat.id
-    try:
-        debug_info = await Hotty.debug_video_call(chat_id)
-        await message.reply(f"🔍 **Voice Chat Status**\n\n{debug_info}")
-    except Exception as e:
-        await message.reply(f"❌ Check failed: {str(e)}")
-
-@app.on_message(filters.command("sessions"))
-async def check_sessions_cmd(_, message):
-    try:
-        session_status = await Hotty.check_sessions()
-        await message.reply(f"🔧 **Session Status**\n\n{session_status}")
-    except Exception as e:
-        await message.reply(f"❌ Error: {str(e)}")
