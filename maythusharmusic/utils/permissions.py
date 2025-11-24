@@ -2,6 +2,7 @@ import logging
 from functools import wraps
 from traceback import format_exc as err
 
+from pyrogram import Client
 from pyrogram.errors.exceptions.forbidden_403 import ChatWriteForbidden
 from pyrogram.types import Message
 
@@ -9,9 +10,15 @@ from maythusharmusic import app
 from maythusharmusic.misc import SUDOERS
 
 
-async def member_permissions(chat_id: int, user_id: int):
+# (၁) Client ကို Parameter အနေနဲ့ လက်ခံအောင် ပြင်ဆင်ခြင်း
+async def member_permissions(chat_id: int, user_id: int, client: Client = app):
     perms = []
-    member = (await app.get_chat_member(chat_id, user_id)).privileges
+    try:
+        # app အစား client ကို သုံးပါ
+        member = (await client.get_chat_member(chat_id, user_id)).privileges
+    except Exception:
+        return []
+        
     if not member:
         return []
     if member.can_post_messages:
@@ -40,7 +47,8 @@ async def authorised(func, subFunc2, client, message, *args, **kwargs):
     try:
         await func(client, message, *args, **kwargs)
     except ChatWriteForbidden:
-        await app.leave_chat(chatID)
+        # app အစား client ကို သုံးပါ
+        await client.leave_chat(chatID)
     except Exception as e:
         logging.exception(e)
         try:
@@ -69,14 +77,17 @@ async def unauthorised(
     try:
         await message.reply_text(text)
     except ChatWriteForbidden:
-        await app.leave_chat(chatID)
+        # Client ကို message ကနေ ယူပါ
+        client = getattr(message, "_client", app)
+        await client.leave_chat(chatID)
     return subFunc2
 
 
-async def bot_permissions(chat_id: int):
+# (၂) Client ကို Parameter အနေနဲ့ လက်ခံအောင် ပြင်ဆင်ခြင်း
+async def bot_permissions(chat_id: int, client: Client = app):
     perms = []
-    bot_id = (await app.get_me()).id
-    return await member_permissions(chat_id, bot_id)
+    bot_id = (await client.get_me()).id
+    return await member_permissions(chat_id, bot_id, client)
 
 
 def adminsOnly(permission):
@@ -85,8 +96,8 @@ def adminsOnly(permission):
         async def subFunc2(client, message: Message, *args, **kwargs):
             chatID = message.chat.id
 
-            # Check if the bot has the required permission
-            bot_perms = await bot_permissions(chatID)
+            # (၃) Bot Permission စစ်ဆေးရာတွင် client ကို ထည့်ပေးပါ
+            bot_perms = await bot_permissions(chatID, client)
             if permission not in bot_perms:
                 return await unauthorised(
                     message, permission, subFunc2, bot_lacking_permission=True
@@ -107,7 +118,9 @@ def adminsOnly(permission):
 
             # For admins and sudo users
             userID = message.from_user.id
-            permissions = await member_permissions(chatID, userID)
+            
+            # (၄) Member Permission စစ်ဆေးရာတွင် client ကို ထည့်ပေးပါ
+            permissions = await member_permissions(chatID, userID, client)
             if userID not in SUDOERS and permission not in permissions:
                 return await unauthorised(message, permission, subFunc2)
             return await authorised(func, subFunc2, client, message, *args, **kwargs)
