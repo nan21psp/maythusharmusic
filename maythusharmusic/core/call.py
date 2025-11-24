@@ -783,7 +783,7 @@ class Call:
 async def join_check(_, message):
     chat_id = message.chat.id
     try:
-        debug_info = await pisces.debug_video_call(chat_id)
+        debug_info = await Hotty.debug_video_call(chat_id)
         await message.reply(f"🔍 **Voice Chat Status**\n\n{debug_info}")
     except Exception as e:
         await message.reply(f"❌ Check failed: {str(e)}")
@@ -792,7 +792,7 @@ async def join_check(_, message):
 async def force_join(_, message):
     chat_id = message.chat.id
     try:
-        success = await pisces.force_join_call(chat_id)
+        success = await Hotty.force_join_call(chat_id)
         if success:
             await message.reply("✅ **Voice chat ထဲသို့ အောင်မြင်စွာဝင်ရောက်ပြီး**")
         else:
@@ -803,7 +803,7 @@ async def force_join(_, message):
 @app.on_message(filters.command("sessions"))
 async def check_sessions_cmd(_, message):
     try:
-        session_status = await pisces.check_sessions()
+        session_status = await Hotty.check_sessions()
         await message.reply(f"🔧 **Session Status**\n\n{session_status}")
     except Exception as e:
         await message.reply(f"❌ Error: {str(e)}")
