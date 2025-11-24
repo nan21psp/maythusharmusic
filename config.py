@@ -84,7 +84,7 @@ SERVER_PLAYLIST_LIMIT = int(getenv("SERVER_PLAYLIST_LIMIT", "50"))
 PLAYLIST_FETCH_LIMIT = int(getenv("PLAYLIST_FETCH_LIMIT", "25"))
 
 # Auto End Stream ကို ဖွင့်ရန် True ၊ ပိတ်ရန် False ထားပါ
-AUTO_END_STREAM = getenv("AUTO_END_STREAM", "True").lower() == "true"
+AUTO_END_STREAM = getenv("AUTO_END_STREAM", "FALSE").lower() == "false"
 
 # Cleanmode time after which bot will delete its old messages from chats
 CLEANMODE_DELETE_MINS = int(getenv("CLEANMODE_MINS", "5"))
