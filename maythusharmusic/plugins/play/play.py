@@ -7,10 +7,9 @@ from pytgcalls.exceptions import NoActiveGroupCall
 
 import config
 from maythusharmusic import Apple, Resso, SoundCloud, Spotify, Telegram, YouTube, app
-from maythusharmusic.core.call import Hotty
+from maythusharmusic.core.call import pisces
 from maythusharmusic.utils import seconds_to_min, time_to_seconds
 from maythusharmusic.utils.channelplay import get_channeplayCB
-#from maythusharmusic.utils.database import add_clean_message
 from maythusharmusic.utils.decorators.language import languageCB
 from maythusharmusic.utils.decorators.play import PlayWrapper
 from maythusharmusic.utils.formatters import formats
@@ -290,7 +289,7 @@ async def play_commnd(
             return await mystic.delete()
         else:
             try:
-                await Hotty.stream_call(url)
+                await pisces.stream_call(url)
             except NoActiveGroupCall:
                 await mystic.edit_text(_["black_9"])
                 return await app.send_message(
@@ -325,7 +324,6 @@ async def play_commnd(
                 _["play_18"],
                 reply_markup=InlineKeyboardMarkup(buttons),
             )
-            await add_clean_message(original_chat_id, run.id)
         slider = True
         query = message.text.split(None, 1)[1]
         if "-v" in query:
@@ -356,7 +354,6 @@ async def play_commnd(
                     _["play_13"],
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
-                await add_clean_message(original_chat_id, run.id)
         
         # --- START: MODIFICATION ---
         try:
@@ -406,7 +403,6 @@ async def play_commnd(
                 caption=cap,
                 reply_markup=InlineKeyboardMarkup(buttons),
             )
-            await add_clean_message(original_chat_id, run.id)
             return await play_logs(message, streamtype=f"Playlist : {plist_type}")
         else:
             if slider:
@@ -428,7 +424,6 @@ async def play_commnd(
                     ),
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
-                await add_clean_message(original_chat_id, run.id)
                 return await play_logs(message, streamtype=f"Searched on Youtube")
             else:
                 buttons = track_markup(
@@ -444,7 +439,6 @@ async def play_commnd(
                     caption=cap,
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
-                await add_clean_message(original_chat_id, run.id)
                 return await play_logs(message, streamtype=f"URL Searched Inline")
 
 
@@ -504,7 +498,6 @@ async def play_music(client, CallbackQuery, _):
             _["play_13"],
             reply_markup=InlineKeyboardMarkup(buttons),
         )
-        await add_clean_message(original_chat_id, run.id)
     video = True if mode == "v" else None
     ffplay = True if fplay == "f" else None
     try:
@@ -538,7 +531,7 @@ async def piyush_check(client, CallbackQuery):
         pass
 
 
-@app.on_callback_query(filters.regex("HottyPlaylists") & ~BANNED_USERS)
+@app.on_callback_query(filters.regex("piscesPlaylists") & ~BANNED_USERS)
 @languageCB
 async def play_playlists_command(client, CallbackQuery, _):
     callback_data = CallbackQuery.data.strip()
