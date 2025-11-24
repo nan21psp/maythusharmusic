@@ -13,6 +13,7 @@ from youtube_search import YoutubeSearch
 
 from config import BANNED_USERS, SERVER_PLAYLIST_LIMIT
 from maythusharmusic import Carbon, app
+from maythusharmusic.utils.database import add_clean_message
 from maythusharmusic.utils.decorators.language import language, languageCB
 from maythusharmusic.utils.inline.playlist import (
     botplaylist_markup,
@@ -779,6 +780,7 @@ async def get_playlist_playmode_(client, CallbackQuery, _):
     return await CallbackQuery.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup(buttons)
     )
+    await add_clean_message(original_chat_id, run.id)
 
 
 @app.on_callback_query(filters.regex("delete_warning") & ~BANNED_USERS)
@@ -807,7 +809,7 @@ async def home_play_(client, CallbackQuery, _):
     return await CallbackQuery.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup(buttons)
     )
-
+    await add_clean_message(original_chat_id, run.id)
 
 @app.on_callback_query(filters.regex("del_back_playlist") & ~BANNED_USERS)
 @languageCB
