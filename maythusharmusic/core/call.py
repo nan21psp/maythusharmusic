@@ -39,26 +39,19 @@ autoend = {}
 counter = {}
 
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    # Default High-Quality Audio Filters
-    hq_audio = (
-        "-af \""
-        "dynaudnorm=f=150:g=15,"  # Auto audio normalize + clarity boost
-        "equalizer=f=1000:t=h:width=200:g=4,"  # clarity / vocal boost
-        "equalizer=f=60:t=h:width=100:g=3,"   # bass boost
-        "volume=1.6"  # increase volume
-        "\""
-    )
+    # Stable & VC-safe audio filters
+    hq_audio = "-af dynaudnorm=f=90:g=10,adeclip,aresample=48000,volume=1.5"
 
-    # Merge user ffmpeg params
+    # Merge
     if ffmpeg_params:
-        ffmpeg_params = f"{hq_audio} {ffmpeg_params}"
+        ffmpeg_params = f"{hq_audio},{ffmpeg_params}"
     else:
         ffmpeg_params = hq_audio
 
     return MediaStream(
         audio_path=path,
         media_path=path,
-        audio_parameters=AudioQuality.STUDIO,  # best possible quality
+        audio_parameters=AudioQuality.STUDIO,
         video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
         video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
         ffmpeg_parameters=ffmpeg_params,
