@@ -39,10 +39,8 @@ autoend = {}
 counter = {}
 
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    # Stable & VC-safe audio filters
-    hq_audio = "-af dynaudnorm=f=90:g=10,adeclip,aresample=48000,volume=1.5"
+    hq_audio = "-af loudnorm=I=-16:TP=-1.5:LRA=11,volume=1.3"
 
-    # Merge
     if ffmpeg_params:
         ffmpeg_params = f"{hq_audio},{ffmpeg_params}"
     else:
