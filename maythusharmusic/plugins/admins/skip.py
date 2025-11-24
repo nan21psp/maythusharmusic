@@ -5,7 +5,7 @@ import config
 from maythusharmusic import YouTube, app
 from maythusharmusic.core.call import Hotty
 from maythusharmusic.misc import db
-from maythusharmusic.utils.database import get_loop
+from maythusharmusic.utils.database import get_loop, add_clean_message
 from maythusharmusic.utils.decorators import AdminRightsCheck
 from maythusharmusic.utils.inline import close_markup, stream_markup
 from maythusharmusic.utils.stream.autoclear import auto_clean
@@ -159,6 +159,8 @@ async def skip(cli, message: Message, _, chat_id):
             ),
             reply_markup=InlineKeyboardMarkup(button),
         )
+        await add_clean_message(original_chat_id, run.id)
+        
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "stream"
         await mystic.delete()
@@ -173,6 +175,8 @@ async def skip(cli, message: Message, _, chat_id):
             caption=_["stream_2"].format(user),
             reply_markup=InlineKeyboardMarkup(button),
         )
+        await add_clean_message(original_chat_id, run.id)
+        
         db[chat_id][0]["mystic"] = run
         db[chat_id][0]["markup"] = "tg"
     else:
@@ -200,6 +204,8 @@ async def skip(cli, message: Message, _, chat_id):
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
+            
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
         elif videoid == "soundcloud":
@@ -213,6 +219,8 @@ async def skip(cli, message: Message, _, chat_id):
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
+            
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
         else:
@@ -228,5 +236,7 @@ async def skip(cli, message: Message, _, chat_id):
                 ),
                 reply_markup=InlineKeyboardMarkup(button),
             )
+            await add_clean_message(original_chat_id, run.id)
+            
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
