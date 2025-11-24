@@ -246,22 +246,26 @@ class Call:
         stream = dynamic_media_stream(path=link, video=bool(video))
 
         try:
+            # ပထမဆုံး play လုပ်ကြည့်မယ်
             await assistant.play(chat_id, stream)
+            
         except (NoActiveGroupCall, ChatAdminRequired):
             # VC မရှိရင် Assistant က Join ဖို့ ကြိုးစားမယ်
             try:
-                await assistant.join_group_call(
-                    chat_id, 
-                    stream, 
-                    stream_type=StreamType().pulse_stream
-                )
+                # stream_type parameter ကို ဖြုတ်ပြီး join_group_call ကိုခေါ်မယ်
+                await assistant.join_group_call(chat_id, stream)
+                LOGGER(__name__).info(f"Assistant successfully joined voice chat {chat_id}")
+                
             except Exception as e:
-                 raise AssistantErr(_["call_8"])
+                LOGGER(__name__).error(f"Assistant join failed: {str(e)}")
+                raise AssistantErr(_["call_8"])
+                
         except TelegramServerError:
             raise AssistantErr(_["call_10"])
+            
         except Exception as e:
-            # အခြား Error တက်ရင် ပြန်လည်ကြိုးစားခိုင်းမယ်
-            raise AssistantErr(f"Assistant Join Error: {e}")
+            LOGGER(__name__).error(f"Play error: {str(e)}")
+            raise AssistantErr(f"Play Error: {str(e)}")
 
         self.active_calls.add(chat_id)
         await add_active_chat(chat_id)
@@ -334,7 +338,8 @@ class Call:
                 stream = dynamic_media_stream(path=link, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception:
+                except Exception as e:
+                    LOGGER(__name__).error(f"Live stream play error: {str(e)}")
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
@@ -370,7 +375,8 @@ class Call:
                 stream = dynamic_media_stream(path=file_path, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
+                except Exception as e:
+                    LOGGER(__name__).error(f"Video stream play error: {str(e)}")
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
@@ -394,7 +400,8 @@ class Call:
                 stream = dynamic_media_stream(path=videoid, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
+                except Exception as e:
+                    LOGGER(__name__).error(f"Index stream play error: {str(e)}")
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 button = stream_markup(_, chat_id)
@@ -411,7 +418,8 @@ class Call:
                 stream = dynamic_media_stream(path=queued, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except:
+                except Exception as e:
+                    LOGGER(__name__).error(f"Audio stream play error: {str(e)}")
                     return await app.send_message(original_chat_id, text=_["call_6"])
 
                 if videoid == "telegram":
