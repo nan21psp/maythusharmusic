@@ -1,6 +1,6 @@
 import asyncio
 import os
-import traceback  # <-- 1. NameError အတွက် ဒီတစ်ကြောင်း ထည့်ပါ
+import traceback
 from datetime import datetime, timedelta
 from typing import Union
 
@@ -39,23 +39,18 @@ autoend = {}
 counter = {}
 
 def dynamic_media_stream(path: str, video: bool = False, ffmpeg_params: str = None) -> MediaStream:
-    hq_audio = "-af loudnorm=I=-16:TP=-1.5:LRA=11,volume=1.3"
-
-    if ffmpeg_params:
-        ffmpeg_params = f"{hq_audio},{ffmpeg_params}"
-    else:
-        ffmpeg_params = hq_audio
-
+    """အရည်အသွေးမြင့် အသံနှင့် ဗီဒီယို stream အတွက် optimized media stream configuration"""
     return MediaStream(
         audio_path=path,
         media_path=path,
-        audio_parameters=AudioQuality.STUDIO,
-        video_parameters=VideoQuality.HD_720p if video else VideoQuality.SD_360p,
-        video_flags=(MediaStream.Flags.AUTO_DETECT if video else MediaStream.Flags.IGNORE),
-        ffmpeg_parameters=ffmpeg_params,
+        audio_parameters=AudioQuality.HIGH if video else AudioQuality.STUDIO,
+        video_parameters=VideoQuality.FULL_HD if video else VideoQuality.HD_720p,
+        video_flags=(MediaStream.Flags.REQUIRE_ENCODE if video else MediaStream.Flags.IGNORE),
+        ffmpeg_parameters=ffmpeg_params or "-ac 2 -ar 48000 -b:a 192k" if not video else "-c:v libx264 -preset fast -crf 23 -maxrate 2M -bufsize 4M -ac 2 -ar 48000 -b:a 192k",
     )
 
 async def _clear_(chat_id: int) -> None:
+    """Chat data များကို ရှင်းလင်းခြင်း"""
     popped = db.pop(chat_id, None)
     if popped:
         await auto_clean(popped)
@@ -66,56 +61,81 @@ async def _clear_(chat_id: int) -> None:
 
 class Call:
     def __init__(self):
+        """High-quality voice call management system initialization"""
+        # Session 1 - Primary High Quality
         self.userbot1 = Client(
-            "maythusharmusic1", config.API_ID, config.API_HASH, session_string=config.STRING1
+            "maythusharmusic1", 
+            config.API_ID, 
+            config.API_HASH, 
+            session_string=config.STRING1
         ) if config.STRING1 else None
         self.one = PyTgCalls(self.userbot1) if self.userbot1 else None
 
+        # Session 2 - Backup High Quality
         self.userbot2 = Client(
-            "maythusharmusic2", config.API_ID, config.API_HASH, session_string=config.STRING2
+            "maythusharmusic2", 
+            config.API_ID, 
+            config.API_HASH, 
+            session_string=config.STRING2
         ) if config.STRING2 else None
         self.two = PyTgCalls(self.userbot2) if self.userbot2 else None
 
+        # Session 3 - Additional Capacity
         self.userbot3 = Client(
-            "maythusharmusic3", config.API_ID, config.API_HASH, session_string=config.STRING3
+            "maythusharmusic3", 
+            config.API_ID, 
+            config.API_HASH, 
+            session_string=config.STRING3
         ) if config.STRING3 else None
         self.three = PyTgCalls(self.userbot3) if self.userbot3 else None
 
+        # Session 4 - Load Balancing
         self.userbot4 = Client(
-            "maythusharmusic4", config.API_ID, config.API_HASH, session_string=config.STRING4
+            "maythusharmusic4", 
+            config.API_ID, 
+            config.API_HASH, 
+            session_string=config.STRING4
         ) if config.STRING4 else None
         self.four = PyTgCalls(self.userbot4) if self.userbot4 else None
 
+        # Session 5 - Redundancy
         self.userbot5 = Client(
-            "maythusharmusic5", config.API_ID, config.API_HASH, session_string=config.STRING5
+            "maythusharmusic5", 
+            config.API_ID, 
+            config.API_HASH, 
+            session_string=config.STRING5
         ) if config.STRING5 else None
         self.five = PyTgCalls(self.userbot5) if self.userbot5 else None
 
         self.active_calls: set[int] = set()
 
-
     @capture_internal_err
     async def pause_stream(self, chat_id: int) -> None:
+        """Stream ကို ခေတ္တရပ်ဆိုင်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.pause(chat_id)
 
     @capture_internal_err
     async def resume_stream(self, chat_id: int) -> None:
+        """Stream ကို ပြန်လည်စတင်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.resume(chat_id)
 
     @capture_internal_err
     async def mute_stream(self, chat_id: int) -> None:
+        """Stream အသံကို ပိတ်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.mute(chat_id)
 
     @capture_internal_err
     async def unmute_stream(self, chat_id: int) -> None:
+        """Stream အသံကို ပြန်ဖွင့်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.unmute(chat_id)
 
     @capture_internal_err
     async def stop_stream(self, chat_id: int) -> None:
+        """Stream ကို ရပ်ဆိုင်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await _clear_(chat_id)
         if chat_id not in self.active_calls:
@@ -129,9 +149,9 @@ class Call:
         finally:
             self.active_calls.discard(chat_id)
 
-
     @capture_internal_err
     async def force_stop_stream(self, chat_id: int) -> None:
+        """Stream ကို အတင်းအဓမ္မ ရပ်ဆိုင်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         try:
             check = db.get(chat_id)
@@ -153,26 +173,29 @@ class Call:
         finally:
             self.active_calls.discard(chat_id)
 
-
     @capture_internal_err
     async def skip_stream(self, chat_id: int, link: str, video: Union[bool, str] = None, image: Union[bool, str] = None) -> None:
+        """နောက် track သို့ ခုန်ကူးခြင်း"""
         assistant = await group_assistant(self, chat_id)
         stream = dynamic_media_stream(path=link, video=bool(video))
         await assistant.play(chat_id, stream)
 
     @capture_internal_err
     async def vc_users(self, chat_id: int) -> list:
+        """Voice chat ထဲရှိ user များစာရင်း"""
         assistant = await group_assistant(self, chat_id)
         participants = await assistant.get_participants(chat_id)
         return [p.user_id for p in participants if not p.is_muted]
 
     @capture_internal_err
     async def change_volume(self, chat_id: int, volume: int) -> None:
+        """အသံပမာဏ ပြောင်းလည်းခြင်း"""
         assistant = await group_assistant(self, chat_id)
         await assistant.change_volume_call(chat_id, volume)
 
     @capture_internal_err
     async def seek_stream(self, chat_id: int, file_path: str, to_seek: str, duration: str, mode: str) -> None:
+        """Stream ကို သတ်မှတ်နေရာသို့ ခုန်ကူးခြင်း"""
         assistant = await group_assistant(self, chat_id)
         ffmpeg_params = f"-ss {to_seek} -to {duration}"
         is_video = mode == "video"
@@ -181,6 +204,7 @@ class Call:
 
     @capture_internal_err
     async def speedup_stream(self, chat_id: int, file_path: str, speed: float, playing: list) -> None:
+        """Stream အရှိန်ပြောင်းလည်းခြင်း"""
         if not isinstance(playing, list) or not playing or not isinstance(playing[0], dict):
             raise AssistantErr("Invalid stream info for speedup.")
 
@@ -192,7 +216,7 @@ class Call:
 
         if not os.path.exists(out):
             vs = str(2.0 / float(speed))
-            cmd = f"ffmpeg -i {file_path} -filter:v setpts={vs}*PTS -filter:a atempo={speed} {out}"
+            cmd = f"ffmpeg -i {file_path} -filter:v setpts={vs}*PTS -filter:a atempo={speed} -c:a aac -b:a 192k -ar 48000 {out}"
             proc = await asyncio.create_subprocess_shell(cmd, stdin=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             await proc.communicate()
 
@@ -218,9 +242,9 @@ class Call:
             "old_second": db[chat_id][0].get("seconds"),
         })
 
-
     @capture_internal_err
     async def stream_call(self, link: str) -> None:
+        """Test stream call with high quality audio"""
         assistant = await group_assistant(self, config.LOGGER_ID)
         try:
             await assistant.play(config.LOGGER_ID, MediaStream(link))
@@ -240,6 +264,7 @@ class Call:
         video: Union[bool, str] = None,
         image: Union[bool, str] = None,
     ) -> None:
+        """Voice chat ထဲသို့ အရည်အသွေးမြင့် join ဝင်ခြင်း"""
         assistant = await group_assistant(self, chat_id)
         lang = await get_lang(chat_id)
         _ = get_string(lang)
@@ -267,9 +292,9 @@ class Call:
             if users == 1:
                 autoend[chat_id] = datetime.now() + timedelta(minutes=1)
 
-
     @capture_internal_err
     async def play(self, client, chat_id: int) -> None:
+        """High-quality audio playback system"""
         check = db.get(chat_id)
         popped = None
         loop = await get_loop(chat_id)
@@ -326,9 +351,8 @@ class Call:
                 stream = dynamic_media_stream(path=link, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception as e:
-                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
-                     return await app.send_message(original_chat_id, text=_["call_6"])
+                except Exception:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
@@ -363,9 +387,8 @@ class Call:
                 stream = dynamic_media_stream(path=file_path, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception as e:
-                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
-                     return await app.send_message(original_chat_id, text=_["call_6"])
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
 
                 img = await get_thumb(videoid)
                 button = stream_markup(_, chat_id)
@@ -388,9 +411,8 @@ class Call:
                 stream = dynamic_media_stream(path=videoid, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception as e:
-                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
-                     return await app.send_message(original_chat_id, text=_["call_6"])
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
 
                 button = stream_markup(_, chat_id)
                 run = await app.send_photo(
@@ -406,9 +428,8 @@ class Call:
                 stream = dynamic_media_stream(path=queued, video=video)
                 try:
                     await client.play(chat_id, stream)
-                except Exception as e:
-                     print("FFMPEG ERROR:", e)   # ← သင်လိုချင်တဲ့ debug line
-                     return await app.send_message(original_chat_id, text=_["call_6"])
+                except:
+                    return await app.send_message(original_chat_id, text=_["call_6"])
 
                 if videoid == "telegram":
                     button = stream_markup(_, chat_id)
@@ -472,9 +493,9 @@ class Call:
                     db[chat_id][0]["mystic"] = run
                     db[chat_id][0]["markup"] = "stream"
 
-
     async def start(self) -> None:
-        LOGGER(__name__).info("Starting PyTgCalls Clients...")
+        """PyTgCalls Clients များကို စတင်ခြင်း"""
+        LOGGER(__name__).info("Starting High Quality PyTgCalls Clients...")
         if config.STRING1:
             await self.one.start()
         if config.STRING2:
@@ -488,6 +509,7 @@ class Call:
 
     @capture_internal_err
     async def ping(self) -> str:
+        """Connection ping စစ်ဆေးခြင်း"""
         pings = []
         if config.STRING1:
             pings.append(self.one.ping)
@@ -503,6 +525,7 @@ class Call:
 
     @capture_internal_err
     async def decorators(self) -> None:
+        """Event handlers များ သတ်မှတ်ခြင်း"""
         assistants = list(filter(None, [self.one, self.two, self.three, self.four, self.five]))
 
         CRITICAL_FLAGS = (
@@ -538,6 +561,5 @@ class Call:
 
         for assistant in assistants:
             assistant.on_update()(unified_update_handler)
-
 
 Hotty = Call()
