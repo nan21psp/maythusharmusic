@@ -731,4 +731,4 @@ class Call:
 
 
 # Global instance
-pisces = Call()
+Hotty = Call()
