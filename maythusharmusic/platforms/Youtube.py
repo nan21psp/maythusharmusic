@@ -480,7 +480,7 @@ class YouTubeAPI:
                 {
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "opus", # .opus file ကို ထုတ်ပါမယ်
-                    "preferredquality": "320",
+                    "preferredquality": "512",
                 }
             ]
             final_file_path = os.path.join(DOWNLOAD_DIR, f"{file_name_base}.opus")
