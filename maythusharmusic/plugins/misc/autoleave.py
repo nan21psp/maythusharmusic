@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 from pyrogram.enums import ChatType
 
+from pyrogram import Client, filters
 import config
 from maythusharmusic import app
 from maythusharmusic.core.call import Hotty, autoend
@@ -93,8 +94,8 @@ asyncio.create_task(auto_end())
 
 # --------------------- TELEGRAM COMMAND ---------------------
 
-@app.on_message(filters.command(["autoleave"]) & filters.private)
-async def autoleave_cmd(client, message):
+@app.on_message(filters.command(["autoleave"]) & ~BANNED_USERS)
+async def autoleave_cmd(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply(
             "**Usage:** `/autoleave enable` or `/autoleave disable`"
