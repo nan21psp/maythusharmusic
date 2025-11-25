@@ -45,6 +45,7 @@ asyncio.create_task(auto_leave())
 
 
 async def auto_end():
+   if config.AUTO_LEAVE_ASS:
     while not await asyncio.sleep(5):
         ender = await is_autoend()
         if not ender:
