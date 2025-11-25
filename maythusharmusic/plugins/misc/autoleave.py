@@ -6,6 +6,7 @@ from pyrogram import Client, filters
 import config
 from maythusharmusic import app
 from maythusharmusic.core.call import Hotty, autoend
+from maythusharmusic.misc import SUDOERS
 from maythusharmusic.utils.database import (
     get_client,
     is_active_chat,
@@ -94,7 +95,7 @@ asyncio.create_task(auto_end())
 
 # --------------------- TELEGRAM COMMAND ---------------------
 
-@app.on_message(filters.command(["autoleave"]) & ~BANNED_USERS)
+@app.on_message(filters.command(["autoleave"]) & SUDOERS)
 async def autoleave_cmd(client: Client, message: Message):
     if len(message.command) < 2:
         return await message.reply(
