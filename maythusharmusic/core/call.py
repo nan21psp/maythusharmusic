@@ -730,5 +730,5 @@ class Call:
                 LOGGER(__name__).error(f"Failed to register handler for assistant {i}: {e}")
 
 
-# Global instance
-pisces = Call()
+# Global ins
+Hotty = Call()
