@@ -8,6 +8,7 @@ from maythusharmusic import userbot
 from config import CLEANMODE_DELETE_MINS
 from maythusharmusic.core.mongo import mongodb, pymongodb
 
+
 authdb = mongodb.adminauth
 afkdb = mongodb.afk
 authuserdb = mongodb.authuser
@@ -15,6 +16,7 @@ autoenddb = mongodb.autoend
 assdb = mongodb.assistants
 blacklist_chatdb = mongodb.blacklistChat
 blockeddb = mongodb.blockedusers
+col = mongodb.autoleave
 chatsdb = mongodb.chats
 clonedb = mongodb.clonedb
 chatsdbc = mongodb.chatsc  # for clone
@@ -70,9 +72,20 @@ mute = {}
 audio = {}
 video = {}
 
-afkdb = mongodb.afk
 
+async def get_autoleave():
+    data = await col.find_one({"_id": "autoleave"})
+    if not data:
+        return False
+    return data["status"]
 
+async def set_autoleave(state: bool):
+    await col.update_one(
+        {"_id": "autoleave"},
+        {"$set": {"status": state}},
+        upsert=True
+    )
+#____________________________________________________________#
 async def get_filters_count() -> dict:
     chats_count = 0
     filters_count = 0
