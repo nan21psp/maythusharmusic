@@ -479,8 +479,8 @@ class YouTubeAPI:
             ydl_opts["postprocessors"] = [
                 {
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "flac", # .opus file ကို ထုတ်ပါမယ်
-                    "preferredquality": "4500",
+                    "preferredcodec": "opus", # .opus file ကို ထုတ်ပါမယ်
+                    "preferredquality": "320",
                 }
             ]
             final_file_path = os.path.join(DOWNLOAD_DIR, f"{file_name_base}.opus")
