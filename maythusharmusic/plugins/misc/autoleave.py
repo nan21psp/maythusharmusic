@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from pyrogram.enums import ChatType
-
+from pyrogram.types import Message
 from pyrogram import Client, filters
 import config
 from maythusharmusic import app
