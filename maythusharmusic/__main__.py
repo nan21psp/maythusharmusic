@@ -63,13 +63,6 @@ async def init():
     except:
         pass
     await Hotty.decorators()
-    LOGGER("maythusharmusic").info("Auto End Stream settings ကို စစ်ဆေးနေပါသည်...")
-    if config.AUTO_END_STREAM:
-        await autoend_on() # Config မှာ True ဆိုရင် ဖွင့်မယ်
-        LOGGER("maythusharmusic").info("Auto End Stream: ENABLED (via Config)")
-    else:
-        await autoend_off() # Config မှာ False ဆိုရင် ပိတ်မယ်
-        LOGGER("maythusharmusic").info("Auto End Stream: DISABLED (via Config)")
 
     LOGGER("maythusharmusic").info(
         "ᴅʀᴏᴘ ʏᴏᴜʀ ɢɪʀʟꜰʀɪᴇɴᴅ'ꜱ ɴᴜᴍʙᴇʀ ᴀᴛ @sasukevipmusicbotsupport..."
